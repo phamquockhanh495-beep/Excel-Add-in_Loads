@@ -21,8 +21,10 @@ namespace QksExcelAddIn.Views
     /// </summary>
     public partial class ShellLoadView : Window
     {
+        private string CadContext => (cboStory.SelectedItem?.ToString() ?? "") + "|" + (radUniformPattern.IsChecked == true ? cboLoaiTai.SelectedItem?.ToString() : cboDisplayLoadSet.SelectedItem?.ToString());
+        private readonly CadExchangeSession _cadSession = new CadExchangeSession();
+        private readonly string _exchangeDir = Path.Combine(Qks.Shared.Protocol.Root, Guid.NewGuid().ToString("N"));
         private readonly EtabsService _etabsService;
-        private readonly AutoCadIpcService _cadIpcService;
 
         public ObservableCollection<string> AvailableLoadPatterns { get; } = new ObservableCollection<string>();
         public ObservableCollection<string> AvailableDirections { get; } = new ObservableCollection<string> { "Gravity", "Global Z", "Global X", "Global Y" };
@@ -38,7 +40,6 @@ namespace QksExcelAddIn.Views
             InitializeComponent();
             this.DataContext = this;
             _etabsService = new EtabsService();
-            _cadIpcService = new AutoCadIpcService();
 
             if (AvailableLoadPatterns.Count == 0)
             {
@@ -109,15 +110,6 @@ namespace QksExcelAddIn.Views
             lblEtabsModel.Text = isEtabs ? (AppConnectionManager.ActiveEtabs?.ModelFileName ?? "Đã kết nối") : "Chưa kết nối (Kết Nối API từ Ribbon)";
 
             bool isCad = AppConnectionManager.IsAutoCadConnected;
-            if (!isCad)
-            {
-                var docs = AutoCadHelper.GetRunningAutoCadDocuments();
-                if (docs != null && docs.Count > 0)
-                {
-                    AppConnectionManager.ActiveAutoCad = docs[0];
-                    isCad = true;
-                }
-            }
 
             dotCad.Fill = isCad ? new SolidColorBrush(Color.FromRgb(16, 185, 129)) : new SolidColorBrush(Color.FromRgb(220, 50, 50));
             lblCadDrawing.Foreground = isCad ? new SolidColorBrush(Color.FromRgb(16, 124, 65)) : new SolidColorBrush(Color.FromRgb(183, 28, 28));
@@ -188,7 +180,7 @@ namespace QksExcelAddIn.Views
                 string[] storyNames;
                 double[] storyHeights;
                 double[] storyElevs;
-                int nStories = await Task.Run(() => _etabsService.GetStoryList(out storyNames, out storyHeights, out storyElevs));
+                int nStories = await EtabsWork.RunAsync(() => _etabsService.GetStoryList(out storyNames, out storyHeights, out storyElevs));
 
                 cboStory.Items.Clear();
                 if (nStories > 0)
@@ -202,7 +194,7 @@ namespace QksExcelAddIn.Views
                 if (cboStory.Items.Count > 0) cboStory.SelectedIndex = 0;
 
                 string[] patNames;
-                int nPats = await Task.Run(() => _etabsService.GetLoadPatternList(out patNames));
+                int nPats = await EtabsWork.RunAsync(() => _etabsService.GetLoadPatternList(out patNames));
 
                 cboLoaiTai.Items.Clear();
                 cboAssignPattern.Items.Clear();
@@ -243,7 +235,7 @@ namespace QksExcelAddIn.Views
 
             try
             {
-                var loadSets = await Task.Run(() => _etabsService.GetShellUniformLoadSets());
+                var loadSets = await EtabsWork.RunAsync(() => _etabsService.GetShellUniformLoadSets());
                 _loadSetsList.Clear();
                 cboDisplayLoadSet.Items.Clear();
                 cboAssignLoadSet.Items.Clear();
@@ -282,6 +274,7 @@ namespace QksExcelAddIn.Views
 
         private async Task RefreshSlabSectionsAsync()
         {
+            EtabsService.ResetSessionCaches();
             string storyName = cboStory.SelectedItem?.ToString() ?? "";
             if (string.IsNullOrEmpty(storyName) || !_etabsService.IsConnected) return;
 
@@ -295,7 +288,7 @@ namespace QksExcelAddIn.Views
                     _etabsService.UpdateStoredLoadSets(_loadSetsList);
                 }
 
-                var sections = await Task.Run(() => _etabsService.GetSlabSectionsForStory(storyName));
+                var sections = await EtabsWork.RunAsync(() => _etabsService.GetSlabSectionsForStory(storyName));
                 _allSections = sections;
                 dgSlabSections.ItemsSource = _allSections;
 
@@ -303,11 +296,11 @@ namespace QksExcelAddIn.Views
                 string selPat = isPattern ? (cboLoaiTai?.SelectedItem?.ToString() ?? "") : "";
                 string selSet = !isPattern ? (cboDisplayLoadSet?.SelectedItem?.ToString() ?? "") : "";
 
-                var slabs = await Task.Run(() => _etabsService.GetSlabsForStory(storyName, selPat, selSet));
+                var slabs = await EtabsWork.RunAsync(() => _etabsService.GetSlabsForStory(storyName, selPat, selSet));
                 double totalArea = slabs.Sum(s => s.Area);
                 int matchingCount = slabs.Count(s => !string.IsNullOrEmpty(s.FormattedLoadText) && s.FormattedLoadText != "0");
-                string loadModeText = isPattern 
-                    ? $"Pattern: {selPat}" 
+                string loadModeText = isPattern
+                    ? $"Pattern: {selPat}"
                     : (!string.IsNullOrEmpty(selSet) && !selSet.StartsWith("<") ? $"LoadSet: {selSet} ({matchingCount}/{slabs.Count} ô sàn có tải)" : $"LoadSet: Tất cả ({matchingCount}/{slabs.Count} ô sàn có tải)");
                 lblSlabStats.Text = $"• Số lượng ô sàn: {slabs.Count} • Tổng diện tích: {totalArea:0.##} m² • Số loại tiết diện: {sections.Count} • Chế độ: {loadModeText}";
                 SetStatusMessage($"Đã nạp {slabs.Count} ô sàn ({sections.Count} loại tiết diện) tại tầng {storyName}.");
@@ -361,8 +354,8 @@ namespace QksExcelAddIn.Views
             {
                 grpThietLapChung.IsEnabled = isPattern;
                 grpThietLapChung.Opacity = isPattern ? 1.0 : 0.55;
-                grpThietLapChung.ToolTip = isPattern 
-                    ? null 
+                grpThietLapChung.ToolTip = isPattern
+                    ? null
                     : "Thiết lập tải trọng chung được khóa khi chọn chế độ Load Set (tải trọng được định nghĩa theo từng Load Set).";
             }
             if (cboLoaiTai != null)
@@ -415,7 +408,7 @@ namespace QksExcelAddIn.Views
 
                 SetStatusMessage($"Đang trích xuất dữ liệu sàn tầng {storyName}...");
 
-                var slabs = await Task.Run(() => _etabsService.GetSlabsForStory(storyName, selPat, selSet));
+                var slabs = await EtabsWork.RunAsync(() => _etabsService.GetSlabsForStory(storyName, selPat, selSet));
                 if (slabs.Count == 0)
                 {
                     CustomMessageBox.Show($"Không tìm thấy ô sàn nào tại tầng {storyName}.", "Thông Báo", CustomMessageBox.IconType.Warning);
@@ -464,7 +457,7 @@ namespace QksExcelAddIn.Views
                     payload.Slabs.Add(polyItem);
                 }
 
-                string outDir = AutoCadHelper.LoadsDir;
+                string outDir = _exchangeDir;
                 if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
                 string jsonPath = Path.Combine(outDir, "cad_shell_export.json");
                 File.WriteAllText(jsonPath, JsonHelper.Serialize(payload));
@@ -487,7 +480,7 @@ namespace QksExcelAddIn.Views
                 string minAreaStr = minArea.ToString(CultureInfo.InvariantCulture);
 
                 string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_SHELL_DRAW_SLABS \"{formattedJson}\" {pasteXStr} {pasteYStr} {textHeightStr} {textColorIdx} {minAreaStr}\n";
-                AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
 
                 this.Show();
                 this.Activate();
@@ -693,8 +686,8 @@ namespace QksExcelAddIn.Views
         private void OnAddLoadDetailClick(object sender, RoutedEventArgs e)
         {
             if (_selectedLoadSet == null) return;
-            string defPat = AvailableLoadPatterns.Count > 0 
-                ? AvailableLoadPatterns[0] 
+            string defPat = AvailableLoadPatterns.Count > 0
+                ? AvailableLoadPatterns[0]
                 : (cboLoaiTai.Items.Count > 0 ? (cboLoaiTai.Items[0]?.ToString() ?? "SDL") : "SDL");
             var detail = new ShellLoadSetDetail { LoadPattern = defPat, LoadValue = 1.0, Direction = "Gravity" };
             _currentSetDetails.Add(detail);
@@ -830,6 +823,9 @@ namespace QksExcelAddIn.Views
 
         private async void OnSaveLoadSetsToEtabsClick(object sender, RoutedEventArgs e)
         {
+            using var operation = EtabsService.BeginOperation();
+            try
+            {
             if (!_etabsService.IsConnected)
             {
                 CustomMessageBox.Show("Chưa kết nối ETABS.", "Thông Báo", CustomMessageBox.IconType.Warning);
@@ -844,7 +840,7 @@ namespace QksExcelAddIn.Views
 
             SetStatusMessage("Đang lưu Load Sets vào ETABS qua DatabaseTables OAPI...");
 
-            bool ok = await Task.Run(() => _etabsService.SaveShellUniformLoadSetsToEtabs(_loadSetsList.ToList()));
+            bool ok = await EtabsWork.RunAsync(() => _etabsService.SaveShellUniformLoadSetsToEtabs(_loadSetsList.ToList()));
 
             await LoadLoadSetsAsync();
             if (ok)
@@ -854,6 +850,13 @@ namespace QksExcelAddIn.Views
             else
             {
                 CustomMessageBox.Show($"Đã lưu {_loadSetsList.Count} Shell Uniform Load Sets vào mô hình ETABS.", "Lưu Thành Công", CustomMessageBox.IconType.Success);
+            }
+
+            }
+            catch (Exception writeError)
+            {
+                CustomMessageBox.Show(writeError.Message + "\nNếu lệnh đã bắt đầu ghi, kiểm tra model và thư mục QKS_Backups trước khi chạy lại.", "Không hoàn tất thao tác", CustomMessageBox.IconType.ErrorType);
+                if (!IsVisible) Show();
             }
         }
 
@@ -874,7 +877,7 @@ namespace QksExcelAddIn.Views
             }
         }
 
-        private void OnSelectCadSectionClick(object sender, RoutedEventArgs e)
+        private async void OnSelectCadSectionClick(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is string secName && !string.IsNullOrEmpty(secName))
             {
@@ -887,12 +890,15 @@ namespace QksExcelAddIn.Views
 
                 string formattedDll = AutoCadHelper.DllPath.Replace("\\", "/");
                 string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_SHELL_SELECT_SECTION \"{secName}\"\n";
-                AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
             }
         }
 
         private async void OnAssignLoadSetClick(object sender, RoutedEventArgs e)
         {
+            using var operation = EtabsService.BeginOperation();
+            try
+            {
             string storyName = cboStory.SelectedItem?.ToString() ?? "";
             string loadSet = cboAssignLoadSet.SelectedItem?.ToString() ?? "";
             var selSection = dgSlabSections.SelectedItem as ShellSectionInfo;
@@ -910,20 +916,30 @@ namespace QksExcelAddIn.Views
             }
 
             SetStatusMessage($"Đang gán LoadSet {loadSet} vào {selSection.SectionName}...");
-            int count = await Task.Run(() => _etabsService.AssignShellLoadSet(storyName, selSection.SectionName, loadSet));
+            int count = await EtabsWork.RunAsync(() => _etabsService.AssignShellLoadSet(storyName, selSection.SectionName, loadSet));
 
             // Cập nhật Text tải trên CAD thời gian thực nếu bật Live Sync
             if (chkLiveCadSync.IsChecked == true)
             {
-                SyncCadTextLive(selSection.SectionName, $"Set: {loadSet}");
+                await SyncCadTextLive(selSection.SectionName, $"Set: {loadSet}");
             }
 
             await RefreshSlabSectionsAsync();
             CustomMessageBox.Show($"Đã gán thành công LoadSet '{loadSet}' cho {count} ô sàn '{selSection.SectionName}' tại tầng {storyName}.", "Gán Thành Công", CustomMessageBox.IconType.Success);
+
+            }
+            catch (Exception writeError)
+            {
+                CustomMessageBox.Show(writeError.Message + "\nNếu lệnh đã bắt đầu ghi, kiểm tra model và thư mục QKS_Backups trước khi chạy lại.", "Không hoàn tất thao tác", CustomMessageBox.IconType.ErrorType);
+                if (!IsVisible) Show();
+            }
         }
 
         private async void OnAssignUniformLoadClick(object sender, RoutedEventArgs e)
         {
+            using var operation = EtabsService.BeginOperation();
+            try
+            {
             string storyName = cboStory.SelectedItem?.ToString() ?? "";
             string pattern = cboAssignPattern.SelectedItem?.ToString() ?? "";
             var selSection = dgSlabSections.SelectedItem as ShellSectionInfo;
@@ -954,24 +970,31 @@ namespace QksExcelAddIn.Views
             bool replace = cboReplaceMode.SelectedIndex == 0;
 
             SetStatusMessage($"Đang gán tải {finalVal:0.##} kN/m2 vào {selSection.SectionName}...");
-            int count = await Task.Run(() => _etabsService.AssignShellUniformLoad(storyName, selSection.SectionName, pattern, finalVal, dir, replace));
+            int count = await EtabsWork.RunAsync(() => _etabsService.AssignShellUniformLoad(storyName, selSection.SectionName, pattern, finalVal, dir, replace));
 
             // Cập nhật Text tải trên CAD thời gian thực nếu bật Live Sync
             if (chkLiveCadSync.IsChecked == true)
             {
-                SyncCadTextLive(selSection.SectionName, $"{pattern} = {finalVal:0.##} kN/m2");
+                await SyncCadTextLive(selSection.SectionName, $"{pattern} = {finalVal:0.##} kN/m2");
             }
 
             await RefreshSlabSectionsAsync();
             CustomMessageBox.Show($"Đã gán thành công tải {finalVal:0.##} kN/m2 ({pattern}) cho {count} ô sàn '{selSection.SectionName}' tại tầng {storyName}.", "Gán Thành Công", CustomMessageBox.IconType.Success);
+
+            }
+            catch (Exception writeError)
+            {
+                CustomMessageBox.Show(writeError.Message + "\nNếu lệnh đã bắt đầu ghi, kiểm tra model và thư mục QKS_Backups trước khi chạy lại.", "Không hoàn tất thao tác", CustomMessageBox.IconType.ErrorType);
+                if (!IsVisible) Show();
+            }
         }
 
-        private void SyncCadTextLive(string sectionName, string newLoadText)
+        private Task SyncCadTextLive(string sectionName, string newLoadText)
         {
-            SyncCadTextLive(new Dictionary<string, string> { { sectionName, newLoadText } }, sectionName);
+            return SyncCadTextLive(new Dictionary<string, string> { { sectionName, newLoadText } }, sectionName);
         }
 
-        private void SyncCadTextLive(Dictionary<string, string> sectionMap, string targetSection = "")
+        private async Task SyncCadTextLive(Dictionary<string, string> sectionMap, string targetSection = "")
         {
             try
             {
@@ -985,7 +1008,7 @@ namespace QksExcelAddIn.Views
                     SectionLoadMap = sectionMap
                 };
 
-                string outDir = AutoCadHelper.LoadsDir;
+                string outDir = _exchangeDir;
                 if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
                 string jsonFile = Path.Combine(outDir, "cad_shell_update.json");
                 File.WriteAllText(jsonFile, JsonHelper.Serialize(livePayload));
@@ -993,9 +1016,9 @@ namespace QksExcelAddIn.Views
                 string formattedDll = AutoCadHelper.DllPath.Replace("\\", "/");
                 string formattedJson = jsonFile.Replace("\\", "/");
                 string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_SHELL_UPDATE_TEXT \"{formattedJson}\"\n";
-                AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
             }
-            catch { }
+            catch (Exception ex) { CustomMessageBox.Show(ex.Message, "Không đồng bộ được CAD", CustomMessageBox.IconType.Warning); }
         }
 
         #endregion
@@ -1004,6 +1027,9 @@ namespace QksExcelAddIn.Views
 
         private async void OnPickZoneRectClick(object sender, RoutedEventArgs e)
         {
+            using var operation = EtabsService.BeginOperation();
+            try
+            {
             string storyName = cboStory.SelectedItem?.ToString() ?? "";
             if (string.IsNullOrEmpty(storyName))
             {
@@ -1102,10 +1128,10 @@ namespace QksExcelAddIn.Views
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
 
                 SetStatusMessage("Đang tạo vùng tải sàn cục bộ trong ETABS...");
-                bool ok = await Task.Run(() => _etabsService.AssignZoneRectangleLoad(storyName, x1, y1, x2, y2, pat, val, dir, true));
+                bool ok = await EtabsWork.RunAsync(() => _etabsService.AssignZoneRectangleLoad(storyName, x1, y1, x2, y2, pat, val, dir, true));
 
                 if (ok)
                 {
@@ -1133,6 +1159,13 @@ namespace QksExcelAddIn.Views
                 this.Show();
                 CustomMessageBox.Show($"Lỗi thực thi vùng tải: {ex.Message}", "Lỗi", CustomMessageBox.IconType.ErrorType);
             }
+
+            }
+            catch (Exception writeError)
+            {
+                CustomMessageBox.Show(writeError.Message + "\nNếu lệnh đã bắt đầu ghi, kiểm tra model và thư mục QKS_Backups trước khi chạy lại.", "Không hoàn tất thao tác", CustomMessageBox.IconType.ErrorType);
+                if (!IsVisible) Show();
+            }
         }
 
         private void OnGanTaiEtabsClick(object sender, RoutedEventArgs e)
@@ -1143,6 +1176,9 @@ namespace QksExcelAddIn.Views
 
         private async void OnNhapCadClick(object sender, RoutedEventArgs e)
         {
+            using var operation = EtabsService.BeginOperation();
+            try
+            {
             if (!_etabsService.IsConnected)
             {
                 CustomMessageBox.Show("Chưa kết nối với ETABS. Vui lòng mở ETABS và thử lại.", "Chưa Kết Nối ETABS", CustomMessageBox.IconType.Warning);
@@ -1169,20 +1205,15 @@ namespace QksExcelAddIn.Views
 
                 string formattedDll = AutoCadHelper.DllPath.Replace("\\", "/");
                 string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_SHELL_SCAN_LOADS\n";
-                AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                var scanResponse = await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
 
                 this.Show();
                 this.Activate();
 
-                string outDir = @"C:\QKS_JSON_Data\Loads";
+                string outDir = _exchangeDir;
                 string filePath = Path.Combine(outDir, "cad_shell_import.json");
-                if (!File.Exists(filePath))
-                {
-                    CustomMessageBox.Show("Không tìm thấy kết quả quét Text tải trọng từ AutoCAD.", "Thông Báo", CustomMessageBox.IconType.Warning);
-                    return;
-                }
 
-                string json = File.ReadAllText(filePath);
+                string json = scanResponse.PayloadJson;
                 var importItems = JsonHelper.Deserialize<List<CadShellImportItem>>(json);
                 if (importItems == null || importItems.Count == 0)
                 {
@@ -1199,7 +1230,7 @@ namespace QksExcelAddIn.Views
                     dir = d;
                 }
 
-                int updatedCount = await Task.Run(() => _etabsService.AssignImportedShellLoads(importItems, activePat, dir));
+                int updatedCount = await EtabsWork.RunAsync(() => _etabsService.AssignImportedShellLoads(importItems, activePat, dir));
 
                 if (updatedCount > 0)
                 {
@@ -1220,9 +1251,16 @@ namespace QksExcelAddIn.Views
                 this.Show();
                 CustomMessageBox.Show($"Lỗi nhập tải từ CAD: {ex.Message}", "Lỗi", CustomMessageBox.IconType.ErrorType);
             }
+
+            }
+            catch (Exception writeError)
+            {
+                CustomMessageBox.Show(writeError.Message + "\nNếu lệnh đã bắt đầu ghi, kiểm tra model và thư mục QKS_Backups trước khi chạy lại.", "Không hoàn tất thao tác", CustomMessageBox.IconType.ErrorType);
+                if (!IsVisible) Show();
+            }
         }
 
-        private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
+        private async void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Escape)
             {
@@ -1236,10 +1274,10 @@ namespace QksExcelAddIn.Views
                     {
                         string formattedDll = AutoCadHelper.DllPath.Replace("\\", "/");
                         string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_SHELL_CLEAR_SELECTION\n";
-                        AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                        await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
                     }
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
 
                 SetStatusMessage("Đã hủy chọn tiết diện sàn trên giao diện và AutoCAD.");
             }
@@ -1296,7 +1334,7 @@ namespace QksExcelAddIn.Views
 
                     if (confirm != true) return;
 
-                    SyncCadTextLive(selSec.SectionName, loadSummary);
+                    await SyncCadTextLive(selSec.SectionName, loadSummary);
                     SetStatusMessage($"Đã đồng bộ Live CAD Text cho tiết diện '{selSec.SectionName}'.");
 
                     CustomMessageBox.Show(
@@ -1330,7 +1368,7 @@ namespace QksExcelAddIn.Views
 
                     SetStatusMessage($"Đang đọc dữ liệu tải sàn tầng {storyName} từ ETABS để đồng bộ Live CAD...");
 
-                    var slabs = await Task.Run(() => _etabsService.GetSlabsForStory(storyName, pattern, loadSet));
+                    var slabs = await EtabsWork.RunAsync(() => _etabsService.GetSlabsForStory(storyName, pattern, loadSet));
                     if (slabs == null || slabs.Count == 0)
                     {
                         CustomMessageBox.Show($"Không tìm thấy dữ liệu sàn nào tại tầng {storyName} để đồng bộ.", "Thông Báo", CustomMessageBox.IconType.Warning);
@@ -1347,7 +1385,7 @@ namespace QksExcelAddIn.Views
                         }
                     }
 
-                    SyncCadTextLive(secMap);
+                    await SyncCadTextLive(secMap);
                     SetStatusMessage($"Đã đồng bộ Live CAD thành công cho {secMap.Count} loại tiết diện ({slabs.Count} ô sàn) tầng {storyName}.");
 
                     CustomMessageBox.Show(
@@ -1391,14 +1429,14 @@ namespace QksExcelAddIn.Views
                 var sections = _allSections;
                 if (sections == null || sections.Count == 0)
                 {
-                    sections = await Task.Run(() => _etabsService.GetSlabSectionsForStory(storyName));
+                    sections = await EtabsWork.RunAsync(() => _etabsService.GetSlabSectionsForStory(storyName));
                 }
 
                 bool isPattern = radUniformPattern?.IsChecked == true;
                 string selPat = isPattern ? (cboLoaiTai?.SelectedItem?.ToString() ?? "") : "";
                 string selSet = !isPattern ? (cboDisplayLoadSet?.SelectedItem?.ToString() ?? "") : "";
 
-                var slabs = await Task.Run(() => _etabsService.GetSlabsForStory(storyName, selPat, selSet));
+                var slabs = await EtabsWork.RunAsync(() => _etabsService.GetSlabsForStory(storyName, selPat, selSet));
 
                 double.TryParse(txtTextHeight.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double textHeight);
                 if (textHeight <= 0) textHeight = 250.0;
@@ -1432,20 +1470,19 @@ namespace QksExcelAddIn.Views
                     });
                 }
 
-                string outDir = @"C:\QKS_JSON_Data\Loads";
+                string outDir = _exchangeDir;
                 if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
                 string jsonPath = Path.Combine(outDir, "cad_slab_table.json");
                 File.WriteAllText(jsonPath, JsonHelper.Serialize(tablePayload));
 
                 this.Hide();
 
-                await Task.Run(() =>
                 {
                     string formattedDll = AutoCadHelper.DllPath.Replace("\\", "/");
                     string formattedJson = jsonPath.Replace("\\", "/");
                     string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_SHELL_DRAW_TABLE \"{formattedJson}\"\n";
-                    AutoCadHelper.SendCommand(acadDoc, cmdStr);
-                });
+                    await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
+                }
 
                 this.Show();
                 this.Activate();

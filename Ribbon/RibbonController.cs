@@ -75,53 +75,29 @@ namespace QksExcelAddIn.Ribbon
             _ribbonUi = ribbon;
         }
 
+        private static readonly object UiLock = new object();
+        private static Dispatcher? _uiDispatcher;
+        private static readonly ManualResetEventSlim UiReady = new ManualResetEventSlim();
         private void ShowWindowOnSeparateThread<T>() where T : Window, new()
         {
-            var threadObj = new Thread(() =>
+            lock (UiLock)
             {
-                try
+                if (_uiDispatcher == null)
                 {
-                    if (System.Windows.Application.Current == null)
-                    {
-                        var app = new System.Windows.Application
-                        {
-                            ShutdownMode = ShutdownMode.OnExplicitShutdown
-                        };
-                    }
-
-                    var window = new T
-                    {
-                        ShowInTaskbar = true
-                    };
-
-                    var helper = new WindowInteropHelper(window)
-                    {
-                        Owner = GetDesktopWindow()
-                    };
-
-                    window.Closed += (s, e) =>
-                    {
-                        Dispatcher.CurrentDispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
-                    };
-
-                    window.Show();
-                    Dispatcher.Run();
+                    var thread = new Thread(() => {
+                        _uiDispatcher = Dispatcher.CurrentDispatcher;
+                        if (System.Windows.Application.Current == null)
+                            _ = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+                        UiReady.Set(); Dispatcher.Run();
+                    });
+                    thread.SetApartmentState(ApartmentState.STA); thread.IsBackground = true; thread.Start();
+                    UiReady.Wait();
                 }
-                catch (Exception ex)
-                {
-                    Exception root = ex;
-                    while (root.InnerException != null)
-                    {
-                        root = root.InnerException;
-                    }
-                    string details = root != ex ? $"{ex.Message}\n\n[Chi tiết lỗi]: {root.Message}\n{root.StackTrace}" : $"{ex.Message}\n{ex.StackTrace}";
-                    CustomMessageBox.Show($"Lỗi mở giao diện:\n{details}", "Lỗi Khởi Động", CustomMessageBox.IconType.ErrorType);
-                }
-            });
-
-            threadObj.SetApartmentState(ApartmentState.STA);
-            threadObj.IsBackground = true;
-            threadObj.Start();
+            }
+            _uiDispatcher!.BeginInvoke(new Action(() => {
+                try { var window = new T { ShowInTaskbar = true }; window.Show(); }
+                catch (Exception ex) { CustomMessageBox.Show(ex.GetBaseException().Message, "Lỗi mở giao diện", CustomMessageBox.IconType.ErrorType); }
+            }));
         }
 
         public void ClickButton(IRibbonControl control)

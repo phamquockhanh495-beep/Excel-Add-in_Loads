@@ -14,25 +14,15 @@ namespace QksExcelAddIn.Views
         public ObservableCollection<WindLoadRow> WindRows { get; set; }
 
         private readonly EtabsService _etabsService = new EtabsService();
-        private readonly AutoCadIpcService _autocadService = new AutoCadIpcService();
         private System.Collections.Generic.List<AutoCadBeamData> _selectedBeams = new System.Collections.Generic.List<AutoCadBeamData>();
 
         public WindLoadView()
         {
             InitializeComponent();
             EtabsIconHelper.SetIcon(this);
-            
-            WindRows = new ObservableCollection<WindLoadRow>
-            {
-                new WindLoadRow { Name = "TT", Height = 1.2, Elevation = 19.5, WxPush = 12.5, WxPull = 8.3, WyPush = 10.2, WyPull = 6.8 },
-                new WindLoadRow { Name = "MAI", Height = 2.7, Elevation = 18.3, WxPush = 15.2, WxPull = 10.1, WyPush = 12.4, WyPull = 8.2 },
-                new WindLoadRow { Name = "TUM", Height = 3.2, Elevation = 15.6, WxPush = 18.4, WxPull = 12.3, WyPush = 15.1, WyPull = 10.0 },
-                new WindLoadRow { Name = "LAU3", Height = 3.2, Elevation = 12.4, WxPush = 19.2, WxPull = 12.8, WyPush = 15.7, WyPull = 10.5 },
-                new WindLoadRow { Name = "LAU2", Height = 3.2, Elevation = 9.2, WxPush = 18.9, WxPull = 12.6, WyPush = 15.5, WyPull = 10.3 },
-                new WindLoadRow { Name = "LAU1", Height = 2.8, Elevation = 6.0, WxPush = 17.5, WxPull = 11.7, WyPush = 14.3, WyPull = 9.5 },
-                new WindLoadRow { Name = "LUNG", Height = 3.2, Elevation = 3.2, WxPush = 15.0, WxPull = 10.0, WyPush = 12.3, WyPull = 8.2 }
-            };
-            
+
+            WindRows = new ObservableCollection<WindLoadRow>();
+
             DataContext = this;
 
             AppConnectionManager.ConnectionChanged += UpdateConnectionUI;
@@ -101,10 +91,10 @@ namespace QksExcelAddIn.Views
                             Name = storyNames[i],
                             Height = Math.Round(storyHeights[i], 2),
                             Elevation = Math.Round(storyElevations[i], 2),
-                            WxPush = Math.Round(12.0 + i * 1.2, 1),
-                            WxPull = Math.Round(8.0 + i * 0.8, 1),
-                            WyPush = Math.Round(10.0 + i * 1.0, 1),
-                            WyPull = Math.Round(6.5 + i * 0.7, 1)
+                            WxPush = 0.0,
+                            WxPull = 0.0,
+                            WyPush = 0.0,
+                            WyPull = 0.0
                         });
                     }
                     lblStatus.Text = $"Đã cập nhật {count} tầng từ mô hình ETABS.";
@@ -126,177 +116,14 @@ namespace QksExcelAddIn.Views
             }
         }
 
-        private async void OnDocFileAutoCadClick(object sender, RoutedEventArgs e)
+        private void OnDocFileAutoCadClick(object sender, RoutedEventArgs e)
         {
-            if (!AppConnectionManager.IsEtabsConnected)
-            {
-                CustomMessageBox.Show("Chưa kết nối với mô hình ETABS. Vui lòng bấm biểu tượng 'Kết Nối API' trên thanh Ribbon của Excel để thiết lập kết nối.", "Chưa Kết Nối ETABS", CustomMessageBox.IconType.Warning);
-                return;
-            }
-
-            lblStatus.Text = "Đang đọc danh sách dầm từ ETABS...";
-            lblStatus.Foreground = new MediaBrush(MediaColor.FromRgb(15, 34, 64));
-            var beams = _etabsService.GetBeamsList();
-            if (beams.Count == 0)
-            {
-                lblStatus.Text = "Không tìm thấy dầm nào trong ETABS.";
-                lblStatus.Foreground = new MediaBrush(MediaColor.FromRgb(183, 28, 28));
-                CustomMessageBox.Show("Không tìm thấy dầm ngang nào trong mô hình ETABS hiện hành.", "Lỗi Dữ Liệu", CustomMessageBox.IconType.Warning);
-                return;
-            }
-
-            lblStatus.Text = "Đang gửi dữ liệu dầm sang AutoCAD...";
-            lblStatus.Foreground = new MediaBrush(MediaColor.FromRgb(15, 34, 64));
-            var autocadQuery = new AutoCadBeamQuery
-            {
-                Action = "DrawBeams"
-            };
-            foreach (var b in beams)
-            {
-                autocadQuery.Beams.Add(new AutoCadBeamData
-                {
-                    Id = b.Name,
-                    X1 = b.X1,
-                    Y1 = b.Y1,
-                    Z1 = b.Z1,
-                    X2 = b.X2,
-                    Y2 = b.Y2,
-                    Z2 = b.Z2
-                });
-            }
-
-            string requestJson = JsonHelper.Serialize(autocadQuery);
-            string responseJson = await _autocadService.SendQueryAsync(requestJson);
-
-            lblStatus.Text = "Đang đọc các dầm đã chọn/tô màu từ AutoCAD...";
-            lblStatus.Foreground = new MediaBrush(MediaColor.FromRgb(15, 34, 64));
-            var getQuery = new AutoCadBeamQuery
-            {
-                Action = "GetSelectedBeams"
-            };
-            string getRequestJson = JsonHelper.Serialize(getQuery);
-            string getResponseJson = await _autocadService.SendQueryAsync(getRequestJson);
-
-            if (getResponseJson.Contains("error"))
-            {
-                lblStatus.Text = "Không thể kết nối AutoCAD.";
-                lblStatus.Foreground = new MediaBrush(MediaColor.FromRgb(183, 28, 28));
-                CustomMessageBox.Show("Vui lòng đảm bảo AutoCAD đang mở và Plugin được nạp (lệnh NETLOAD).", "Lỗi AutoCAD IPC", CustomMessageBox.IconType.Warning);
-                return;
-            }
-
-            try
-            {
-                var result = JsonHelper.Deserialize<AutoCadBeamQuery>(getResponseJson);
-
-                if (result != null && result.Beams != null)
-                {
-                    _selectedBeams = result.Beams;
-                    lblStatus.Text = $"Đã đọc thành công {_selectedBeams.Count} dầm biên từ AutoCAD.";
-                    lblStatus.Foreground = new MediaBrush(MediaColor.FromRgb(16, 124, 65));
-                    CustomMessageBox.Show($"Đã đọc thành công {_selectedBeams.Count} dầm biên từ AutoCAD.", "Đồng Bộ Thành Công", CustomMessageBox.IconType.Success);
-                }
-                else
-                {
-                    lblStatus.Text = "Không tìm thấy dầm nào được chọn từ AutoCAD.";
-                    lblStatus.Foreground = new MediaBrush(MediaColor.FromRgb(183, 28, 28));
-                }
-            }
-            catch (Exception ex)
-            {
-                lblStatus.Text = "Lỗi giải mã JSON từ AutoCAD: " + ex.Message;
-                lblStatus.Foreground = new MediaBrush(MediaColor.FromRgb(183, 28, 28));
-            }
+            CustomMessageBox.Show("Chức năng tải gió đang chờ hoàn thiện công thức và kiểm thử theo tiêu chuẩn. Chưa hỗ trợ ghi tải vào mô hình.", "Tải gió chưa sẵn sàng", CustomMessageBox.IconType.Warning);
         }
 
         private void OnGanTaiGioClick(object sender, RoutedEventArgs e)
         {
-            if (_selectedBeams == null || _selectedBeams.Count == 0)
-            {
-                CustomMessageBox.Show("Vui lòng nhấn nút 'ĐỌC TỪ AUTOCAD' để lấy danh sách dầm biên đã chọn trước khi gán tải.", "Thiếu Dữ Liệu", CustomMessageBox.IconType.Warning);
-                return;
-            }
-
-            if (!AppConnectionManager.IsEtabsConnected)
-            {
-                CustomMessageBox.Show("Chưa kết nối với mô hình ETABS. Vui lòng bấm biểu tượng 'Kết Nối API' trên thanh Ribbon của Excel để thiết lập kết nối.", "Chưa Kết Nối ETABS", CustomMessageBox.IconType.Warning);
-                return;
-            }
-
-            if (_etabsService.IsModelLocked())
-            {
-                CustomMessageBox.Show("Mô hình ETABS đang bị khóa (Locked). Vui lòng mở khóa mô hình trong ETABS trước khi gán tải.", "Mô Hình Bị Khóa", CustomMessageBox.IconType.Warning);
-                return;
-            }
-
-            int successCount = 0;
-            int failCount = 0;
-
-            foreach (var b in _selectedBeams)
-            {
-                // Tìm tầng tương ứng với dầm
-                WindLoadRow? targetRow = null;
-                foreach (var row in WindRows)
-                {
-                    if (Math.Abs(row.Elevation - b.Z1) < 0.1)
-                    {
-                        targetRow = row;
-                        break;
-                    }
-                }
-
-                if (targetRow == null)
-                {
-                    failCount++;
-                    continue;
-                }
-
-                string loadPat = "";
-                int dir = 1; // 1 = Global X, 2 = Global Y
-                double loadValue = 0.0;
-
-                switch (b.Color)
-                {
-                    case 1: // Đỏ: Gió đẩy X
-                        loadPat = "WXP";
-                        dir = 1;
-                        loadValue = targetRow.WxPush;
-                        break;
-                    case 2: // Vàng: Gió hút X
-                        loadPat = "WXH";
-                        dir = 1;
-                        loadValue = targetRow.WxPull;
-                        break;
-                    case 3: // Xanh lá: Gió đẩy Y
-                        loadPat = "WYP";
-                        dir = 2;
-                        loadValue = targetRow.WyPush;
-                        break;
-                    case 4: // Xanh nhạt (Cyan): Gió hút Y
-                        loadPat = "WYH";
-                        dir = 2;
-                        loadValue = targetRow.WyPull;
-                        break;
-                    default:
-                        continue;
-                }
-
-                bool success = _etabsService.AssignDistributedLoad(b.Id, loadPat, dir, loadValue);
-                if (success)
-                {
-                    successCount++;
-                }
-                else
-                {
-                    failCount++;
-                }
-            }
-
-            // Làm mới khung nhìn ETABS
-            _etabsService.RefreshView();
-
-            lblStatus.Text = $"Gán tải thành công {successCount} dầm. Thất bại {failCount} dầm.";
-            CustomMessageBox.Show($"Hoàn tất gán tải trọng gió biên vào ETABS:\n- Gán thành công: {successCount} dầm\n- Thất bại/Lỗi tầng: {failCount} dầm", "Kết Quả Gán Tải", CustomMessageBox.IconType.Success);
+            CustomMessageBox.Show("Chức năng tải gió đang chờ hoàn thiện công thức và kiểm thử theo tiêu chuẩn. Chưa hỗ trợ ghi tải vào mô hình.", "Tải gió chưa sẵn sàng", CustomMessageBox.IconType.Warning);
         }
 
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)

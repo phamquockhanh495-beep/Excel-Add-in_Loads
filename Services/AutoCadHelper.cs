@@ -15,6 +15,16 @@ namespace QksExcelAddIn.Services
     internal static class AutoCadHelper
     {
         public static readonly string DllPath = @"C:\QKS_JSON_Data\Loads\QKS_Loads_AcadPlugin.dll";
+        internal static string ResolvePluginPath(object document)
+        {
+            dynamic doc = document;
+            string version = (string)doc.Application.Version;
+            string[] releases = { "22.0", "23.0", "23.1", "24.0", "24.1", "24.2", "24.3", "25.0", "25.1" };
+            int index = Array.FindIndex(releases, v => version.StartsWith(v, StringComparison.Ordinal));
+            if (index < 0) throw new NotSupportedException("AutoCAD ngoài phạm vi 2018–2026.");
+            string root = Environment.GetEnvironmentVariable("QKS_HOME") ?? @"C:\QKS_JSON_Data\Loads";
+            return System.IO.Path.Combine(root, "AutoCAD", (2018 + index).ToString(), "QKS_Loads_AcadPlugin.dll");
+        }
         public static readonly string LoadsDir = @"C:\QKS_JSON_Data\Loads";
 
         [DllImport("ole32.dll")]
@@ -274,46 +284,11 @@ namespace QksExcelAddIn.Services
         {
             try
             {
-                string targetFileName = AppConnectionManager.ActiveAutoCad?.FileName ?? "";
-                string targetFullPath = AppConnectionManager.ActiveAutoCad?.FullPath ?? "";
-
-                // 1. Quét danh sách các tài liệu AutoCAD đang mở
-                var docs = GetRunningAutoCadDocuments();
-                if (docs.Count > 0)
-                {
-                    // Nếu có chỉ định file cụ thể trong AppConnectionManager
-                    if (!string.IsNullOrEmpty(targetFileName) || !string.IsNullOrEmpty(targetFullPath))
-                    {
-                        foreach (var docInfo in docs)
-                        {
-                            if (!string.IsNullOrEmpty(targetFileName) && docInfo.FileName.Equals(targetFileName, StringComparison.OrdinalIgnoreCase))
-                            {
-                                if (docInfo.DocObj != null) return docInfo.DocObj;
-                            }
-                            if (!string.IsNullOrEmpty(targetFullPath) && docInfo.FullPath.Equals(targetFullPath, StringComparison.OrdinalIgnoreCase))
-                            {
-                                if (docInfo.DocObj != null) return docInfo.DocObj;
-                            }
-                        }
-                    }
-
-                    // Nếu không chỉ định hoặc không khớp: Lấy document đầu tiên
-                    if (docs[0].DocObj != null)
-                    {
-                        return docs[0].DocObj;
-                    }
-                }
-
-                // 2. Fallback: Lấy ActiveDocument của AutoCAD Application
-                dynamic? acadApp = GetActiveAutoCadApp();
-                if (acadApp != null)
-                {
-                    dynamic? activeDoc = acadApp.ActiveDocument;
-                    if (activeDoc != null)
-                    {
-                        return activeDoc;
-                    }
-                }
+                var selected = AppConnectionManager.ActiveAutoCad;
+                if (selected?.DocObj == null || string.IsNullOrWhiteSpace(selected.FullPath)) return null;
+                dynamic doc = selected.DocObj;
+                if (!Qks.Shared.Protocol.SamePath((string)doc.FullName, selected.FullPath)) return null;
+                return doc;
             }
             catch (Exception ex)
             {
@@ -506,7 +481,7 @@ namespace QksExcelAddIn.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Lỗi SendCommand: {ex.Message}");
+                throw new InvalidOperationException("Không gửi được lệnh AutoCAD.", ex);
             }
         }
     }

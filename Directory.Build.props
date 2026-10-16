@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts/obj/$(MSBuildProjectName)/$(AcadVersion)/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts/bin/$(MSBuildProjectName)/$(AcadVersion)/</BaseOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildThisFileDirectory)obj/**;$(MSBuildThisFileDirectory)artifacts/**;$(MSBuildThisFileDirectory)Loads/**</DefaultItemExcludes>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <NuGetLockFilePath>$(MSBuildThisFileDirectory)build/locks/$(MSBuildProjectName)$(AcadVersion).lock.json</NuGetLockFilePath>
+  </PropertyGroup>
+</Project>

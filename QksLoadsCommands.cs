@@ -6,7 +6,7 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.EditorInput;
-using System.Web.Script.Serialization;
+using Qks.Shared;
 
 namespace QKS_Loads_AcadPlugin
 {
@@ -132,7 +132,7 @@ namespace QKS_Loads_AcadPlugin
         public double X2 { get; set; }
         public double Y2 { get; set; }
         public double Z2 { get; set; }
-        public string Thickness { get; set; } = "200";
+        public string Thickness { get; set; } = "100";
         public string BeamName { get; set; } = string.Empty;
     }
 
@@ -257,18 +257,18 @@ namespace QKS_Loads_AcadPlugin
                 Editor ed = Application.DocumentManager.MdiActiveDocument?.Editor;
                 if (ed != null)
                 {
-                    ed.WriteMessage("\n=======================================================");
-                    ed.WriteMessage("\n [Extension QKS - Loads] Plugin AutoCAD đã nạp thành công!");
-                    ed.WriteMessage("\n Các lệnh khả dụng:");
-                    ed.WriteMessage("\n  - QKS_WALL_DRAW_BEAMS     : Vẽ mặt bằng dầm + Dot ngưng tải + Text tải trọng");
-                    ed.WriteMessage("\n  - QKS_WALL_SCAN_LOADS     : Quét các Text tải trọng đã sửa để nạp vào ETABS");
-                    ed.WriteMessage("\n  - QKS_WALL_UPDATE_TEXT    : Cập nhật Text tải tường thời gian thực (Live CAD Sync)");
-                    ed.WriteMessage("\n  - QKS_WALL_PICK_BASEPOINT : Pick điểm gốc BasePoint");
-                    ed.WriteMessage("\n  - QKS_WALL_GET_LINES      : Chọn các line tường kiến trúc trên CAD");
-                    ed.WriteMessage("\n=======================================================\n");
+                    CadRuntime.Message(ed, "\n=======================================================");
+                    CadRuntime.Message(ed, "\n [Extension QKS - Loads] Plugin AutoCAD đã nạp thành công!");
+                    CadRuntime.Message(ed, "\n Các lệnh khả dụng:");
+                    CadRuntime.Message(ed, "\n  - QKS_WALL_DRAW_BEAMS     : Vẽ mặt bằng dầm + Dot ngưng tải + Text tải trọng");
+                    CadRuntime.Message(ed, "\n  - QKS_WALL_SCAN_LOADS     : Quét các Text tải trọng đã sửa để nạp vào ETABS");
+                    CadRuntime.Message(ed, "\n  - QKS_WALL_UPDATE_TEXT    : Cập nhật Text tải tường thời gian thực (Live CAD Sync)");
+                    CadRuntime.Message(ed, "\n  - QKS_WALL_PICK_BASEPOINT : Pick điểm gốc BasePoint");
+                    CadRuntime.Message(ed, "\n  - QKS_WALL_GET_LINES      : Chọn các line tường kiến trúc trên CAD");
+                    CadRuntime.Message(ed, "\n=======================================================\n");
                 }
             }
-            catch { }
+            catch (System.Exception ex) { if (CadRuntime.Request != null) throw; System.Diagnostics.Debug.WriteLine(ex); }
         }
 
         public void Terminate() { }
@@ -277,9 +277,10 @@ namespace QKS_Loads_AcadPlugin
     /// <summary>
     /// Các hàm lệnh CommandMethod thực thi trực tiếp In-Process trong AutoCAD
     /// </summary>
-    public static class QksLoadsCommands
+    public static partial class QksLoadsCommands
     {
-        private static JavaScriptSerializer _json = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+        private static JsonAdapter _json = new JsonAdapter();
+        private sealed class JsonAdapter { public string Serialize(object value) => JsonCodec.Serialize(value); public T Deserialize<T>(string value) => JsonCodec.Deserialize<T>(value); }
 
         #region Layer & XData Helpers
         private static string EnsureLayerExists(Transaction tr, Database db, string layerName, int colorIndex)
@@ -295,7 +296,7 @@ namespace QKS_Loads_AcadPlugin
                     Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, targetColor)
                 };
                 lt.Add(ltr);
-                tr.AddNewlyCreatedDBObject(ltr, true);
+                tr.AddNewlyCreatedDBObject(ltr, true); CadRuntime.Tag(ltr, tr, db);
             }
             else
             {
@@ -314,7 +315,7 @@ namespace QKS_Loads_AcadPlugin
                 rat.UpgradeOpen();
                 RegAppTableRecord ratr = new RegAppTableRecord { Name = appName };
                 rat.Add(ratr);
-                tr.AddNewlyCreatedDBObject(ratr, true);
+                tr.AddNewlyCreatedDBObject(ratr, true); CadRuntime.Tag(ratr, tr, db);
             }
         }
 
@@ -379,42 +380,42 @@ namespace QKS_Loads_AcadPlugin
             try
             {
                 // 1. Đọc các tham số truyền vào
-                PromptResult resJson = ed.GetString("\nĐường dẫn JSON: ");
-                if (resJson.Status != PromptStatus.OK) return;
+                var resJson = CadRuntime.String(ed, "\nĐường dẫn JSON: ");
+                if (resJson.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 string jsonPath = resJson.StringResult.Trim('\"');
 
-                PromptDoubleResult resX = ed.GetDouble("\nTọa độ X điểm dán: ");
-                if (resX.Status != PromptStatus.OK) return;
+                var resX = CadRuntime.Number(ed, "\nTọa độ X điểm dán: ");
+                if (resX.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 double pasteX = resX.Value;
 
-                PromptDoubleResult resY = ed.GetDouble("\nTọa độ Y điểm dán: ");
-                if (resY.Status != PromptStatus.OK) return;
+                var resY = CadRuntime.Number(ed, "\nTọa độ Y điểm dán: ");
+                if (resY.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 double pasteY = resY.Value;
 
-                PromptDoubleResult resH = ed.GetDouble("\nChiều cao chữ: ");
-                if (resH.Status != PromptStatus.OK) return;
+                var resH = CadRuntime.Number(ed, "\nChiều cao chữ: ");
+                if (resH.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 double textHeight = resH.Value;
 
-                PromptIntegerResult resTextColor = ed.GetInteger("\nMã màu text tải: ");
-                if (resTextColor.Status != PromptStatus.OK) return;
+                var resTextColor = CadRuntime.Integer(ed, "\nMã màu text tải: ");
+                if (resTextColor.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 int textColorIndex = resTextColor.Value;
 
-                PromptIntegerResult resBeamColor = ed.GetInteger("\nMã màu frame dầm: ");
-                if (resBeamColor.Status != PromptStatus.OK) return;
+                var resBeamColor = CadRuntime.Integer(ed, "\nMã màu frame dầm: ");
+                if (resBeamColor.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 int beamColorIndex = resBeamColor.Value;
 
                 // 2. Đọc file JSON
                 if (!File.Exists(jsonPath))
                 {
-                    ed.WriteMessage($"\n[QKS Error] Không tìm thấy file dữ liệu tại: {jsonPath}");
+                    CadRuntime.Message(ed, $"\n[QKS Error] Không tìm thấy file dữ liệu tại: {jsonPath}");
                     return;
                 }
 
-                string jsonContent = File.ReadAllText(jsonPath);
+                string jsonContent = JsonCodec.Read(jsonPath);
                 var payload = _json.Deserialize<CadExportPayload>(jsonContent);
                 if (payload == null || payload.Beams == null || payload.Beams.Count == 0)
                 {
-                    ed.WriteMessage("\n[QKS Error] Dữ liệu dầm xuất rỗng.");
+                    CadRuntime.Message(ed, "\n[QKS Error] Dữ liệu dầm xuất rỗng.");
                     return;
                 }
 
@@ -428,6 +429,7 @@ namespace QKS_Loads_AcadPlugin
                     string segLayer = EnsureLayerExists(tr, db, "QKS_WALL_LOAD_SEGMENT", 2); // Yellow default
                     string textLayer = EnsureLayerExists(tr, db, "QKS_WALL_LOAD_TEXT", textColorIndex);
                     EnsureRegApp(tr, db, "QKS_LOAD");
+                    EnsureRegApp(tr, db, "QKS_SEGMENT");
 
                     int beamCount = 0;
                     int segmentCount = 0;
@@ -466,7 +468,7 @@ namespace QKS_Loads_AcadPlugin
                         }
 
                         ms.AppendEntity(beamLine);
-                        tr.AddNewlyCreatedDBObject(beamLine, true);
+                        tr.AddNewlyCreatedDBObject(beamLine, true); CadRuntime.Tag(beamLine, tr, db);
                         SetXData(beamLine, "QKS_LOAD", $"{beam.BeamName}|{beam.Section}");
                         beamCount++;
 
@@ -497,8 +499,9 @@ namespace QKS_Loads_AcadPlugin
                                     segPline.Color = GetColorByLoadValue(seg.Val1);
 
                                     ms.AppendEntity(segPline);
-                                    tr.AddNewlyCreatedDBObject(segPline, true);
+                                    tr.AddNewlyCreatedDBObject(segPline, true); CadRuntime.Tag(segPline, tr, db);
                                     SetXData(segPline, "QKS_LOAD", $"{beam.BeamName}|{beam.Section}");
+                                    SetXData(segPline, "QKS_SEGMENT", FormattableString.Invariant($"{seg.StartDist:R}|{seg.EndDist:R}"));
                                     segPolyCount++;
                                 }
 
@@ -516,8 +519,9 @@ namespace QKS_Loads_AcadPlugin
                                 mText.Rotation = seg.AngleDeg * (Math.PI / 180.0);
 
                                 ms.AppendEntity(mText);
-                                tr.AddNewlyCreatedDBObject(mText, true);
+                                tr.AddNewlyCreatedDBObject(mText, true); CadRuntime.Tag(mText, tr, db);
                                 SetXData(mText, "QKS_LOAD", $"{beam.BeamName}|{beam.Section}");
+                                SetXData(mText, "QKS_SEGMENT", FormattableString.Invariant($"{seg.StartDist:R}|{seg.EndDist:R}"));
                                 segmentCount++;
                             }
                         }
@@ -537,8 +541,9 @@ namespace QKS_Loads_AcadPlugin
                             mText.Rotation = beam.AngleDeg * (Math.PI / 180.0);
 
                             ms.AppendEntity(mText);
-                            tr.AddNewlyCreatedDBObject(mText, true);
+                            tr.AddNewlyCreatedDBObject(mText, true); CadRuntime.Tag(mText, tr, db);
                             SetXData(mText, "QKS_LOAD", $"{beam.BeamName}|{beam.Section}");
+                            SetXData(mText, "QKS_SEGMENT", FormattableString.Invariant($"0|{beam.Length:R}"));
                             segmentCount++;
                         }
                     }
@@ -573,7 +578,7 @@ namespace QKS_Loads_AcadPlugin
                             titleText.Location = new Point3d(lx, ly, 0);
                             titleText.Attachment = AttachmentPoint.TopLeft;
                             ms.AppendEntity(titleText);
-                            tr.AddNewlyCreatedDBObject(titleText, true);
+                            tr.AddNewlyCreatedDBObject(titleText, true); CadRuntime.Tag(titleText, tr, db);
 
                             double currentY = ly - th * 2.5;
                             int secIdx = 0;
@@ -598,7 +603,7 @@ namespace QKS_Loads_AcadPlugin
                                     sampleLine.Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, (short)beamColorIndex);
                                 }
                                 ms.AppendEntity(sampleLine);
-                                tr.AddNewlyCreatedDBObject(sampleLine, true);
+                                tr.AddNewlyCreatedDBObject(sampleLine, true); CadRuntime.Tag(sampleLine, tr, db);
 
                                 // Text tên tiết diện
                                 MText secText = new MText();
@@ -609,7 +614,7 @@ namespace QKS_Loads_AcadPlugin
                                 secText.Location = new Point3d(lx + lineSampleLen + (th * 0.8), sampleY, 0);
                                 secText.Attachment = AttachmentPoint.MiddleLeft;
                                 ms.AppendEntity(secText);
-                                tr.AddNewlyCreatedDBObject(secText, true);
+                                tr.AddNewlyCreatedDBObject(secText, true); CadRuntime.Tag(secText, tr, db);
 
                                 secIdx++;
                             }
@@ -628,17 +633,18 @@ namespace QKS_Loads_AcadPlugin
                             legendBox.AddVertexAt(3, new Point2d(lx - boxPadding, ly + boxPadding - boxHeight), 0, 0, 0);
                             legendBox.Closed = true;
                             ms.AppendEntity(legendBox);
-                            tr.AddNewlyCreatedDBObject(legendBox, true);
+                            tr.AddNewlyCreatedDBObject(legendBox, true); CadRuntime.Tag(legendBox, tr, db);
                         }
                     }
 
-                    tr.Commit();
-                    ed.WriteMessage($"\n[QKS Loads] Hoàn tất vẽ {beamCount} dầm, {segmentCount} text tải trọng và {segPolyCount} đoạn Polyline tải (Width=5mm).");
+                    tr.Commit(); CadRuntime.Completed = true;
+                    CadRuntime.Message(ed, $"\n[QKS Loads] Hoàn tất vẽ {beamCount} dầm, {segmentCount} text tải trọng và {segPolyCount} đoạn Polyline tải (Width=5mm).");
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[QKS Error] Lỗi vẽ dầm tải: {ex.Message}");
+                if (ex is OperationCanceledException && CadRuntime.Request != null) throw;
+                CadRuntime.Message(ed, $"\n[QKS Error] Lỗi vẽ dầm tải: {ex.Message}");
             }
         }
 
@@ -655,33 +661,33 @@ namespace QKS_Loads_AcadPlugin
             try
             {
                 // 1. Đọc các tham số truyền vào từ dòng lệnh
-                PromptResult resJson = ed.GetString("\nĐường dẫn JSON: ");
-                if (resJson.Status != PromptStatus.OK) return;
+                var resJson = CadRuntime.String(ed, "\nĐường dẫn JSON: ");
+                if (resJson.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 string jsonPath = resJson.StringResult.Trim('\"');
 
-                PromptDoubleResult resX = ed.GetDouble("\nTọa độ X điểm đặt legend: ");
-                if (resX.Status != PromptStatus.OK) return;
+                var resX = CadRuntime.Number(ed, "\nTọa độ X điểm đặt legend: ");
+                if (resX.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 double lx = resX.Value;
 
-                PromptDoubleResult resY = ed.GetDouble("\nTọa độ Y điểm đặt legend: ");
-                if (resY.Status != PromptStatus.OK) return;
+                var resY = CadRuntime.Number(ed, "\nTọa độ Y điểm đặt legend: ");
+                if (resY.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 double ly = resY.Value;
 
-                PromptDoubleResult resTh = ed.GetDouble("\nChiều cao chữ: ");
-                if (resTh.Status != PromptStatus.OK) return;
+                var resTh = CadRuntime.Number(ed, "\nChiều cao chữ: ");
+                if (resTh.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 double textHeight = resTh.Value > 0 ? resTh.Value : 200.0;
 
                 if (!File.Exists(jsonPath))
                 {
-                    ed.WriteMessage($"\n[QKS Error] Không tìm thấy file dữ liệu tại: {jsonPath}");
+                    CadRuntime.Message(ed, $"\n[QKS Error] Không tìm thấy file dữ liệu tại: {jsonPath}");
                     return;
                 }
 
-                string jsonContent = File.ReadAllText(jsonPath);
+                string jsonContent = JsonCodec.Read(jsonPath);
                 var payload = _json.Deserialize<CadExportPayload>(jsonContent);
                 if (payload == null || payload.Beams == null || payload.Beams.Count == 0)
                 {
-                    ed.WriteMessage("\n[QKS Error] Dữ liệu dầm xuất rỗng.");
+                    CadRuntime.Message(ed, "\n[QKS Error] Dữ liệu dầm xuất rỗng.");
                     return;
                 }
 
@@ -719,7 +725,7 @@ namespace QKS_Loads_AcadPlugin
                         titleText.Location = new Point3d(lx, ly, 0);
                         titleText.Attachment = AttachmentPoint.TopLeft;
                         ms.AppendEntity(titleText);
-                        tr.AddNewlyCreatedDBObject(titleText, true);
+                        tr.AddNewlyCreatedDBObject(titleText, true); CadRuntime.Tag(titleText, tr, db);
 
                         double currentY = ly - th * 2.5;
                         int secIdx = 0;
@@ -744,7 +750,7 @@ namespace QKS_Loads_AcadPlugin
                                 sampleLine.Color = Autodesk.AutoCAD.Colors.Color.FromColorIndex(Autodesk.AutoCAD.Colors.ColorMethod.ByAci, 8);
                             }
                             ms.AppendEntity(sampleLine);
-                            tr.AddNewlyCreatedDBObject(sampleLine, true);
+                            tr.AddNewlyCreatedDBObject(sampleLine, true); CadRuntime.Tag(sampleLine, tr, db);
 
                             // Text tên tiết diện
                             MText secText = new MText();
@@ -755,7 +761,7 @@ namespace QKS_Loads_AcadPlugin
                             secText.Location = new Point3d(lx + lineSampleLen + (th * 0.8), sampleY, 0);
                             secText.Attachment = AttachmentPoint.MiddleLeft;
                             ms.AppendEntity(secText);
-                            tr.AddNewlyCreatedDBObject(secText, true);
+                            tr.AddNewlyCreatedDBObject(secText, true); CadRuntime.Tag(secText, tr, db);
 
                             secIdx++;
                         }
@@ -774,16 +780,17 @@ namespace QKS_Loads_AcadPlugin
                         legendBox.AddVertexAt(3, new Point2d(lx - boxPadding, ly + boxPadding - boxHeight), 0, 0, 0);
                         legendBox.Closed = true;
                         ms.AppendEntity(legendBox);
-                        tr.AddNewlyCreatedDBObject(legendBox, true);
+                        tr.AddNewlyCreatedDBObject(legendBox, true); CadRuntime.Tag(legendBox, tr, db);
                     }
 
-                    tr.Commit();
-                    ed.WriteMessage($"\n[QKS Loads] Hoàn tất vẽ bảng chú thích với {uniqueSections.Count} loại tiết diện.");
+                    tr.Commit(); CadRuntime.Completed = true;
+                    CadRuntime.Message(ed, $"\n[QKS Loads] Hoàn tất vẽ bảng chú thích với {uniqueSections.Count} loại tiết diện.");
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[QKS Error] Lỗi vẽ bảng chú thích: {ex.Message}");
+                if (ex is OperationCanceledException && CadRuntime.Request != null) throw;
+                CadRuntime.Message(ed, $"\n[QKS Error] Lỗi vẽ bảng chú thích: {ex.Message}");
             }
         }
 
@@ -801,8 +808,8 @@ namespace QKS_Loads_AcadPlugin
 
             try
             {
-                PromptResult res = ed.GetString("\nNhập tên tiết diện cần chọn: ");
-                if (res.Status != PromptStatus.OK) return;
+                var res = CadRuntime.String(ed, "\nNhập tên tiết diện cần chọn: ");
+                if (res.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 string targetSection = res.StringResult.Trim('\"', ' ');
 
                 if (string.IsNullOrEmpty(targetSection)) return;
@@ -847,29 +854,30 @@ namespace QKS_Loads_AcadPlugin
                             }
                         }
                     }
-                    tr.Commit();
+                    tr.Commit(); CadRuntime.Completed = true;
                 }
 
                 if (matchingIds.Count > 0)
                 {
                     ed.SetImpliedSelection(matchingIds.ToArray());
-                    ed.WriteMessage($"\n[QKS Loads] Đã quét chọn {matchingIds.Count} dầm mang tiết diện '{targetSection}' trên bản vẽ AutoCAD.\n");
+                    CadRuntime.Message(ed, $"\n[QKS Loads] Đã quét chọn {matchingIds.Count} dầm mang tiết diện '{targetSection}' trên bản vẽ AutoCAD.\n");
 
                     try
                     {
                         string filePath = @"C:\QKS_JSON_Data\Loads\cad_wall_lines.json";
-                        File.WriteAllText(filePath, _json.Serialize(result));
+                        CadRuntime.WriteResult(filePath, _json.Serialize(result));
                     }
-                    catch { }
+                    catch (System.Exception ex) { if (CadRuntime.Request != null) throw; System.Diagnostics.Debug.WriteLine(ex); }
                 }
                 else
                 {
-                    ed.WriteMessage($"\n[QKS Loads] Không tìm thấy dầm nào mang tiết diện '{targetSection}' trên layer QKS_WALL_LOAD_BEAM.\n");
+                    CadRuntime.Message(ed, $"\n[QKS Loads] Không tìm thấy dầm nào mang tiết diện '{targetSection}' trên layer QKS_WALL_LOAD_BEAM.\n");
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[QKS Error] Lỗi chọn dầm theo tiết diện: {ex.Message}");
+                if (ex is OperationCanceledException && CadRuntime.Request != null) throw;
+                CadRuntime.Message(ed, $"\n[QKS Error] Lỗi chọn dầm theo tiết diện: {ex.Message}");
             }
         }
 
@@ -885,15 +893,15 @@ namespace QKS_Loads_AcadPlugin
             try
             {
                 ed.SetImpliedSelection(new ObjectId[0]);
-                ed.WriteMessage("\n[QKS Loads] Đã hủy chọn đối tượng trên AutoCAD.\n");
+                CadRuntime.Message(ed, "\n[QKS Loads] Đã hủy chọn đối tượng trên AutoCAD.\n");
 
                 string filePath = @"C:\QKS_JSON_Data\Loads\cad_wall_lines.json";
                 if (File.Exists(filePath))
                 {
-                    try { File.Delete(filePath); } catch { }
+                    try { File.Delete(filePath); } catch (System.Exception ex) { if (CadRuntime.Request != null) throw; System.Diagnostics.Debug.WriteLine(ex); }
                 }
             }
-            catch { }
+            catch (System.Exception ex) { if (CadRuntime.Request != null) throw; System.Diagnostics.Debug.WriteLine(ex); }
         }
 
         /// <summary>
@@ -915,9 +923,9 @@ namespace QKS_Loads_AcadPlugin
 
                 string filePath = @"C:\QKS_JSON_Data\Loads\base_point.json";
                 var data = new { X = x, Y = y, Time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") };
-                File.WriteAllText(filePath, _json.Serialize(data));
+                CadRuntime.WriteResult(filePath, _json.Serialize(data));
 
-                ed.WriteMessage($"\n[QKS Loads] Đã lưu BasePoint: X = {x}, Y = {y}");
+                CadRuntime.Message(ed, $"\n[QKS Loads] Đã lưu BasePoint: X = {x}, Y = {y}");
             }
         }
 
@@ -946,7 +954,7 @@ namespace QKS_Loads_AcadPlugin
 
             SelectionFilter sf = new SelectionFilter(filter);
             PromptSelectionResult psr = ed.GetSelection(pso, sf);
-            if (psr.Status != PromptStatus.OK) return;
+            if (psr.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
 
             using (Transaction tr = db.TransactionManager.StartTransaction())
             {
@@ -954,6 +962,7 @@ namespace QKS_Loads_AcadPlugin
                 {
                     if (so == null) continue;
                     DBObject obj = tr.GetObject(so.ObjectId, OpenMode.ForRead);
+                        if (!CadRuntime.InScope(obj)) continue;
 
                     if (obj is Line line)
                     {
@@ -1017,13 +1026,13 @@ namespace QKS_Loads_AcadPlugin
                         }
                     }
                 }
-                tr.Commit();
+                tr.Commit(); CadRuntime.Completed = true;
             }
 
             string filePath = @"C:\QKS_JSON_Data\Loads\cad_wall_lines.json";
-            File.WriteAllText(filePath, _json.Serialize(result));
+            CadRuntime.WriteResult(filePath, _json.Serialize(result));
 
-            ed.WriteMessage($"\n[QKS Loads] Đã lưu {result.Lines.Count} đoạn tường vào file: {filePath}");
+            CadRuntime.Message(ed, $"\n[QKS Loads] Đã lưu {result.Lines.Count} đoạn tường vào file: {filePath}");
         }
 
         /// <summary>
@@ -1067,7 +1076,7 @@ namespace QKS_Loads_AcadPlugin
 
                 if (pt1.DistanceTo(pt2) < 1.0)
                 {
-                    ed.WriteMessage("\n[QKS Loads] Đoạn pick quá ngắn (< 1mm), vui lòng pick lại.");
+                    CadRuntime.Message(ed, "\n[QKS Loads] Đoạn pick quá ngắn (< 1mm), vui lòng pick lại.");
                     continue;
                 }
 
@@ -1079,7 +1088,7 @@ namespace QKS_Loads_AcadPlugin
                     BlockTableRecord ms = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
 
                     // Tạo layer hiển thị nét tường vừa gán tải: QKS_WALL_LOAD_DRAWN (Màu Đỏ)
-                    string drawnLayer = EnsureLayerExists(tr, db, "QKS_WALL_LOAD_DRAWN", 1); 
+                    string drawnLayer = EnsureLayerExists(tr, db, "QKS_WALL_LOAD_DRAWN", 1);
 
                     // Tạo đối tượng Polyline với Global Width cố định 35mm
                     Polyline wallPoly = new Polyline();
@@ -1092,7 +1101,7 @@ namespace QKS_Loads_AcadPlugin
                     wallPoly.LineWeight = LineWeight.LineWeight035;
 
                     ms.AppendEntity(wallPoly);
-                    tr.AddNewlyCreatedDBObject(wallPoly, true);
+                    tr.AddNewlyCreatedDBObject(wallPoly, true); CadRuntime.Tag(wallPoly, tr, db);
 
                     // Dò tìm dầm trên layer QKS_WALL_LOAD_BEAM khớp chính xác nhất
                     TypedValue[] filter = new TypedValue[]
@@ -1129,7 +1138,7 @@ namespace QKS_Loads_AcadPlugin
                         }
                     }
 
-                    tr.Commit();
+                    tr.Commit(); CadRuntime.Completed = true;
                 }
 
                 pickedLines.Add(new AutoCadWallLine
@@ -1144,12 +1153,12 @@ namespace QKS_Loads_AcadPlugin
                     BeamName = matchedBeamName
                 });
 
-                ed.WriteMessage($"\n[QKS Loads] -> Đoạn #{pickedLines.Count} đã vẽ (Dầm khớp: {(string.IsNullOrEmpty(matchedBeamName) ? "Tự động so sánh ETABS" : matchedBeamName)}).");
+                CadRuntime.Message(ed, $"\n[QKS Loads] -> Đoạn #{pickedLines.Count} đã vẽ (Dầm khớp: {(string.IsNullOrEmpty(matchedBeamName) ? "Tự động so sánh ETABS" : matchedBeamName)}).");
             }
 
             if (pickedLines.Count == 0)
             {
-                ed.WriteMessage("\n[QKS Loads] Đã hoàn tất hoặc hủy thao tác vẽ dầm/tường.");
+                CadRuntime.Message(ed, "\n[QKS Loads] Đã hoàn tất hoặc hủy thao tác vẽ dầm/tường.");
                 return;
             }
 
@@ -1160,9 +1169,9 @@ namespace QKS_Loads_AcadPlugin
             };
 
             string filePath = @"C:\QKS_JSON_Data\Loads\cad_wall_lines.json";
-            File.WriteAllText(filePath, _json.Serialize(result));
+            CadRuntime.WriteResult(filePath, _json.Serialize(result));
 
-            ed.WriteMessage($"\n[QKS Loads] Đã lưu tổng cộng {pickedLines.Count} đoạn tường vào file: {filePath}\n");
+            CadRuntime.Message(ed, $"\n[QKS Loads] Đã lưu tổng cộng {pickedLines.Count} đoạn tường vào file: {filePath}\n");
         }
 
         /// <summary>
@@ -1200,7 +1209,7 @@ namespace QKS_Loads_AcadPlugin
 
             if (psr.Status != PromptStatus.OK || psr.Value == null || psr.Value.Count == 0)
             {
-                ed.WriteMessage("\n[QKS Loads] Không có dầm nào được chọn.");
+                CadRuntime.Message(ed, "\n[QKS Loads] Không có dầm nào được chọn.");
                 return;
             }
 
@@ -1210,6 +1219,7 @@ namespace QKS_Loads_AcadPlugin
                 {
                     if (so == null) continue;
                     DBObject obj = tr.GetObject(so.ObjectId, OpenMode.ForRead);
+                        if (!CadRuntime.InScope(obj)) continue;
 
                     if (obj is Line line)
                     {
@@ -1274,13 +1284,13 @@ namespace QKS_Loads_AcadPlugin
                         }
                     }
                 }
-                tr.Commit();
+                tr.Commit(); CadRuntime.Completed = true;
             }
 
             string filePath = @"C:\QKS_JSON_Data\Loads\cad_wall_lines.json";
-            File.WriteAllText(filePath, _json.Serialize(result));
+            CadRuntime.WriteResult(filePath, _json.Serialize(result));
 
-            ed.WriteMessage($"\n[QKS Loads] Đã lấy {result.Lines.Count} dầm được chọn và lưu vào file: {filePath}\n");
+            CadRuntime.Message(ed, $"\n[QKS Loads] Đã lấy {result.Lines.Count} dầm được chọn và lưu vào file: {filePath}\n");
         }
 
         /// <summary>
@@ -1289,6 +1299,7 @@ namespace QKS_Loads_AcadPlugin
         [CommandMethod("QKS_WALL_SCAN_LOADS", CommandFlags.Modal)]
         public static void ScanLoadsCommand()
         {
+            if (CadRuntime.Request == null) { Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage("\n[QKS] Hãy chạy chức năng từ Excel sau khi xuất mặt bằng mới để giữ đúng phạm vi."); return; }
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
@@ -1305,6 +1316,7 @@ namespace QKS_Loads_AcadPlugin
             using (Transaction tr = db.TransactionManager.StartTransaction())
             {
                 EnsureRegApp(tr, db, "QKS_LOAD");
+                    EnsureRegApp(tr, db, "QKS_SEGMENT");
                 BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
                 BlockTableRecord ms = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
 
@@ -1312,6 +1324,7 @@ namespace QKS_Loads_AcadPlugin
                 foreach (ObjectId objId in ms)
                 {
                     DBObject obj = tr.GetObject(objId, OpenMode.ForRead);
+                        if (!CadRuntime.InScope(obj)) continue;
                     if (obj is Line bLine && (bLine.Layer == "QKS_WALL_LOAD_BEAM" || bLine.Layer.StartsWith("QKS_")))
                     {
                         // Bỏ qua line chia tải nếu nằm trên layer TICK
@@ -1350,6 +1363,7 @@ namespace QKS_Loads_AcadPlugin
                 foreach (ObjectId objId in ms)
                 {
                     DBObject obj = tr.GetObject(objId, OpenMode.ForRead);
+                        if (!CadRuntime.InScope(obj)) continue;
 
                     if (obj is DBText dbText && (dbText.Layer == "QKS_WALL_LOAD_TEXT" || dbText.Layer.StartsWith("QKS_")))
                     {
@@ -1428,7 +1442,7 @@ namespace QKS_Loads_AcadPlugin
                             Section = sec
                         });
                     }
-                    else if (obj is Line tickLine && (tickLine.Layer.Equals("QKS_WALL_LOAD_TICK", StringComparison.OrdinalIgnoreCase) 
+                    else if (obj is Line tickLine && (tickLine.Layer.Equals("QKS_WALL_LOAD_TICK", StringComparison.OrdinalIgnoreCase)
                                                    || tickLine.Layer.Equals("QKS_WALL_LOAD_TICKS", StringComparison.OrdinalIgnoreCase)
                                                    || tickLine.Layer.Equals("QKS_WALL_LOAD_DOT", StringComparison.OrdinalIgnoreCase)))
                     {
@@ -1473,7 +1487,7 @@ namespace QKS_Loads_AcadPlugin
                             Section = sec
                         });
                     }
-                    else if (obj is Polyline segPoly && (segPoly.Layer.Equals("QKS_WALL_LOAD_SEGMENT", StringComparison.OrdinalIgnoreCase) 
+                    else if (obj is Polyline segPoly && (segPoly.Layer.Equals("QKS_WALL_LOAD_SEGMENT", StringComparison.OrdinalIgnoreCase)
                                                       || segPoly.Layer.Equals("QKS_WALL_LOAD_TICK", StringComparison.OrdinalIgnoreCase)
                                                       || segPoly.Layer.Equals("QKS_WALL_LOAD_TICKS", StringComparison.OrdinalIgnoreCase)))
                     {
@@ -1548,13 +1562,13 @@ namespace QKS_Loads_AcadPlugin
                     }
                 }
 
-                tr.Commit();
+                tr.Commit(); CadRuntime.Completed = true;
             }
 
             string filePath = @"C:\QKS_JSON_Data\Loads\cad_edited_loads.json";
-            File.WriteAllText(filePath, _json.Serialize(result));
+            CadRuntime.WriteResult(filePath, _json.Serialize(result));
 
-            ed.WriteMessage($"\n[QKS Loads] Đã quét {result.Texts.Count} Text tải, {result.Ticks.Count} Line chia tải và {result.BeamLines.Count} dầm.");
+            CadRuntime.Message(ed, $"\n[QKS Loads] Đã quét {result.Texts.Count} Text tải, {result.Ticks.Count} Line chia tải và {result.BeamLines.Count} dầm.");
         }
 
         #region QKS SHELL LOAD COMMANDS
@@ -1573,41 +1587,41 @@ namespace QKS_Loads_AcadPlugin
             try
             {
                 // 1. Nhận tham số
-                PromptResult resPath = ed.GetString("\nĐường dẫn file JSON sàn: ");
-                if (resPath.Status != PromptStatus.OK) return;
+                var resPath = CadRuntime.String(ed, "\nĐường dẫn file JSON sàn: ");
+                if (resPath.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 string jsonPath = resPath.StringResult.Trim('"');
 
-                PromptDoubleResult resX = ed.GetDouble("\nTọa độ X điểm dán: ");
-                if (resX.Status != PromptStatus.OK) return;
+                var resX = CadRuntime.Number(ed, "\nTọa độ X điểm dán: ");
+                if (resX.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 double pasteX = resX.Value;
 
-                PromptDoubleResult resY = ed.GetDouble("\nTọa độ Y điểm dán: ");
-                if (resY.Status != PromptStatus.OK) return;
+                var resY = CadRuntime.Number(ed, "\nTọa độ Y điểm dán: ");
+                if (resY.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 double pasteY = resY.Value;
 
-                PromptDoubleResult resH = ed.GetDouble("\nChiều cao chữ: ");
-                if (resH.Status != PromptStatus.OK) return;
+                var resH = CadRuntime.Number(ed, "\nChiều cao chữ: ");
+                if (resH.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 double textHeight = resH.Value;
 
-                PromptIntegerResult resTextColor = ed.GetInteger("\nMã màu text tải: ");
-                if (resTextColor.Status != PromptStatus.OK) return;
+                var resTextColor = CadRuntime.Integer(ed, "\nMã màu text tải: ");
+                if (resTextColor.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 int textColorIndex = resTextColor.Value;
 
-                PromptDoubleResult resMinArea = ed.GetDouble("\nDiện tích sàn tối thiểu (m2): ");
+                var resMinArea = CadRuntime.Number(ed, "\nDiện tích sàn tối thiểu (m2): ");
                 double minAreaM2 = resMinArea.Status == PromptStatus.OK ? resMinArea.Value : 0.5;
 
                 // 2. Đọc JSON
                 if (!File.Exists(jsonPath))
                 {
-                    ed.WriteMessage($"\n[QKS Error] Không tìm thấy file dữ liệu sàn tại: {jsonPath}");
+                    CadRuntime.Message(ed, $"\n[QKS Error] Không tìm thấy file dữ liệu sàn tại: {jsonPath}");
                     return;
                 }
 
-                string jsonContent = File.ReadAllText(jsonPath);
+                string jsonContent = JsonCodec.Read(jsonPath);
                 var payload = _json.Deserialize<CadShellExportPayload>(jsonContent);
                 if (payload == null || payload.Slabs == null || payload.Slabs.Count == 0)
                 {
-                    ed.WriteMessage("\n[QKS Error] Dữ liệu ô sàn rỗng.");
+                    CadRuntime.Message(ed, "\n[QKS Error] Dữ liệu ô sàn rỗng.");
                     return;
                 }
 
@@ -1659,7 +1673,7 @@ namespace QKS_Loads_AcadPlugin
                         poly.Closed = true;
 
                         ObjectId polyId = ms.AppendEntity(poly);
-                        tr.AddNewlyCreatedDBObject(poly, true);
+                        tr.AddNewlyCreatedDBObject(poly, true); CadRuntime.Tag(poly, tr, db);
                         SetXData(poly, "QKS_SHELL_LOAD", $"{slab.AreaName}|{slab.Section}|{slab.LoadText}");
                         slabCount++;
 
@@ -1679,7 +1693,7 @@ namespace QKS_Loads_AcadPlugin
                                 hatch.Transparency = new Autodesk.AutoCAD.Colors.Transparency(alpha);
 
                                 ObjectId hatchId = ms.AppendEntity(hatch);
-                                tr.AddNewlyCreatedDBObject(hatch, true);
+                                tr.AddNewlyCreatedDBObject(hatch, true); CadRuntime.Tag(hatch, tr, db);
 
                                 ObjectIdCollection loopIds = new ObjectIdCollection { polyId };
                                 hatch.AppendLoop(HatchLoopTypes.Default, loopIds);
@@ -1741,7 +1755,7 @@ namespace QKS_Loads_AcadPlugin
                                 box.Closed = true;
 
                                 ms.AppendEntity(box);
-                                tr.AddNewlyCreatedDBObject(box, true);
+                                tr.AddNewlyCreatedDBObject(box, true); CadRuntime.Tag(box, tr, db);
                                 SetXData(box, "QKS_SHELL_LOAD", $"{slab.AreaName}|{slab.Section}|BOX");
                             }
 
@@ -1760,7 +1774,7 @@ namespace QKS_Loads_AcadPlugin
                                 mTextSec.Contents = line1;
 
                                 ms.AppendEntity(mTextSec);
-                                tr.AddNewlyCreatedDBObject(mTextSec, true);
+                                tr.AddNewlyCreatedDBObject(mTextSec, true); CadRuntime.Tag(mTextSec, tr, db);
                                 SetXData(mTextSec, "QKS_SHELL_LOAD", $"{slab.AreaName}|{slab.Section}|SEC");
                                 textCount++;
 
@@ -1779,7 +1793,7 @@ namespace QKS_Loads_AcadPlugin
                                     mTextLoad.Contents = string.Join("\\P", loadLines);
 
                                     ms.AppendEntity(mTextLoad);
-                                    tr.AddNewlyCreatedDBObject(mTextLoad, true);
+                                    tr.AddNewlyCreatedDBObject(mTextLoad, true); CadRuntime.Tag(mTextLoad, tr, db);
                                     SetXData(mTextLoad, "QKS_SHELL_LOAD", $"{slab.AreaName}|{slab.Section}|LOAD");
                                     textCount++;
                                 }
@@ -1795,16 +1809,17 @@ namespace QKS_Loads_AcadPlugin
                             DrawOrderTable dot = (DrawOrderTable)tr.GetObject(ms.DrawOrderTableId, OpenMode.ForWrite);
                             dot.MoveToBottom(hatchIds);
                         }
-                        catch { }
+                        catch (System.Exception ex) { if (CadRuntime.Request != null) throw; System.Diagnostics.Debug.WriteLine(ex); }
                     }
 
-                    tr.Commit();
-                    ed.WriteMessage($"\n[QKS Shell Load] Đã xuất thành công {slabCount} ô sàn (kèm {hatchIds.Count} mảng Hatch màu) và {textCount} ghi chú tải.");
+                    tr.Commit(); CadRuntime.Completed = true;
+                    CadRuntime.Message(ed, $"\n[QKS Shell Load] Đã xuất thành công {slabCount} ô sàn (kèm {hatchIds.Count} mảng Hatch màu) và {textCount} ghi chú tải.");
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[QKS Error] Lỗi vẽ mặt bằng sàn: {ex.Message}");
+                if (ex is OperationCanceledException && CadRuntime.Request != null) throw;
+                CadRuntime.Message(ed, $"\n[QKS Error] Lỗi vẽ mặt bằng sàn: {ex.Message}");
             }
         }
 
@@ -1821,8 +1836,8 @@ namespace QKS_Loads_AcadPlugin
 
             try
             {
-                PromptResult res = ed.GetString("\nTên tiết diện sàn cần chọn: ");
-                if (res.Status != PromptStatus.OK) return;
+                var res = CadRuntime.String(ed, "\nTên tiết diện sàn cần chọn: ");
+                if (res.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 string secName = res.StringResult.Trim().Trim('"');
 
                 var matchedIds = new ObjectIdCollection();
@@ -1834,6 +1849,7 @@ namespace QKS_Loads_AcadPlugin
                     foreach (ObjectId objId in ms)
                     {
                         DBObject obj = tr.GetObject(objId, OpenMode.ForRead);
+                        if (!CadRuntime.InScope(obj)) continue;
                         string xdata = GetXData(obj, "QKS_SHELL_LOAD");
                         if (!string.IsNullOrEmpty(xdata))
                         {
@@ -1845,7 +1861,7 @@ namespace QKS_Loads_AcadPlugin
                             }
                         }
                     }
-                    tr.Commit();
+                    tr.Commit(); CadRuntime.Completed = true;
                 }
 
                 if (matchedIds.Count > 0)
@@ -1853,16 +1869,17 @@ namespace QKS_Loads_AcadPlugin
                     ObjectId[] idsArray = new ObjectId[matchedIds.Count];
                     matchedIds.CopyTo(idsArray, 0);
                     ed.SetImpliedSelection(idsArray);
-                    ed.WriteMessage($"\n[QKS Shell Load] Đã chọn {matchedIds.Count} đối tượng sàn thuộc tiết diện: {secName}");
+                    CadRuntime.Message(ed, $"\n[QKS Shell Load] Đã chọn {matchedIds.Count} đối tượng sàn thuộc tiết diện: {secName}");
                 }
                 else
                 {
-                    ed.WriteMessage($"\n[QKS Shell Load] Không tìm thấy ô sàn nào có tiết diện: {secName}");
+                    CadRuntime.Message(ed, $"\n[QKS Shell Load] Không tìm thấy ô sàn nào có tiết diện: {secName}");
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[QKS Error] Lỗi chọn tiết diện sàn: {ex.Message}");
+                if (ex is OperationCanceledException && CadRuntime.Request != null) throw;
+                CadRuntime.Message(ed, $"\n[QKS Error] Lỗi chọn tiết diện sàn: {ex.Message}");
             }
         }
 
@@ -1881,11 +1898,11 @@ namespace QKS_Loads_AcadPlugin
             {
                 PromptPointOptions ppo1 = new PromptPointOptions("\n[QKS Shell Load] Chọn điểm góc thứ nhất của vùng tải: ");
                 PromptPointResult ppr1 = ed.GetPoint(ppo1);
-                if (ppr1.Status != PromptStatus.OK) return;
+                if (ppr1.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
 
                 PromptCornerOptions pco = new PromptCornerOptions("\n[QKS Shell Load] Chọn điểm góc thứ hai đối diện: ", ppr1.Value);
                 PromptPointResult ppr2 = ed.GetCorner(pco);
-                if (ppr2.Status != PromptStatus.OK) return;
+                if (ppr2.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
 
                 Point3d pt1 = ppr1.Value;
                 Point3d pt2 = ppr2.Value;
@@ -1912,8 +1929,8 @@ namespace QKS_Loads_AcadPlugin
                     rect.Closed = true;
 
                     ms.AppendEntity(rect);
-                    tr.AddNewlyCreatedDBObject(rect, true);
-                    tr.Commit();
+                    tr.AddNewlyCreatedDBObject(rect, true); CadRuntime.Tag(rect, tr, db);
+                    tr.Commit(); CadRuntime.Completed = true;
                 }
 
                 var zoneData = new CadShellZoneRectPayload
@@ -1927,13 +1944,14 @@ namespace QKS_Loads_AcadPlugin
                 string outDir = @"C:\QKS_JSON_Data\Loads";
                 if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
                 string outFile = Path.Combine(outDir, "cad_zone_rect.json");
-                File.WriteAllText(outFile, _json.Serialize(zoneData));
+                CadRuntime.WriteResult(outFile, _json.Serialize(zoneData));
 
-                ed.WriteMessage($"\n[QKS Shell Load] Đã chọn vùng tải: ({minX:0.##}, {minY:0.##}) -> ({maxX:0.##}, {maxY:0.##})");
+                CadRuntime.Message(ed, $"\n[QKS Shell Load] Đã chọn vùng tải: ({minX:0.##}, {minY:0.##}) -> ({maxX:0.##}, {maxY:0.##})");
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[QKS Error] Lỗi pick vùng tải: {ex.Message}");
+                if (ex is OperationCanceledException && CadRuntime.Request != null) throw;
+                CadRuntime.Message(ed, $"\n[QKS Error] Lỗi pick vùng tải: {ex.Message}");
             }
         }
 
@@ -1944,19 +1962,20 @@ namespace QKS_Loads_AcadPlugin
         [CommandMethod("QKS_WALL_UPDATE_TEXT", CommandFlags.Modal)]
         public static void UpdateWallTextCommand()
         {
+            if (CadRuntime.Request == null) { Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage("\n[QKS] Hãy chạy chức năng từ Excel sau khi xuất mặt bằng mới để giữ đúng phạm vi."); return; }
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
 
             try
             {
-                PromptResult resPath = ed.GetString("\nĐường dẫn file JSON cập nhật text tải tường: ");
-                if (resPath.Status != PromptStatus.OK) return;
+                var resPath = CadRuntime.String(ed, "\nĐường dẫn file JSON cập nhật text tải tường: ");
+                if (resPath.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 string jsonPath = resPath.StringResult.Trim('"');
 
                 if (!File.Exists(jsonPath)) return;
 
-                var payload = _json.Deserialize<CadWallLiveUpdatePayload>(File.ReadAllText(jsonPath));
+                var payload = _json.Deserialize<CadWallLiveUpdatePayload>(JsonCodec.Read(jsonPath));
                 if (payload == null || payload.BeamLoads == null || payload.BeamLoads.Count == 0) return;
 
                 int updatedCount = 0;
@@ -1968,6 +1987,7 @@ namespace QKS_Loads_AcadPlugin
                     foreach (ObjectId objId in ms)
                     {
                         DBObject obj = tr.GetObject(objId, OpenMode.ForRead);
+                        if (!CadRuntime.InScope(obj)) continue;
 
                         if (obj is MText mText && (mText.Layer.Equals("QKS_WALL_LOAD_TEXT", StringComparison.OrdinalIgnoreCase) || mText.Layer.StartsWith("QKS_")))
                         {
@@ -1981,7 +2001,7 @@ namespace QKS_Loads_AcadPlugin
                             if (!string.IsNullOrEmpty(bName) && payload.BeamLoads.TryGetValue(bName, out var beamItem))
                             {
                                 mText.UpgradeOpen();
-                                mText.Contents = !string.IsNullOrEmpty(beamItem.LoadText) ? beamItem.LoadText : "0";
+                                mText.Contents = SegmentText(mText, beamItem);
                                 mText.Color = GetColorByLoadValue(beamItem.MaxLoadValue);
                                 updatedCount++;
                             }
@@ -1998,7 +2018,7 @@ namespace QKS_Loads_AcadPlugin
                             if (!string.IsNullOrEmpty(bName) && payload.BeamLoads.TryGetValue(bName, out var beamItem))
                             {
                                 dbText.UpgradeOpen();
-                                dbText.TextString = !string.IsNullOrEmpty(beamItem.LoadText) ? beamItem.LoadText : "0";
+                                dbText.TextString = SegmentText(dbText, beamItem);
                                 dbText.Color = GetColorByLoadValue(beamItem.MaxLoadValue);
                                 updatedCount++;
                             }
@@ -2015,22 +2035,22 @@ namespace QKS_Loads_AcadPlugin
                             if (!string.IsNullOrEmpty(bName) && payload.BeamLoads.TryGetValue(bName, out var beamItem))
                             {
                                 segPoly.UpgradeOpen();
-                                if (beamItem.MaxLoadValue > 0.001)
-                                {
-                                    segPoly.Color = GetColorByLoadValue(beamItem.MaxLoadValue);
-                                }
+                                SegmentText(segPoly, beamItem); // Reject changed segmentation before commit.
+                                segPoly.Color = GetColorByLoadValue(Math.Abs(beamItem.MaxLoadValue));
                             }
                         }
                     }
 
-                    tr.Commit();
+                    if (updatedCount == 0) throw new InvalidOperationException("Không tìm thấy đối tượng thuộc lần xuất đã chọn. Hãy xuất lại mặt bằng.");
+                    tr.Commit(); CadRuntime.Completed = true;
                 }
 
-                ed.WriteMessage($"\n[QKS Wall Load] Đã đồng bộ trực tiếp tải tường Live cho {updatedCount} dầm tầng {payload.Story}.");
+                CadRuntime.Message(ed, $"\n[QKS Wall Load] Đã đồng bộ trực tiếp tải tường Live cho {updatedCount} dầm tầng {payload.Story}.");
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[QKS Error] Lỗi cập nhật text tải tường: {ex.Message}");
+                if (ex is OperationCanceledException && CadRuntime.Request != null) throw;
+                CadRuntime.Message(ed, $"\n[QKS Error] Lỗi cập nhật text tải tường: {ex.Message}");
             }
         }
 
@@ -2041,19 +2061,20 @@ namespace QKS_Loads_AcadPlugin
         [CommandMethod("QKS_SHELL_UPDATE_TEXT", CommandFlags.Modal)]
         public static void UpdateShellTextCommand()
         {
+            if (CadRuntime.Request == null) { Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage("\n[QKS] Hãy chạy chức năng từ Excel sau khi xuất mặt bằng mới để giữ đúng phạm vi."); return; }
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
 
             try
             {
-                PromptResult resPath = ed.GetString("\nĐường dẫn file JSON cập nhật text: ");
-                if (resPath.Status != PromptStatus.OK) return;
+                var resPath = CadRuntime.String(ed, "\nĐường dẫn file JSON cập nhật text: ");
+                if (resPath.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 string jsonPath = resPath.StringResult.Trim('"');
 
                 if (!File.Exists(jsonPath)) return;
 
-                var payload = _json.Deserialize<CadShellLiveUpdatePayload>(File.ReadAllText(jsonPath));
+                var payload = _json.Deserialize<CadShellLiveUpdatePayload>(JsonCodec.Read(jsonPath));
                 if (payload == null) return;
 
                 int updatedCount = 0;
@@ -2069,6 +2090,7 @@ namespace QKS_Loads_AcadPlugin
                     foreach (ObjectId objId in ms)
                     {
                         DBObject obj = tr.GetObject(objId, OpenMode.ForRead);
+                        if (!CadRuntime.InScope(obj)) continue;
                         if (obj is MText mText && mText.Layer.Equals("QKS_SHELL_LOAD_TEXT", StringComparison.OrdinalIgnoreCase))
                         {
                             string xdata = GetXData(mText, "QKS_SHELL_LOAD");
@@ -2105,14 +2127,16 @@ namespace QKS_Loads_AcadPlugin
                             }
                         }
                     }
-                    tr.Commit();
+                    if (updatedCount == 0) throw new InvalidOperationException("Không tìm thấy đối tượng thuộc lần xuất đã chọn. Hãy xuất lại mặt bằng.");
+                    tr.Commit(); CadRuntime.Completed = true;
                 }
                 string targetDesc = !string.IsNullOrEmpty(payload.TargetSection) ? $"tiết diện {payload.TargetSection}" : $"toàn bộ {payload.SectionLoadMap?.Count} tiết diện";
-                ed.WriteMessage($"\n[QKS Shell Load] Đã cập nhật Text tải thời gian thực cho {updatedCount} ô sàn ({targetDesc}).");
+                CadRuntime.Message(ed, $"\n[QKS Shell Load] Đã cập nhật Text tải thời gian thực cho {updatedCount} ô sàn ({targetDesc}).");
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[QKS Error] Lỗi cập nhật text tải: {ex.Message}");
+                if (ex is OperationCanceledException && CadRuntime.Request != null) throw;
+                CadRuntime.Message(ed, $"\n[QKS Error] Lỗi cập nhật text tải: {ex.Message}");
             }
         }
 
@@ -2123,6 +2147,7 @@ namespace QKS_Loads_AcadPlugin
         [CommandMethod("QKS_SHELL_SCAN_LOADS", CommandFlags.Modal)]
         public static void ScanShellLoadsCommand()
         {
+            if (CadRuntime.Request == null) { Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage("\n[QKS] Hãy chạy chức năng từ Excel sau khi xuất mặt bằng mới để giữ đúng phạm vi."); return; }
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
@@ -2146,9 +2171,9 @@ namespace QKS_Loads_AcadPlugin
                 {
                     ss = selRes.Value;
                 }
-                else
+                else if (selRes.Status == PromptStatus.None)
                 {
-                    // Nếu ấn Enter, chọn tất cả MText trên model space
+                    // Chỉ Enter chọn tất cả; Esc phải hủy
                     PromptSelectionResult allRes = ed.SelectAll(selFilter);
                     if (allRes.Status == PromptStatus.OK)
                     {
@@ -2156,9 +2181,11 @@ namespace QKS_Loads_AcadPlugin
                     }
                 }
 
+                if (selRes.Status == PromptStatus.Cancel) { CadRuntime.Cancel(); return; }
+
                 if (ss == null || ss.Count == 0)
                 {
-                    ed.WriteMessage("\n[QKS Shell Load] Không có Text tải nào được chọn.");
+                    CadRuntime.Message(ed, "\n[QKS Shell Load] Không có Text tải nào được chọn.");
                     return;
                 }
 
@@ -2170,9 +2197,10 @@ namespace QKS_Loads_AcadPlugin
                     {
                         if (so == null) continue;
                         DBObject obj = tr.GetObject(so.ObjectId, OpenMode.ForRead);
-                        if (obj is MText mText)
+                        if (!CadRuntime.InScope(obj)) continue;
+                        if (obj is MText || obj is DBText)
                         {
-                            string xdata = GetXData(mText, "QKS_SHELL_LOAD");
+                            string xdata = GetXData(obj, "QKS_SHELL_LOAD");
                             if (!string.IsNullOrEmpty(xdata))
                             {
                                 var parts = xdata.Split('|');
@@ -2186,27 +2214,28 @@ namespace QKS_Loads_AcadPlugin
                                     {
                                         AreaName = areaName,
                                         Section = section,
-                                        RawText = mText.Contents,
-                                        X = Math.Round(mText.Location.X, 3),
-                                        Y = Math.Round(mText.Location.Y, 3)
+                                        RawText = obj is MText mt ? mt.Contents : ((DBText)obj).TextString,
+                                        X = Math.Round(obj is MText mx ? mx.Location.X : ((DBText)obj).Position.X, 3),
+                                        Y = Math.Round(obj is MText my ? my.Location.Y : ((DBText)obj).Position.Y, 3)
                                     });
                                 }
                             }
                         }
                     }
-                    tr.Commit();
+                    tr.Commit(); CadRuntime.Completed = true;
                 }
 
                 string outDir = @"C:\QKS_JSON_Data\Loads";
                 if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
                 string filePath = Path.Combine(outDir, "cad_shell_import.json");
-                File.WriteAllText(filePath, _json.Serialize(resultList));
+                CadRuntime.WriteResult(filePath, _json.Serialize(resultList));
 
-                ed.WriteMessage($"\n[QKS Shell Load] Đã quét thành công {resultList.Count} Text tải trọng sàn từ AutoCAD.");
+                CadRuntime.Message(ed, $"\n[QKS Shell Load] Đã quét thành công {resultList.Count} Text tải trọng sàn từ AutoCAD.");
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[QKS Error] Lỗi quét Text tải sàn: {ex.Message}");
+                if (ex is OperationCanceledException && CadRuntime.Request != null) throw;
+                CadRuntime.Message(ed, $"\n[QKS Error] Lỗi quét Text tải sàn: {ex.Message}");
             }
         }
 
@@ -2223,7 +2252,7 @@ namespace QKS_Loads_AcadPlugin
             {
                 ed.SetImpliedSelection(new ObjectId[0]);
             }
-            catch { }
+            catch (System.Exception ex) { if (CadRuntime.Request != null) throw; System.Diagnostics.Debug.WriteLine(ex); }
         }
 
         /// <summary>
@@ -2239,24 +2268,24 @@ namespace QKS_Loads_AcadPlugin
 
             try
             {
-                PromptResult resPath = ed.GetString("\nĐường dẫn file JSON bảng thống kê sàn: ");
-                if (resPath.Status != PromptStatus.OK) return;
+                var resPath = CadRuntime.String(ed, "\nĐường dẫn file JSON bảng thống kê sàn: ");
+                if (resPath.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 string jsonPath = resPath.StringResult.Trim('"');
 
                 PromptPointResult ptRes = ed.GetPoint("\nChọn điểm chèn góc trên bên trái của Bảng Thống Kê Sàn: ");
-                if (ptRes.Status != PromptStatus.OK) return;
+                if (ptRes.Status != PromptStatus.OK) { CadRuntime.Cancel(); return; }
                 Point3d insPt = ptRes.Value;
 
                 if (!File.Exists(jsonPath))
                 {
-                    ed.WriteMessage($"\n[QKS Error] Không tìm thấy file: {jsonPath}");
+                    CadRuntime.Message(ed, $"\n[QKS Error] Không tìm thấy file: {jsonPath}");
                     return;
                 }
 
-                var payload = _json.Deserialize<CadSlabTableExportPayload>(File.ReadAllText(jsonPath));
+                var payload = _json.Deserialize<CadSlabTableExportPayload>(JsonCodec.Read(jsonPath));
                 if (payload == null || payload.Items == null || payload.Items.Count == 0)
                 {
-                    ed.WriteMessage("\n[QKS Error] Dữ liệu bảng thống kê rỗng.");
+                    CadRuntime.Message(ed, "\n[QKS Error] Dữ liệu bảng thống kê rỗng.");
                     return;
                 }
 
@@ -2298,7 +2327,7 @@ namespace QKS_Loads_AcadPlugin
                         }
 #pragma warning restore CS0618
                     }
-                    catch { }
+                    catch (System.Exception ex) { if (CadRuntime.Request != null) throw; System.Diagnostics.Debug.WriteLine(ex); }
 
                     // Thiết lập chiều cao dòng hợp lý, thông thoáng, thanh thoát
                     table.Rows[0].Height = th * 2.2;
@@ -2401,15 +2430,16 @@ namespace QKS_Loads_AcadPlugin
 
                     table.GenerateLayout();
                     ms.AppendEntity(table);
-                    tr.AddNewlyCreatedDBObject(table, true);
+                    tr.AddNewlyCreatedDBObject(table, true); CadRuntime.Tag(table, tr, db);
 
-                    tr.Commit();
-                    ed.WriteMessage($"\n[QKS Shell Load] Đã vẽ thành công Bảng Thống Kê Sàn ({payload.Items.Count} loại tiết diện, {totalSlabs} ô sàn, tổng {totalArea:N2} m²).");
+                    tr.Commit(); CadRuntime.Completed = true;
+                    CadRuntime.Message(ed, $"\n[QKS Shell Load] Đã vẽ thành công Bảng Thống Kê Sàn ({payload.Items.Count} loại tiết diện, {totalSlabs} ô sàn, tổng {totalArea:N2} m²).");
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage($"\n[QKS Error] Lỗi vẽ bảng thống kê sàn: {ex.Message}");
+                if (ex is OperationCanceledException && CadRuntime.Request != null) throw;
+                CadRuntime.Message(ed, $"\n[QKS Error] Lỗi vẽ bảng thống kê sàn: {ex.Message}");
             }
         }
 
@@ -2426,7 +2456,7 @@ namespace QKS_Loads_AcadPlugin
                     TextSize = 0.0
                 };
                 ObjectId id = tst.Add(tstr);
-                tr.AddNewlyCreatedDBObject(tstr, true);
+                tr.AddNewlyCreatedDBObject(tstr, true); CadRuntime.Tag(tstr, tr, db);
                 return id;
             }
             else

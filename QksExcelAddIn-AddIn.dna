@@ -5,4 +5,5 @@
   <Reference Path="MaterialDesignColors.dll" Pack="true" />
   <Reference Path="MaterialDesignThemes.Wpf.dll" Pack="true" />
   <Reference Path="Microsoft.Xaml.Behaviors.dll" Pack="true" />
+  <Reference Path="Newtonsoft.Json.dll" Pack="true" />
 </DnaLibrary>

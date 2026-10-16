@@ -18,11 +18,13 @@ namespace QksExcelAddIn.Views
 {
     public partial class WallLoadView : Window
     {
+        private string CadContext => GetCboText(cboTangUpdate, "") + "|" + GetCboText(cboLoaiTai, "") + "|" + GetCboText(cboHuongTai, "");
+        private readonly CadExchangeSession _cadSession = new CadExchangeSession();
+        private readonly string _exchangeDir = Path.Combine(Qks.Shared.Protocol.Root, Guid.NewGuid().ToString("N"));
         public ObservableCollection<WallLoadRow> WallLoads { get; set; }
         public ObservableCollection<BeamSectionInfo> BeamSections { get; set; } = new ObservableCollection<BeamSectionInfo>();
 
         private readonly EtabsService _etabsService = new EtabsService();
-        private readonly AutoCadIpcService _autocadService = new AutoCadIpcService();
 
         private bool _isLoading = false;
 
@@ -37,7 +39,7 @@ namespace QksExcelAddIn.Views
             {
                 EtabsIconHelper.SetIcon(this);
             }
-            
+
             WallLoads = new ObservableCollection<WallLoadRow>
             {
                 new WallLoadRow { Type = "100", Load = 1.8 },
@@ -45,7 +47,7 @@ namespace QksExcelAddIn.Views
                 new WallLoadRow { Type = "Tường lửng/Lan can", Load = 1.2 },
                 new WallLoadRow { Type = "Tường kính", Load = 0.8 }
             };
-            
+
             DataContext = this;
             gridBeamSections.ItemsSource = BeamSections;
 
@@ -136,9 +138,9 @@ namespace QksExcelAddIn.Views
                                 {
                                     selectPatIdx = i;
                                 }
-                                else if (string.IsNullOrEmpty(currentPat) && 
-                                    (patternNames[i].Equals("BW", StringComparison.OrdinalIgnoreCase) || 
-                                     patternNames[i].Equals("TUONG", StringComparison.OrdinalIgnoreCase) || 
+                                else if (string.IsNullOrEmpty(currentPat) &&
+                                    (patternNames[i].Equals("BW", StringComparison.OrdinalIgnoreCase) ||
+                                     patternNames[i].Equals("TUONG", StringComparison.OrdinalIgnoreCase) ||
                                      patternNames[i].Equals("WALL", StringComparison.OrdinalIgnoreCase)))
                                 {
                                     selectPatIdx = i;
@@ -167,27 +169,18 @@ namespace QksExcelAddIn.Views
                 }
                 else
                 {
-                    // Tự động phát hiện nếu có bản vẽ AutoCAD đang mở trên máy
-                    var autoDocs = AutoCadHelper.GetRunningAutoCadDocuments();
-                    if (autoDocs.Count > 0)
-                    {
-                        AppConnectionManager.ActiveAutoCad = autoDocs[0];
-                        dotCad.Fill = new MediaBrush(MediaColor.FromRgb(16, 124, 65)); // Dark Green
-                        lblCadDrawing.Text = autoDocs[0].FileName;
-                        lblCadDrawing.Foreground = new MediaBrush(MediaColor.FromRgb(16, 124, 65));
-                    }
-                    else
-                    {
-                        dotCad.Fill = new MediaBrush(MediaColor.FromRgb(183, 28, 28)); // Dark Red
-                        lblCadDrawing.Text = "Chưa kết nối (Kết Nối API từ Ribbon)";
-                        lblCadDrawing.Foreground = new MediaBrush(MediaColor.FromRgb(183, 28, 28));
-                    }
+                    dotCad.Fill = new MediaBrush(MediaColor.FromRgb(183, 28, 28));
+                    lblCadDrawing.Text = "Chưa kết nối (Kết Nối API từ Ribbon)";
+                    lblCadDrawing.Foreground = new MediaBrush(MediaColor.FromRgb(183, 28, 28));
                 }
             });
         }
 
         private async void OnGanTaiClick(object sender, RoutedEventArgs e)
         {
+            using var operation = EtabsService.BeginOperation();
+            try
+            {
             try
             {
                 // 1. Kiểm tra kết nối ETABS từ AppConnectionManager
@@ -200,7 +193,7 @@ namespace QksExcelAddIn.Views
                 // 2. Kiểm tra trạng thái khóa của mô hình
                 if (_etabsService.IsModelLocked())
                 {
-                    CustomMessageBox.Show("Mô hình ETABS hiện tại đang bị khóa (Locked). Vui lòng mở khóa mô hình trong ETABS trước khi gán tải.", 
+                    CustomMessageBox.Show("Mô hình ETABS hiện tại đang bị khóa (Locked). Vui lòng mở khóa mô hình trong ETABS trước khi gán tải.",
                         "Mô Hình Bị Khóa", CustomMessageBox.IconType.Warning);
                     return;
                 }
@@ -221,7 +214,7 @@ namespace QksExcelAddIn.Views
                 string directionName = GetCboText(cboHuongTai, "Gravity");
                 int dirCode = EtabsService.GetDirectionCode(directionName);
                 bool replaceLoads = GetCboText(cboAddReplace, "Replace").Equals("Replace", StringComparison.OrdinalIgnoreCase);
-                
+
                 // Lấy BasePoint
                 double baseX = double.TryParse(txtBasePointX.Text, out double bx) ? bx : 0;
                 double baseY = double.TryParse(txtBasePointY.Text, out double by) ? by : 0;
@@ -236,10 +229,10 @@ namespace QksExcelAddIn.Views
                     return;
                 }
 
-                string linesFile = Path.Combine(AutoCadHelper.LoadsDir, "cad_wall_lines.json");
+                string linesFile = Path.Combine(_exchangeDir, "cad_wall_lines.json");
                 if (File.Exists(linesFile))
                 {
-                    try { File.Delete(linesFile); } catch { }
+                    try { File.Delete(linesFile); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
                 }
 
                 string formattedDll = AutoCadHelper.DllPath.Replace(@"\", "/");
@@ -248,66 +241,27 @@ namespace QksExcelAddIn.Views
                 {
                     this.Hide();
                     string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_WALL_PICK_LOAD\n";
-                    AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                    var pickResponse = await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
 
-                    // Chờ file cad_wall_lines.json được ghi từ AutoCAD với polling tốc độ cao (15ms)
-                    int maxWaitMs = 120000; // Tối đa 120s
-                    int elapsed = 0;
-                    while (!File.Exists(linesFile) && elapsed < maxWaitMs)
-                    {
-                        System.Threading.Thread.Sleep(15);
-                        elapsed += 15;
-                    }
-                    this.Show();
-
-                    if (File.Exists(linesFile))
-                    {
-                        try
-                        {
-                            string jsonContent = File.ReadAllText(linesFile);
-                            var queryRes = JsonHelper.Deserialize<AutoCadWallQuery>(jsonContent);
-                            if (queryRes?.Lines != null)
-                            {
-                                wallLines = queryRes.Lines;
-                            }
-                        }
-                        catch { }
-                    }
+                    var queryRes = JsonHelper.Deserialize<AutoCadWallQuery>(pickResponse.PayloadJson);
+                    if (queryRes?.Lines != null) wallLines = queryRes.Lines;
                 }
+
                 else
                 {
                     this.Hide();
                     string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_WALL_GET_LINES\n";
-                    AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                    var linesResponse = await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
 
-                    int maxWaitMs = 120000;
-                    int elapsed = 0;
-                    while (!File.Exists(linesFile) && elapsed < maxWaitMs)
-                    {
-                        System.Threading.Thread.Sleep(15);
-                        elapsed += 15;
-                    }
-                    this.Show();
-
-                    if (File.Exists(linesFile))
-                    {
-                        try
-                        {
-                            string jsonContent = File.ReadAllText(linesFile);
-                            var queryRes = JsonHelper.Deserialize<AutoCadWallQuery>(jsonContent);
-                            if (queryRes?.Lines != null)
-                            {
-                                wallLines = queryRes.Lines;
-                            }
-                        }
-                        catch { }
-                    }
+                    var queryRes = JsonHelper.Deserialize<AutoCadWallQuery>(linesResponse.PayloadJson);
+                    if (queryRes?.Lines != null) wallLines = queryRes.Lines;
                 }
+                this.Show();
 
                 if (wallLines.Count == 0)
                 {
-                    string msg = radMethodPickPoints.IsChecked == true 
-                        ? "Hủy thao tác pick điểm hoặc không thể lấy điểm pick từ AutoCAD." 
+                    string msg = radMethodPickPoints.IsChecked == true
+                        ? "Hủy thao tác pick điểm hoặc không thể lấy điểm pick từ AutoCAD."
                         : "Không tìm thấy đường line tường nào được chọn trong AutoCAD.";
                     CustomMessageBox.Show(msg, "Thông Báo", CustomMessageBox.IconType.Warning);
                     return;
@@ -336,7 +290,7 @@ namespace QksExcelAddIn.Views
 
                 // Đọc cache exported beams nếu có từ wall_load_export.json để đối chiếu chính xác tọa độ CAD
                 List<CadBeamLoadExportItem> exportedBeamsCache = new List<CadBeamLoadExportItem>();
-                string exportJsonPath = Path.Combine(AutoCadHelper.LoadsDir, "wall_load_export.json");
+                string exportJsonPath = Path.Combine(_exchangeDir, "wall_load_export.json");
                 if (File.Exists(exportJsonPath))
                 {
                     try
@@ -348,7 +302,7 @@ namespace QksExcelAddIn.Views
                             exportedBeamsCache = expPayload.Beams;
                         }
                     }
-                    catch { }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
                 }
 
                 // 6. Tính toán tải trọng và lập danh sách dầm chờ xác nhận
@@ -496,7 +450,7 @@ namespace QksExcelAddIn.Views
 
                             double heSoGach = double.TryParse(txtHeSoGach.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double n1) ? n1 : 1.1;
                             double heSoVua = double.TryParse(txtHeSoVua.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double n2) ? n2 : 1.3;
-                            
+
                             heSoCuaVal = (chkHeSoCua?.IsChecked == true && double.TryParse(txtHeSoCua.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double n3)) ? n3 : 1.0;
 
                             wallWeightPerM2 = ((klrGach * heSoGach * tTuongM) + (klrVua * heSoVua * tTratM)) * heSoCuaVal;
@@ -668,6 +622,13 @@ namespace QksExcelAddIn.Views
             {
                 CustomMessageBox.Show($"Có lỗi xảy ra trong quá trình gán tải tường: {ex.Message}", "Lỗi", CustomMessageBox.IconType.ErrorType);
             }
+
+            }
+            catch (Exception writeError)
+            {
+                CustomMessageBox.Show(writeError.Message + "\nNếu lệnh đã bắt đầu ghi, kiểm tra model và thư mục QKS_Backups trước khi chạy lại.", "Không hoàn tất thao tác", CustomMessageBox.IconType.ErrorType);
+                if (!IsVisible) Show();
+            }
         }
 
         private void OnPickBasePointClick(object sender, RoutedEventArgs e)
@@ -708,7 +669,7 @@ namespace QksExcelAddIn.Views
             }
         }
 
-        private void OnXuatAutoCadClick(object sender, RoutedEventArgs e)
+        private async void OnXuatAutoCadClick(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -775,17 +736,17 @@ namespace QksExcelAddIn.Views
                     Beams = exportBeams
                 };
 
-                if (!Directory.Exists(AutoCadHelper.LoadsDir))
+                if (!Directory.Exists(_exchangeDir))
                 {
-                    Directory.CreateDirectory(AutoCadHelper.LoadsDir);
+                    Directory.CreateDirectory(_exchangeDir);
                 }
 
-                string jsonPath = Path.Combine(AutoCadHelper.LoadsDir, "wall_load_export.json");
+                string jsonPath = Path.Combine(_exchangeDir, "wall_load_export.json");
 
                 // 6. Ẩn form và cho người dùng click chọn điểm dán mặt bằng trên CAD
                 this.Hide();
                 double[]? pastePoint = AutoCadHelper.AcadGetPoint(acadDoc, "\n[QKS Loads] Chọn gốc tọa độ cần dán mặt bằng dầm trên AutoCAD: ");
-                
+
                 if (pastePoint == null || pastePoint.Length < 2)
                 {
                     this.Show();
@@ -807,7 +768,7 @@ namespace QksExcelAddIn.Views
                 string textHeightStr = textHeight.ToString(CultureInfo.InvariantCulture);
 
                 string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_WALL_DRAW_BEAMS \"{formattedJson}\" {pasteXStr} {pasteYStr} {textHeightStr} {textColorIdx} {beamColorIdx}\n";
-                AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
 
                 this.Show();
 
@@ -825,8 +786,8 @@ namespace QksExcelAddIn.Views
                     $"• Trường hợp tải: {loadPattern} ({directionName})\n" +
                     $"• Số lượng dầm: {exportBeams.Count}\n" +
                     $"• Số phân đoạn tải: {totalSegments}\n" +
-                    $"• Chế độ hiển thị: Line chia tải (100mm) theo chuẩn ETABS & TrueColor RGB", 
-                    "Xuất CAD Thành Công", 
+                    $"• Chế độ hiển thị: Line chia tải (100mm) theo chuẩn ETABS & TrueColor RGB",
+                    "Xuất CAD Thành Công",
                     CustomMessageBox.IconType.Success
                 );
             }
@@ -842,6 +803,7 @@ namespace QksExcelAddIn.Views
         /// </summary>
         public async void RefreshBeamSections(string? targetStory = null)
         {
+            EtabsService.ResetSessionCaches();
             try
             {
                 string story = targetStory ?? GetCboText(cboTangUpdate, "Base");
@@ -855,7 +817,7 @@ namespace QksExcelAddIn.Views
 
                 txtCadSectionSummary.Text = "Đang nạp tiết diện dầm...";
 
-                List<CadBeamLoadExportItem> beams = await System.Threading.Tasks.Task.Run(() =>
+                List<CadBeamLoadExportItem> beams = await EtabsWork.RunAsync(() =>
                 {
                     List<CadBeamLoadExportItem> list = new List<CadBeamLoadExportItem>();
                     if (AppConnectionManager.IsEtabsConnected)
@@ -865,12 +827,12 @@ namespace QksExcelAddIn.Views
                             bool isSel = false;
                             list = _etabsService.GetSelectedOrStoryBeamsWithDistributedLoads(story, loadPat, dirCode, bx, by, out isSel);
                         }
-                        catch { }
+                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
                     }
 
                     if (list.Count == 0)
                     {
-                        string jsonPath = Path.Combine(AutoCadHelper.LoadsDir, "wall_load_export.json");
+                        string jsonPath = Path.Combine(_exchangeDir, "wall_load_export.json");
                         if (File.Exists(jsonPath))
                         {
                             try
@@ -882,7 +844,7 @@ namespace QksExcelAddIn.Views
                                     list = payload.Beams;
                                 }
                             }
-                            catch { }
+                            catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
                         }
                     }
                     return list;
@@ -972,7 +934,7 @@ namespace QksExcelAddIn.Views
             }
         }
 
-        public void HighlightSectionInAutoCad(string sectionName, string colorHex)
+        public async void HighlightSectionInAutoCad(string sectionName, string colorHex)
         {
             try
             {
@@ -985,7 +947,7 @@ namespace QksExcelAddIn.Views
 
                 string formattedDll = AutoCadHelper.DllPath.Replace("\\", "/");
                 string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_WALL_SELECT_SECTION \"{sectionName}\"\n";
-                AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
 
                 txtCadSectionStatus.Text = $"[AutoCAD Sync] Đã quét chọn dầm tiết diện {sectionName} ({colorHex}) trên bản vẽ CAD!";
                 SetStatusMessage($"Đã phát lệnh chọn dầm tiết diện '{sectionName}' sang AutoCAD.");
@@ -996,7 +958,7 @@ namespace QksExcelAddIn.Views
             }
         }
 
-        private void OnBoChonCadClick(object sender, RoutedEventArgs e)
+        private async void OnBoChonCadClick(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -1006,7 +968,7 @@ namespace QksExcelAddIn.Views
                 {
                     string formattedDll = AutoCadHelper.DllPath.Replace("\\", "/");
                     string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_WALL_CLEAR_SELECTION\n";
-                    AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                    await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
                 }
 
                 txtCadSectionStatus.Text = "💡 Đã hủy chọn trên AutoCAD. Nhấp vào bất kỳ hàng tiết diện nào để chọn lại.";
@@ -1018,8 +980,11 @@ namespace QksExcelAddIn.Views
             }
         }
 
-        private void OnGanTaiDinhMucTab2Click(object sender, RoutedEventArgs e)
+        private async void OnGanTaiDinhMucTab2Click(object sender, RoutedEventArgs e)
         {
+            using var operation = EtabsService.BeginOperation();
+            try
+            {
             try
             {
                 // 1. Kiểm tra kết nối ETABS
@@ -1146,41 +1111,20 @@ namespace QksExcelAddIn.Views
                 double baseX = double.TryParse(txtBasePointX?.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double bx) ? bx : 0.0;
                 double baseY = double.TryParse(txtBasePointY?.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double by) ? by : 0.0;
 
-                string linesFile = Path.Combine(AutoCadHelper.LoadsDir, "cad_wall_lines.json");
+                string linesFile = Path.Combine(_exchangeDir, "cad_wall_lines.json");
                 if (File.Exists(linesFile))
                 {
-                    try { File.Delete(linesFile); } catch { }
+                    try { File.Delete(linesFile); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
                 }
 
                 string formattedDll = AutoCadHelper.DllPath.Replace(@"\", "/");
                 this.Hide();
 
                 string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_WALL_GET_SELECTED_BEAMS\n";
-                AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                var selectedResponse = await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
 
-                int maxWaitMs = 120000;
-                int elapsed = 0;
-                while (!File.Exists(linesFile) && elapsed < maxWaitMs)
-                {
-                    System.Threading.Thread.Sleep(15);
-                    elapsed += 15;
-                }
                 this.Show();
-
-                List<AutoCadWallLine> wallLines = new List<AutoCadWallLine>();
-                if (File.Exists(linesFile))
-                {
-                    try
-                    {
-                        string jsonContent = File.ReadAllText(linesFile);
-                        var queryRes = JsonHelper.Deserialize<AutoCadWallQuery>(jsonContent);
-                        if (queryRes?.Lines != null)
-                        {
-                            wallLines = queryRes.Lines;
-                        }
-                    }
-                    catch { }
-                }
+                var wallLines = JsonHelper.Deserialize<AutoCadWallQuery>(selectedResponse.PayloadJson)?.Lines ?? new List<AutoCadWallLine>();
 
                 if (wallLines.Count == 0)
                 {
@@ -1189,7 +1133,7 @@ namespace QksExcelAddIn.Views
                 }
 
                 List<CadBeamLoadExportItem> exportedBeamsCache = new List<CadBeamLoadExportItem>();
-                string exportJsonPath = Path.Combine(AutoCadHelper.LoadsDir, "wall_load_export.json");
+                string exportJsonPath = Path.Combine(_exchangeDir, "wall_load_export.json");
                 if (File.Exists(exportJsonPath))
                 {
                     try
@@ -1201,7 +1145,7 @@ namespace QksExcelAddIn.Views
                             exportedBeamsCache = expPayload.Beams;
                         }
                     }
-                    catch { }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
                 }
 
                 var assignedBeamNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1332,6 +1276,13 @@ namespace QksExcelAddIn.Views
             {
                 CustomMessageBox.Show($"Lỗi khi gán tải định mức: {ex.Message}", "Lỗi", CustomMessageBox.IconType.ErrorType);
             }
+
+            }
+            catch (Exception writeError)
+            {
+                CustomMessageBox.Show(writeError.Message + "\nNếu lệnh đã bắt đầu ghi, kiểm tra model và thư mục QKS_Backups trước khi chạy lại.", "Không hoàn tất thao tác", CustomMessageBox.IconType.ErrorType);
+                if (!IsVisible) Show();
+            }
         }
 
         private async void OnDongBoCadLiveClick(object sender, RoutedEventArgs e)
@@ -1374,7 +1325,7 @@ namespace QksExcelAddIn.Views
                 SetStatusMessage($"Đang đọc dữ liệu tải dầm tầng {storyName} từ ETABS để đồng bộ Live CAD...");
 
                 // 4. Lấy dữ liệu tải dầm từ ETABS
-                var beams = await Task.Run(() =>
+                var beams = await EtabsWork.RunAsync(() =>
                 {
                     bool isSel;
                     return _etabsService.GetSelectedOrStoryBeamsWithDistributedLoads(storyName, loadPattern, dirCode, baseX, baseY, out isSel);
@@ -1420,7 +1371,7 @@ namespace QksExcelAddIn.Views
                 }
 
                 // 5. Ghi file JSON và gọi lệnh CAD In-Place Update
-                string outDir = AutoCadHelper.LoadsDir;
+                string outDir = _exchangeDir;
                 if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
                 string jsonFile = Path.Combine(outDir, "cad_wall_live_update.json");
                 File.WriteAllText(jsonFile, JsonHelper.Serialize(livePayload));
@@ -1428,7 +1379,7 @@ namespace QksExcelAddIn.Views
                 string formattedDll = AutoCadHelper.DllPath.Replace("\\", "/");
                 string formattedJson = jsonFile.Replace("\\", "/");
                 string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_WALL_UPDATE_TEXT \"{formattedJson}\"\n";
-                AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
 
                 SetStatusMessage($"Đã đồng bộ Live CAD thành công cho {livePayload.BeamLoads.Count} dầm tầng {storyName}.", true);
                 CustomMessageBox.Show(
@@ -1446,8 +1397,11 @@ namespace QksExcelAddIn.Views
             }
         }
 
-        private void OnNhapTaiTuCadClick(object sender, RoutedEventArgs e)
+        private async void OnNhapTaiTuCadClick(object sender, RoutedEventArgs e)
         {
+            using var operation = EtabsService.BeginOperation();
+            try
+            {
             try
             {
                 // 1. Nhắc nhở người dùng xác nhận BasePoint và Tầng Update
@@ -1494,17 +1448,12 @@ namespace QksExcelAddIn.Views
                 this.Hide();
                 string formattedDll = AutoCadHelper.DllPath.Replace("\\", "/");
                 string cmdStr = $"(command \"_NETLOAD\" \"{formattedDll}\") QKS_WALL_SCAN_LOADS\n";
-                AutoCadHelper.SendCommand(acadDoc, cmdStr);
+                var scanResponse = await _cadSession.SendAsync((object)acadDoc, cmdStr, CadContext, this);
                 this.Show();
 
-                string scanFile = Path.Combine(AutoCadHelper.LoadsDir, "cad_edited_loads.json");
-                if (!File.Exists(scanFile))
-                {
-                    CustomMessageBox.Show("Không tìm thấy file kết quả quét từ AutoCAD.", "Thông Báo", CustomMessageBox.IconType.Warning);
-                    return;
-                }
+                string scanFile = Path.Combine(_exchangeDir, "cad_edited_loads.json");
 
-                string scanJson = File.ReadAllText(scanFile);
+                string scanJson = scanResponse.PayloadJson;
                 var importResult = JsonHelper.Deserialize<CadImportPayload>(scanJson);
 
                 if (importResult == null || importResult.Texts == null || importResult.Texts.Count == 0)
@@ -1516,7 +1465,7 @@ namespace QksExcelAddIn.Views
                 // 5. Lấy danh sách dầm của tầng hiện tại và toàn mô hình từ ETABS
                 var floorBeams = _etabsService.GetBeamsForStory(storyName);
                 var allBeams = _etabsService.GetBeamsList();
-                if (floorBeams.Count == 0) floorBeams = allBeams;
+                if (floorBeams.Count == 0) throw new InvalidOperationException("Không tìm thấy dầm thuộc tầng đã chọn.");
 
                 if (allBeams.Count == 0)
                 {
@@ -1526,7 +1475,7 @@ namespace QksExcelAddIn.Views
 
                 // Đọc cache exported beams nếu có
                 List<CadBeamLoadExportItem> exportedBeamsCache = new List<CadBeamLoadExportItem>();
-                string exportJsonPath = Path.Combine(AutoCadHelper.LoadsDir, "wall_load_export.json");
+                string exportJsonPath = Path.Combine(_exchangeDir, "wall_load_export.json");
                 if (File.Exists(exportJsonPath))
                 {
                     try
@@ -1538,7 +1487,7 @@ namespace QksExcelAddIn.Views
                             exportedBeamsCache = expPayload.Beams;
                         }
                     }
-                    catch { }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
                 }
 
                 // 6. Ánh xạ Tick Lines và Text tới Dầm từ dữ liệu quét AutoCAD
@@ -1988,6 +1937,13 @@ namespace QksExcelAddIn.Views
             {
                 CustomMessageBox.Show($"Có lỗi xảy ra khi nhập tải từ AutoCAD: {ex.Message}", "Lỗi", CustomMessageBox.IconType.ErrorType);
             }
+
+            }
+            catch (Exception writeError)
+            {
+                CustomMessageBox.Show(writeError.Message + "\nNếu lệnh đã bắt đầu ghi, kiểm tra model và thư mục QKS_Backups trước khi chạy lại.", "Không hoàn tất thao tác", CustomMessageBox.IconType.ErrorType);
+                if (!IsVisible) Show();
+            }
         }
 
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
@@ -2143,14 +2099,14 @@ namespace QksExcelAddIn.Views
                 double klrVua = double.TryParse(txtKlrVua?.Text, out double kv) ? kv : 18.0;
                 double n2 = double.TryParse(txtHeSoVua?.Text, out double hn2) ? hn2 : 1.3;
                 double dayTratMm = double.TryParse(txtDayTrat?.Text, out double dt) ? dt : 20.0;
-                
+
                 // Hệ số cửa: chỉ áp dụng khi Checkbox được tích, nếu không thì n3 = 1.0 (tường đặc)
                 double n3 = 1.0;
                 if (chkHeSoCua?.IsChecked == true)
                 {
                     n3 = double.TryParse(txtHeSoCua?.Text, out double hn3) ? hn3 : 0.8;
                 }
-                
+
                 double heSoGan = double.TryParse(txtHeSoGan?.Text, out double hsg) ? hsg : 1.0;
 
                 bool is200 = radTuong200?.IsChecked == true;
@@ -2173,7 +2129,7 @@ namespace QksExcelAddIn.Views
                         if (h > 0.1) storyHeight = h;
                     }
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
 
                 double beamH = 0.0;
                 if (chkCustomBeamDepth?.IsChecked == true)
@@ -2190,7 +2146,7 @@ namespace QksExcelAddIn.Views
                             beamH = _etabsService.GetBeamDepth(sampleUpperBeams[0].Name);
                         }
                     }
-                    catch { }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
                 }
 
                 // Chiều dày sàn tầng trên trừ (m)
@@ -2266,8 +2222,8 @@ namespace QksExcelAddIn.Views
                 if (lblStatusBarText != null)
                 {
                     lblStatusBarText.Text = message;
-                    lblStatusBarText.Foreground = isSuccess 
-                        ? new MediaBrush(MediaColor.FromRgb(71, 85, 105)) 
+                    lblStatusBarText.Foreground = isSuccess
+                        ? new MediaBrush(MediaColor.FromRgb(71, 85, 105))
                         : new MediaBrush(MediaColor.FromRgb(220, 38, 38));
                 }
             });
@@ -2367,7 +2323,7 @@ namespace QksExcelAddIn.Views
                     gridBeamSections.ItemsSource = BeamSections.Where(s => s.SectionName.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
                 }
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
         }
 
         #region EXCEL EXPORT & IMPORT BẢNG ĐỊNH MỨC TƯỜNG
@@ -2512,7 +2468,7 @@ namespace QksExcelAddIn.Views
                 string json = JsonHelper.Serialize(WallLoads.ToList());
                 File.WriteAllText(presetFile, json);
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
         }
 
         private void LoadWallLoadsPreset()
@@ -2535,7 +2491,7 @@ namespace QksExcelAddIn.Views
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
         }
         #endregion
 
@@ -2612,7 +2568,7 @@ namespace QksExcelAddIn.Views
             double d2 = PointToSegmentDistance(bx, by, cx, cy, dx, dy);
             double d3 = PointToSegmentDistance(cx, cy, ax, ay, bx, by);
             double d4 = PointToSegmentDistance(dx, dy, ax, ay, bx, by);
-            
+
             return Math.Min(Math.Min(d1, d2), Math.Min(d3, d4));
         }
 
@@ -2620,14 +2576,14 @@ namespace QksExcelAddIn.Views
         {
             double dx = x2 - x1;
             double dy = y2 - y1;
-            
+
             if (dx == 0 && dy == 0)
             {
                 return Math.Sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
             }
-            
+
             double t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
-            
+
             if (t < 0)
             {
                 return Math.Sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
@@ -2636,7 +2592,7 @@ namespace QksExcelAddIn.Views
             {
                 return Math.Sqrt((px - x2) * (px - x2) + (py - y2) * (py - y2));
             }
-            
+
             double projX = x1 + t * dx;
             double projY = y1 + t * dy;
             return Math.Sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));

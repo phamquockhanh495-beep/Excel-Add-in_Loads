@@ -35,7 +35,17 @@ namespace QksExcelAddIn.Services
     /// </summary>
     public static class AppConnectionManager
     {
-        public static EtabsInstanceInfo? ActiveEtabs { get; set; }
+        private static EtabsInstanceInfo? _activeEtabs;
+        public static string ModelIdentity => _activeEtabs == null ? "" : _activeEtabs.ProcessId + "|" + _activeEtabs.ModelPath;
+        public static EtabsInstanceInfo? ActiveEtabs {
+            get => _activeEtabs;
+            set {
+                lock (EtabsService.EtabsLock) {
+                    _activeEtabs = value;
+                    EtabsService.ResetSessionCaches();
+                }
+            }
+        }
         public static AcadDocInfo? ActiveAutoCad { get; set; }
         public static ExcelWorkbookInfo? ActiveExcel { get; set; }
 
@@ -67,7 +77,11 @@ namespace QksExcelAddIn.Services
 
         public static cSapModel? GetSapModel()
         {
-            return ActiveEtabs?.SapModel;
+            var connection = ActiveEtabs;
+            if (connection?.SapModel == null) return null;
+            if (!Qks.Shared.Protocol.SamePath(connection.SapModel.GetModelFilename(), connection.ModelPath))
+                throw new InvalidOperationException("ETABS đã đổi mô hình. Hãy kết nối lại API.");
+            return connection.SapModel;
         }
 
         public static string GetEtabsDisplayName()

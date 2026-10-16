@@ -1,4 +1,5 @@
 using System;
+using Qks.Shared;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -15,7 +16,7 @@ namespace QksExcelAddIn.Services
     /// Service kết nối và thao tác với mô hình ETABS thông qua CSiAPIv1.
     /// Áp dụng thuật toán kết nối đa tầng (ROT + Helper PID + Fallback) từ QKS Beam.
     /// </summary>
-    public class EtabsService
+    public partial class EtabsService
     {
         [DllImport("ole32.dll")]
         private static extern int GetRunningObjectTable(uint reserved, out IRunningObjectTable pprot);
@@ -25,6 +26,10 @@ namespace QksExcelAddIn.Services
 
         private static readonly object _etabsLock = new object();
         public static object EtabsLock => _etabsLock;
+        public static void ResetSessionCaches()
+        {
+            lock (_etabsLock) { ClearAllStoryBeamsCache(); _storySlabsDictCache.Clear(); _sectionAssignedLoadSets.Clear(); }
+        }
 
         public cSapModel? CurrentSapModel => AppConnectionManager.GetSapModel();
         public bool IsConnected => AppConnectionManager.IsEtabsConnected;
@@ -326,7 +331,7 @@ namespace QksExcelAddIn.Services
         public bool IsModelLocked()
         {
             var sapModel = CurrentSapModel;
-            if (sapModel == null) return false;
+            if (sapModel == null) return true;
 
             try
             {
@@ -334,7 +339,7 @@ namespace QksExcelAddIn.Services
             }
             catch
             {
-                return false;
+                return true;
             }
         }
 
@@ -370,7 +375,7 @@ namespace QksExcelAddIn.Services
             {
                 lock (_etabsLock)
                 {
-                    EnsureStandardUnits();
+                    if (!EnsureStandardUnits()) throw new InvalidOperationException("Không chuẩn hóa được đơn vị ETABS.");
 
                     int numberNames = 0;
                     string[] myNames = Array.Empty<string>();
@@ -515,7 +520,7 @@ namespace QksExcelAddIn.Services
             var sapModel = CurrentSapModel;
             if (sapModel == null) return list;
 
-            EnsureStandardUnits();
+            if (!EnsureStandardUnits()) throw new InvalidOperationException("Không chuẩn hóa được đơn vị ETABS.");
 
             try
             {
@@ -595,9 +600,7 @@ namespace QksExcelAddIn.Services
                     }
                 }
 
-                // Nếu chưa có, tự động tạo mới Load Pattern loại SuperDead
-                int ret = sapModel.LoadPatterns.Add(loadPat.Trim(), eLoadPatternType.SuperDead, 0, true);
-                return ret == 0;
+                return false; // Pattern type must be configured explicitly in ETABS.
             }
             catch (Exception ex)
             {
@@ -611,31 +614,30 @@ namespace QksExcelAddIn.Services
         /// </summary>
         public bool AssignDistributedLoad(string frameName, string loadPat, int direction, double value, bool replace = true)
         {
+            using (BeginWrite())
+            {
+            if (!LoadTextParser.Finite(value)) throw new ArgumentException("Giá trị hoặc miền tải không hợp lệ.");
             var sapModel = CurrentSapModel;
             if (sapModel == null) return false;
 
-            EnsureStandardUnits();
-            EnsureLoadPatternExists(loadPat);
+            if (!EnsureStandardUnits()) throw new InvalidOperationException("Không chuẩn hóa được đơn vị ETABS.");
+            if (!EnsureLoadPatternExists(loadPat)) throw new InvalidOperationException("Load pattern chưa tồn tại; hãy tạo đúng loại tải trong ETABS.");
 
             try
             {
                 // CSiAPIv1.cFrameObj.SetLoadDistributed
                 // (string Name, string LoadPat, int MyType, int Dir, double Dist1, double Dist2, double Val1, double Val2, string CSys, bool RelDist, bool Replace, eItemType ItemType)
-                int ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPat, 1, direction, 0.0, 1.0, value, value, "Global", true, replace);
-                if (ret != 0 && direction == 10)
-                {
-                    ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPat, 1, 6, 0.0, 1.0, value, value, "Global", true, replace);
-                    if (ret != 0)
-                    {
-                        ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPat, 1, 3, 0.0, 1.0, -value, -value, "Global", true, replace);
-                    }
-                }
+                int ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPat, 1, direction, 0.0, 1.0, value, value, LoadDirections.CoordinateSystem(direction), true, replace);
+
+                if (ret == 0) VerifyFrame(frameName, loadPat, direction, 0, 1, value, value, true);
                 return ret == 0;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Lỗi gán tải dầm {frameName}: {ex.Message}");
                 return false;
+            }
+
             }
         }
 
@@ -644,11 +646,14 @@ namespace QksExcelAddIn.Services
         /// </summary>
         public bool AssignSubSegmentDistributedLoad(string frameName, string loadPat, int direction, double dist1, double dist2, double value, bool replace = true)
         {
+            using (BeginWrite())
+            {
+            if (!LoadTextParser.Finite(value) || !LoadTextParser.Finite(dist1) || !LoadTextParser.Finite(dist2) || dist1 < 0 || dist2 <= dist1) throw new ArgumentException("Giá trị hoặc miền tải không hợp lệ.");
             var sapModel = CurrentSapModel;
             if (sapModel == null) return false;
 
-            EnsureStandardUnits();
-            EnsureLoadPatternExists(loadPat);
+            if (!EnsureStandardUnits()) throw new InvalidOperationException("Không chuẩn hóa được đơn vị ETABS.");
+            if (!EnsureLoadPatternExists(loadPat)) throw new InvalidOperationException("Load pattern chưa tồn tại; hãy tạo đúng loại tải trong ETABS.");
 
             try
             {
@@ -657,25 +662,21 @@ namespace QksExcelAddIn.Services
 
                 if (Math.Abs(e - s) < 0.01)
                 {
-                    return AssignDistributedLoad(frameName, loadPat, direction, value, replace);
+                    return false; // Invalid/zero-length segment, never widen to the whole beam.
                 }
 
                 // Dist1 = s, Dist2 = e (mét), RelDist = false, Replace = replace
-                int ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPat, 1, direction, s, e, value, value, "Global", false, replace);
-                if (ret != 0 && direction == 10)
-                {
-                    ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPat, 1, 6, s, e, value, value, "Global", false, replace);
-                    if (ret != 0)
-                    {
-                        ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPat, 1, 3, s, e, -value, -value, "Global", false, replace);
-                    }
-                }
+                int ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPat, 1, direction, s, e, value, value, LoadDirections.CoordinateSystem(direction), false, replace);
+
+                if (ret == 0) VerifyFrame(frameName, loadPat, direction, s, e, value, value, false);
                 return ret == 0;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Lỗi gán tải phân đoạn dầm {frameName}: {ex.Message}");
                 return false;
+            }
+
             }
         }
 
@@ -688,7 +689,7 @@ namespace QksExcelAddIn.Services
             var sapModel = CurrentSapModel;
             if (sapModel == null || string.IsNullOrWhiteSpace(beamName)) return 0.0;
 
-            EnsureStandardUnits();
+            if (!EnsureStandardUnits()) throw new InvalidOperationException("Không chuẩn hóa được đơn vị ETABS.");
 
             try
             {
@@ -955,7 +956,7 @@ namespace QksExcelAddIn.Services
             var sapModel = CurrentSapModel;
             if (sapModel == null) return list;
 
-            EnsureStandardUnits();
+            if (!EnsureStandardUnits()) throw new InvalidOperationException("Không chuẩn hóa được đơn vị ETABS.");
 
             try
             {
@@ -1043,12 +1044,11 @@ namespace QksExcelAddIn.Services
 
             if (!found)
             {
-                _storyBeamsDictCache[storyName.Trim()] = allBeams;
-                return allBeams;
+                return new List<EtabsBeam>();
             }
 
             // Lọc các dầm có cao độ nằm trong dải tầng
-            double maxDelta = Math.Max(0.5, storyHeight * 0.4);
+            double maxDelta = 0.001;
             foreach (var b in allBeams)
             {
                 if (Math.Abs(b.Z1 - targetElevation) <= maxDelta)
@@ -1057,28 +1057,7 @@ namespace QksExcelAddIn.Services
                 }
             }
 
-            // Fallback: nếu danh sách rỗng, tìm dầm có Z1 gần targetElevation nhất
-            if (list.Count == 0 && allBeams.Count > 0)
-            {
-                double minZDiff = double.MaxValue;
-                foreach (var b in allBeams)
-                {
-                    double diff = Math.Abs(b.Z1 - targetElevation);
-                    if (diff < minZDiff) minZDiff = diff;
-                }
-                if (minZDiff < 2.0)
-                {
-                    foreach (var b in allBeams)
-                    {
-                        if (Math.Abs(Math.Abs(b.Z1 - targetElevation) - minZDiff) < 0.2)
-                        {
-                            list.Add(b);
-                        }
-                    }
-                }
-            }
-
-            var result = list.Count > 0 ? list : allBeams;
+            var result = list;
             _storyBeamsDictCache[storyName.Trim()] = result;
             return result;
         }
@@ -1087,24 +1066,7 @@ namespace QksExcelAddIn.Services
         /// Chuyển đổi tên hướng tải thành mã direction trong ETABS API
         /// Lưu ý: Theo chuẩn CSiAPIv1, Dir = 10 là Gravity (hướng trọng lực xuống dưới, -Z), Dir = 11 là Gravity Proj.
         /// </summary>
-        public static int GetDirectionCode(string directionName)
-        {
-            switch (directionName?.Trim())
-            {
-                case "Global-X": return 1;
-                case "Global-Y": return 2;
-                case "Global-Z": return 3; // Global +Z (hướng lên trên)
-                case "Local-1": return 4;
-                case "Local-2": return 5;
-                case "Local-3": return 6;
-                case "Global-X Proj": return 7;
-                case "Global-Y Proj": return 8;
-                case "Gravity Proj": return 11;
-                case "Gravity":
-                default:
-                    return 10; // 10 = Gravity (Global -Z, hướng xuống)
-            }
-        }
+        public static int GetDirectionCode(string directionName) => LoadDirections.Code(directionName);
 
         /// <summary>
         /// Đọc toàn bộ các phân đoạn tải phân bố (Distributed Loads) đang gán trên dầm
@@ -1115,7 +1077,7 @@ namespace QksExcelAddIn.Services
             var sapModel = CurrentSapModel;
             if (sapModel == null) return list;
 
-            EnsureStandardUnits();
+            if (!EnsureStandardUnits()) throw new InvalidOperationException("Không chuẩn hóa được đơn vị ETABS.");
 
             try
             {
@@ -1148,19 +1110,19 @@ namespace QksExcelAddIn.Services
                 // 12: ref Val2 (double[])
                 // 13: ItemType (eItemType)
                 int ret = sapModel.FrameObj.GetLoadDistributed(
-                    frameName, 
-                    ref numberLoads, 
-                    ref frameNames, 
-                    ref loadPats, 
-                    ref myTypes, 
-                    ref cSyss, 
-                    ref dirs, 
-                    ref rd1, 
-                    ref rd2, 
-                    ref d1, 
-                    ref d2, 
-                    ref val1, 
-                    ref val2, 
+                    frameName,
+                    ref numberLoads,
+                    ref frameNames,
+                    ref loadPats,
+                    ref myTypes,
+                    ref cSyss,
+                    ref dirs,
+                    ref rd1,
+                    ref rd2,
+                    ref d1,
+                    ref d2,
+                    ref val1,
+                    ref val2,
                     CSiAPIv1.eItemType.Objects
                 );
 
@@ -1180,13 +1142,8 @@ namespace QksExcelAddIn.Services
                         if (direction > 0)
                         {
                             int d = (dirs != null && dirs.Length > i) ? dirs[i] : 10;
-                            
-                            // Nếu direction là Gravity (10), chấp nhận cả mã 10 (Gravity), 11 (Gravity Proj), 6 (Global Z)
+
                             bool dirMatch = (d == direction);
-                            if (!dirMatch && (direction == 10 || direction == 6) && (d == 10 || d == 11 || d == 6 || d == 3))
-                            {
-                                dirMatch = true;
-                            }
                             if (!dirMatch)
                             {
                                 continue;
@@ -1251,7 +1208,7 @@ namespace QksExcelAddIn.Services
             var sapModel = CurrentSapModel;
             if (sapModel == null) return list;
 
-            EnsureStandardUnits();
+            if (!EnsureStandardUnits()) throw new InvalidOperationException("Không chuẩn hóa được đơn vị ETABS.");
 
             try
             {
@@ -1324,12 +1281,16 @@ namespace QksExcelAddIn.Services
             isSelectedMode = false;
             if (sapModel == null) return result;
 
-            EnsureStandardUnits();
+            if (!EnsureStandardUnits()) throw new InvalidOperationException("Không chuẩn hóa được đơn vị ETABS.");
 
             try
             {
                 // 1. Kiểm tra dầm đang được quét chọn trong ETABS
+                var storyBeams = GetBeamsForStory(storyName);
+                var storyIds = new HashSet<string>(storyBeams.Select(x => x.Name), StringComparer.OrdinalIgnoreCase);
                 var targetBeams = GetSelectedBeamsList();
+                if (targetBeams.Any(x => !storyIds.Contains(x.Name)))
+                    throw new InvalidOperationException("Vùng chọn ETABS có dầm ngoài tầng đang chọn. Hãy chọn lại đúng tầng.");
                 if (targetBeams.Count > 0)
                 {
                     isSelectedMode = true;
@@ -1483,49 +1444,50 @@ namespace QksExcelAddIn.Services
         /// </summary>
         public bool AssignSegmentedDistributedLoads(string frameName, string loadPattern, int direction, List<CadLoadSegment> segments, bool replace)
         {
+            using (BeginWrite())
+            {
             var sapModel = CurrentSapModel;
             if (sapModel == null) return false;
 
-            EnsureStandardUnits();
-            EnsureLoadPatternExists(loadPattern);
+            if (!EnsureStandardUnits()) throw new InvalidOperationException("Không chuẩn hóa được đơn vị ETABS.");
+            if (!EnsureLoadPatternExists(loadPattern)) throw new InvalidOperationException("Load pattern chưa tồn tại trong ETABS.");
 
             try
             {
                 if (segments == null || segments.Count == 0) return false;
 
+                double previousEnd = 0;
+                foreach (var seg in segments.OrderBy(x => x.StartDist)) {
+                    if (!LoadTextParser.Finite(seg.StartDist) || !LoadTextParser.Finite(seg.EndDist) || !LoadTextParser.Finite(seg.Val1) || !LoadTextParser.Finite(seg.Val2) || seg.StartDist < previousEnd - 1e-6 || seg.EndDist <= seg.StartDist)
+                        throw new ArgumentException("Phân đoạn tải không hợp lệ hoặc chồng lấn.");
+                    previousEnd = seg.EndDist;
+                }
                 bool isFirst = true;
                 foreach (var seg in segments)
                 {
                     bool repFlag = isFirst ? replace : false;
-                    string cSys = "Global";
+                    string cSys = LoadDirections.CoordinateSystem(direction);
 
                     // CSiAPIv1.cFrameObj.SetLoadDistributed:
                     // (string Name, string LoadPat, int MyType, int Dir, double Dist1, double Dist2, double Val1, double Val2, string CSys, bool RelDist, bool Replace, eItemType ItemType)
                     int ret = sapModel.FrameObj.SetLoadDistributed(
-                        frameName, 
-                        loadPattern, 
+                        frameName,
+                        loadPattern,
                         1, // 1: Force per unit length
-                        direction, 
-                        seg.StartDist, 
-                        seg.EndDist, 
-                        seg.Val1, 
-                        seg.Val2, 
-                        cSys, 
+                        direction,
+                        seg.StartDist,
+                        seg.EndDist,
+                        seg.Val1,
+                        seg.Val2,
+                        cSys,
                         false, // false: Absolute distance (meters)
                         repFlag // Replace on first segment, Add on subsequent
                     );
 
-                    if (ret != 0 && direction == 10)
-                    {
-                        ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPattern, 1, 6, seg.StartDist, seg.EndDist, seg.Val1, seg.Val2, cSys, false, repFlag);
-                        if (ret != 0)
-                        {
-                            ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPattern, 1, 3, seg.StartDist, seg.EndDist, -seg.Val1, -seg.Val2, cSys, false, repFlag);
-                        }
-                    }
 
                     isFirst = false;
-                    if (ret != 0) return false;
+                    if (ret != 0) throw new InvalidOperationException("ETABS lỗi " + ret + " sau khi có thể đã thay một phần tải dầm " + frameName);
+                    VerifyFrame(frameName, loadPattern, direction, seg.StartDist, seg.EndDist, seg.Val1, seg.Val2, false);
                 }
                 return true;
             }
@@ -1534,6 +1496,8 @@ namespace QksExcelAddIn.Services
                 Debug.WriteLine($"Lỗi gán tải phân đoạn dầm {frameName}: {ex.Message}");
                 return false;
             }
+
+            }
         }
 
         /// <summary>
@@ -1541,6 +1505,8 @@ namespace QksExcelAddIn.Services
         /// </summary>
         public bool DeleteFrameDistributedLoads(string frameName, string loadPattern)
         {
+            using (BeginWrite())
+            {
             var sapModel = CurrentSapModel;
             if (sapModel == null) return false;
 
@@ -1548,25 +1514,14 @@ namespace QksExcelAddIn.Services
             {
                 // CSiAPIv1.cFrameObj.DeleteLoadDistributed
                 int ret = sapModel.FrameObj.DeleteLoadDistributed(frameName, loadPattern);
-                if (ret != 0)
-                {
-                    // Fallback gán giá trị 0 với Replace = true trên toàn bộ dầm
-                    ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPattern, 1, 10, 0.0, 1.0, 0.0, 0.0, "Global", true, true);
-                    if (ret != 0)
-                    {
-                        ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPattern, 1, 6, 0.0, 1.0, 0.0, 0.0, "Global", true, true);
-                        if (ret != 0)
-                        {
-                            ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPattern, 1, 3, 0.0, 1.0, 0.0, 0.0, "Global", true, true);
-                        }
-                    }
-                }
                 return ret == 0;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Lỗi xóa tải dầm {frameName}: {ex.Message}");
                 return false;
+            }
+
             }
         }
 
@@ -1714,7 +1669,7 @@ namespace QksExcelAddIn.Services
                     {
                         LoadSetName = ls.LoadSetName,
                         OriginalName = ls.LoadSetName,
-                        Loads = ls.Loads != null 
+                        Loads = ls.Loads != null
                             ? ls.Loads.Select(d => new ShellLoadSetDetail { LoadPattern = d.LoadPattern, LoadValue = d.LoadValue, Direction = d.Direction }).ToList()
                             : new List<ShellLoadSetDetail>()
                     });
@@ -2287,6 +2242,8 @@ namespace QksExcelAddIn.Services
         /// </summary>
         public bool SetShellUniformLoadSet(string setName, List<ShellLoadSetDetail> loads)
         {
+            using (BeginWrite())
+            {
             if (string.IsNullOrWhiteSpace(setName)) return false;
 
             lock (_storedLoadSets)
@@ -2307,8 +2264,9 @@ namespace QksExcelAddIn.Services
             }
 
             // Ghi trực tiếp toàn bộ danh sách LoadSets vào ETABS
-            SaveShellUniformLoadSetsToEtabs(_storedLoadSets);
-            return true;
+            return SaveShellUniformLoadSetsToEtabs(_storedLoadSets);
+
+            }
         }
 
         /// <summary>
@@ -2316,6 +2274,8 @@ namespace QksExcelAddIn.Services
         /// </summary>
         public bool SaveShellUniformLoadSetsToEtabs(List<ShellLoadSetItem> loadSets)
         {
+            using (BeginWrite())
+            {
             if (loadSets == null) return false;
 
             lock (_storedLoadSets)
@@ -2434,6 +2394,8 @@ namespace QksExcelAddIn.Services
             }
 
             return true;
+
+            }
         }
 
         /// <summary>
@@ -2441,6 +2403,8 @@ namespace QksExcelAddIn.Services
         /// </summary>
         public bool DeleteShellUniformLoadSet(string setName)
         {
+            using (BeginWrite())
+            {
             if (string.IsNullOrWhiteSpace(setName)) return false;
 
             lock (_storedLoadSets)
@@ -2448,8 +2412,9 @@ namespace QksExcelAddIn.Services
                 _storedLoadSets.RemoveAll(s => s.LoadSetName.Equals(setName, StringComparison.OrdinalIgnoreCase));
             }
 
-            SaveShellUniformLoadSetsToEtabs(_storedLoadSets);
-            return true;
+            return SaveShellUniformLoadSetsToEtabs(_storedLoadSets);
+
+            }
         }
 
         /// <summary>
@@ -2457,6 +2422,8 @@ namespace QksExcelAddIn.Services
         /// </summary>
         public int AssignShellLoadSet(string storyName, string sectionName, string loadSetName)
         {
+            using (BeginWrite())
+            {
             var sapModel = CurrentSapModel;
             if (sapModel == null || string.IsNullOrEmpty(storyName) || string.IsNullOrEmpty(sectionName)) return 0;
 
@@ -2475,13 +2442,17 @@ namespace QksExcelAddIn.Services
                     var slabs = GetSlabsForStory(storyName);
                     var targetSlabs = slabs.Where(s => s.Section.Equals(sectionName, StringComparison.OrdinalIgnoreCase)).ToList();
 
+                    if (targetSet.Loads.Count == 0 || targetSet.Loads.Select(x => x.LoadPattern).Distinct(StringComparer.OrdinalIgnoreCase).Count() != targetSet.Loads.Count)
+                        throw new InvalidOperationException("Load set rỗng hoặc chứa pattern trùng.");
+                    foreach (var load in targetSet.Loads)
+                        if (!LoadTextParser.Finite(load.LoadValue) || !EnsureLoadPatternExists(load.LoadPattern))
+                            throw new InvalidOperationException("Load set chứa giá trị/pattern không hợp lệ.");
                     foreach (var slab in targetSlabs)
                     {
-                        bool isFirst = true;
                         foreach (var load in targetSet.Loads)
                         {
-                            sapModel.AreaObj.SetLoadUniform(slab.Name, load.LoadPattern, load.LoadValue, 10, isFirst, "Global", eItemType.Objects);
-                            isFirst = false;
+                            if (sapModel.AreaObj.SetLoadUniform(slab.Name, load.LoadPattern, load.LoadValue, 10, true, "Global", eItemType.Objects) != 0) throw new InvalidOperationException("Gán load set thất bại tại sàn " + slab.Name);
+                            VerifyUniform(slab.Name, load.LoadPattern, load.LoadValue, 10);
                         }
                         count++;
                     }
@@ -2492,9 +2463,11 @@ namespace QksExcelAddIn.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Lỗi AssignShellLoadSet {sectionName}: {ex.Message}");
+                throw new InvalidOperationException($"Lỗi AssignShellLoadSet {sectionName}: {ex.Message}");
             }
             return count;
+
+            }
         }
 
         /// <summary>
@@ -2502,6 +2475,8 @@ namespace QksExcelAddIn.Services
         /// </summary>
         public int AssignShellUniformLoad(string storyName, string sectionName, string loadPattern, double value, int direction = 10, bool replaceExisting = true)
         {
+            using (BeginWrite())
+            {
             var sapModel = CurrentSapModel;
             if (sapModel == null || string.IsNullOrEmpty(storyName) || string.IsNullOrEmpty(sectionName) || string.IsNullOrEmpty(loadPattern)) return 0;
 
@@ -2510,22 +2485,18 @@ namespace QksExcelAddIn.Services
             {
                 lock (_etabsLock)
                 {
+                    if (!LoadTextParser.Finite(value) || !EnsureLoadPatternExists(loadPattern)) throw new InvalidOperationException("Giá trị/pattern tải không hợp lệ.");
                     var slabs = GetSlabsForStory(storyName);
                     var targetSlabs = slabs.Where(s => s.Section.Equals(sectionName, StringComparison.OrdinalIgnoreCase)).ToList();
 
                     foreach (var slab in targetSlabs)
                     {
-                        int ret = sapModel.AreaObj.SetLoadUniform(slab.Name, loadPattern, value, direction, replaceExisting, "Global", eItemType.Objects);
-                        if (ret != 0 && direction == 10)
-                        {
-                            ret = sapModel.AreaObj.SetLoadUniform(slab.Name, loadPattern, value, 6, replaceExisting, "Global", eItemType.Objects);
-                            if (ret != 0)
-                            {
-                                ret = sapModel.AreaObj.SetLoadUniform(slab.Name, loadPattern, -value, 3, replaceExisting, "Global", eItemType.Objects);
-                            }
-                        }
+                        int ret = sapModel.AreaObj.SetLoadUniform(slab.Name, loadPattern, value, direction, replaceExisting, LoadDirections.CoordinateSystem(direction), eItemType.Objects);
 
-                        if (ret == 0) count++;
+
+                        if (ret != 0) throw new InvalidOperationException("Gán tải thất bại tại sàn " + slab.Name + "; ETABS code " + ret);
+                        if (replaceExisting) VerifyUniform(slab.Name, loadPattern, value, direction);
+                        count++;
                     }
 
                     _sectionAssignedLoadSets.Remove(sectionName);
@@ -2534,9 +2505,11 @@ namespace QksExcelAddIn.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Lỗi AssignShellUniformLoad {sectionName}: {ex.Message}");
+                throw new InvalidOperationException($"Lỗi AssignShellUniformLoad {sectionName}: {ex.Message}");
             }
             return count;
+
+            }
         }
 
         /// <summary>
@@ -2544,163 +2517,57 @@ namespace QksExcelAddIn.Services
         /// </summary>
         public bool AssignZoneRectangleLoad(string storyName, double x1, double y1, double x2, double y2, string loadPattern, double value, int direction = 10, bool replaceExisting = true)
         {
-            var sapModel = CurrentSapModel;
-            if (sapModel == null || string.IsNullOrEmpty(storyName) || string.IsNullOrEmpty(loadPattern)) return false;
-
-            try
-            {
-                lock (_etabsLock)
-                {
-                    // Lấy cao độ tầng
-                    double elevation = 0;
-                    string[] stNames;
-                    double[] stHeights;
-                    double[] stElevs;
-                    int nStories = GetStoryList(out stNames, out stHeights, out stElevs);
-                    if (nStories > 0 && stNames != null)
-                    {
-                        for (int i = 0; i < nStories; i++)
-                        {
-                            if (stNames[i].Equals(storyName, StringComparison.OrdinalIgnoreCase))
-                            {
-                                elevation = stElevs[i];
-                                break;
-                            }
-                        }
-                    }
-
-                    double minX = Math.Min(x1, x2);
-                    double maxX = Math.Max(x1, x2);
-                    double minY = Math.Min(y1, y2);
-                    double maxY = Math.Max(y1, y2);
-
-                    double[] xCoords = new double[] { minX, maxX, maxX, minX };
-                    double[] yCoords = new double[] { minY, minY, maxY, maxY };
-                    double[] zCoords = new double[] { elevation, elevation, elevation, elevation };
-
-                    string newAreaName = "";
-                    // Tạo ô sàn mới với property "None" hoặc sàn ảo gán tải
-                    int ret = sapModel.AreaObj.AddByCoord(4, ref xCoords, ref yCoords, ref zCoords, ref newAreaName, "None", "Global");
-                    if (ret != 0)
-                    {
-                        // Fallback tạo với default slab property nếu "None" không khả dụng
-                        string defProp = "Default";
-                        ret = sapModel.AreaObj.AddByCoord(4, ref xCoords, ref yCoords, ref zCoords, ref newAreaName, defProp, "Global");
-                    }
-
-                    if (ret == 0 && !string.IsNullOrEmpty(newAreaName))
-                    {
-                        // Gán tải vào vùng sàn mới tạo
-                        ret = sapModel.AreaObj.SetLoadUniform(newAreaName, loadPattern, value, direction, replaceExisting, "Global", eItemType.Objects);
-                        if (ret != 0 && direction == 10)
-                        {
-                            ret = sapModel.AreaObj.SetLoadUniform(newAreaName, loadPattern, value, 6, replaceExisting, "Global", eItemType.Objects);
-                        }
-                        ClearSlabCache();
-                        return ret == 0;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Lỗi AssignZoneRectangleLoad: {ex.Message}");
-            }
-            return false;
+            throw new NotSupportedException("Tạm ngừng tạo sàn ảo từ vùng chữ nhật để tránh thay đổi độ cứng/mô hình. Hãy gán tải vào ô sàn hiện có; chức năng vùng tải cần thiết kế riêng.");
         }
 
-        /// <summary>
-        /// Gán tải trọng quét từ CAD trực tiếp vào các ô sàn trong ETABS
-        /// </summary>
         public int AssignImportedShellLoads(List<CadShellImportItem> items, string defaultPattern, int direction = 10)
         {
             var sapModel = CurrentSapModel;
             if (sapModel == null || items == null || items.Count == 0) return 0;
-
-            int updatedCount = 0;
-            try
+            lock (_etabsLock)
             {
-                lock (_etabsLock)
+                using (BeginWrite())
                 {
-                    var patRegex = new System.Text.RegularExpressions.Regex(@"([A-Za-z0-9_]+)\s*[:=]\s*([0-9]*[.,]?[0-9]+)");
-                    var setRegex = new System.Text.RegularExpressions.Regex(@"Set\s*[:=]\s*([A-Za-z0-9_]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                    var numRegex = new System.Text.RegularExpressions.Regex(@"[-+]?[0-9]*[.,]?[0-9]+");
-
+                    var plan = new List<(string area, List<ParsedLoad> loads)>();
+                    var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var item in items)
                     {
-                        if (string.IsNullOrEmpty(item.AreaName)) continue;
-
-                        string raw = item.RawText ?? "";
-
-                        // 1. Kiểm tra nếu là LoadSet
-                        var setMatch = setRegex.Match(raw);
-                        if (setMatch.Success)
+                        if (string.IsNullOrWhiteSpace(item.AreaName) || !seen.Add(item.AreaName))
+                            throw new InvalidOperationException("Thiếu hoặc trùng AreaName trong dữ liệu CAD.");
+                        List<ParsedLoad> loads;
+                        string text = (item.RawText ?? "").Trim();
+                        var match = System.Text.RegularExpressions.Regex.Match(text, @"^Set\s*[:=]\s*(.+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        if (match.Success)
                         {
-                            string setName = setMatch.Groups[1].Value.Trim();
-                            var setItem = _storedLoadSets.Find(s => s.LoadSetName.Equals(setName, StringComparison.OrdinalIgnoreCase));
-                            if (setItem != null && setItem.Loads.Count > 0)
-                            {
-                                bool isFirst = true;
-                                foreach (var load in setItem.Loads)
-                                {
-                                    sapModel.AreaObj.SetLoadUniform(item.AreaName, load.LoadPattern, load.LoadValue, direction, isFirst, "Global", eItemType.Objects);
-                                    isFirst = false;
-                                }
-                                updatedCount++;
-                            }
-                            continue;
+                            var set = _storedLoadSets.Find(x => x.LoadSetName.Equals(match.Groups[1].Value.Trim(), StringComparison.OrdinalIgnoreCase));
+                            if (set == null) throw new InvalidOperationException("Không tìm thấy load set: " + text);
+                            loads = set.Loads.Select(x => new ParsedLoad { Pattern = x.LoadPattern, Value = x.LoadValue }).ToList();
                         }
-
-                        // 2. Kiểm tra các cặp Pattern = Value (hỗ trợ nhiều pattern trên nhiều dòng)
-                        var matches = patRegex.Matches(raw);
-                        if (matches.Count > 0)
-                        {
-                            bool anyAssigned = false;
-                            foreach (System.Text.RegularExpressions.Match m in matches)
-                            {
-                                string patName = m.Groups[1].Value.Trim();
-                                string valStr = m.Groups[2].Value.Replace(',', '.');
-                                if (double.TryParse(valStr, NumberStyles.Any, CultureInfo.InvariantCulture, out double val))
-                                {
-                                    int ret = sapModel.AreaObj.SetLoadUniform(item.AreaName, patName, val, direction, true, "Global", eItemType.Objects);
-                                    if (ret != 0 && direction == 10)
-                                    {
-                                        ret = sapModel.AreaObj.SetLoadUniform(item.AreaName, patName, val, 6, true, "Global", eItemType.Objects);
-                                    }
-                                    if (ret == 0) anyAssigned = true;
-                                }
-                            }
-                            if (anyAssigned) updatedCount++;
-                        }
-                        else
-                        {
-                            // 3. Fallback: nếu chỉ có số đơn lẻ, gán vào loại tải đang chọn
-                            var numMatch = numRegex.Match(raw);
-                            if (numMatch.Success)
-                            {
-                                string valStr = numMatch.Value.Replace(',', '.');
-                                if (double.TryParse(valStr, NumberStyles.Any, CultureInfo.InvariantCulture, out double val))
-                                {
-                                    string activePat = !string.IsNullOrEmpty(defaultPattern) ? defaultPattern : "SDL";
-                                    int ret = sapModel.AreaObj.SetLoadUniform(item.AreaName, activePat, val, direction, true, "Global", eItemType.Objects);
-                                    if (ret != 0 && direction == 10)
-                                    {
-                                        ret = sapModel.AreaObj.SetLoadUniform(item.AreaName, activePat, val, 6, true, "Global", eItemType.Objects);
-                                    }
-                                    if (ret == 0) updatedCount++;
-                                }
-                            }
-                        }
+                        else loads = LoadTextParser.Parse(text, defaultPattern);
+                        if (loads.Count == 0 || loads.Select(x => x.Pattern).Distinct(StringComparer.OrdinalIgnoreCase).Count() != loads.Count) throw new InvalidOperationException("Load set rỗng hoặc có pattern trùng.");
+                        foreach (var load in loads)
+                            if (!LoadTextParser.Finite(load.Value) || !EnsureLoadPatternExists(load.Pattern))
+                                throw new InvalidOperationException("Giá trị hoặc pattern không hợp lệ: " + load.Pattern);
+                        // Validate actual object existence without inferring an object from display text.
+                        int points = 0; string[] pointNames = Array.Empty<string>();
+                        if (sapModel.AreaObj.GetPoints(item.AreaName, ref points, ref pointNames) != 0)
+                            throw new InvalidOperationException("Không tồn tại sàn: " + item.AreaName);
+                        plan.Add((item.AreaName, loads));
                     }
-
-                    ClearSlabCache();
-                    sapModel.View.RefreshView(0, false);
+                    int updated = 0;
+                    foreach (var row in plan)
+                    {
+                        foreach (var load in row.loads)
+                        {
+                            int result = sapModel.AreaObj.SetLoadUniform(row.area, load.Pattern, load.Value, direction, true, LoadDirections.CoordinateSystem(direction), eItemType.Objects);
+                            if (result != 0) throw new InvalidOperationException($"Gán tải lỗi {result} tại {row.area}/{load.Pattern}; đã hoàn tất {updated}/{plan.Count} sàn. Kiểm tra bản sao lưu trước khi chạy lại.");
+                            VerifyUniform(row.area, load.Pattern, load.Value, direction);
+                        }
+                        updated++;
+                    }
+                    ClearSlabCache(); sapModel.View.RefreshView(0, false); return updated;
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Lỗi AssignImportedShellLoads: {ex.Message}");
-            }
-            return updatedCount;
         }
 
         #endregion

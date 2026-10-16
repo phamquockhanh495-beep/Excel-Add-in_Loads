@@ -1,65 +1,32 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{9E5E21AC-4B17-4889-BAE8-892418B54F91}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>QKS_Loads_AcadPlugin</RootNamespace>
+    <AcadVersion Condition="'$(AcadVersion)' == ''">2024</AcadVersion>
+    <TargetFramework Condition="'$(AcadVersion)' == '2018'">net46</TargetFramework>
+    <TargetFramework Condition="'$(AcadVersion)' == '2019' Or '$(AcadVersion)' == '2020'">net47</TargetFramework>
+    <TargetFramework Condition="'$(AcadVersion)' == '2021' Or '$(AcadVersion)' == '2022' Or '$(AcadVersion)' == '2023' Or '$(AcadVersion)' == '2024'">net48</TargetFramework>
+    <TargetFramework Condition="'$(AcadVersion)' == '2025' Or '$(AcadVersion)' == '2026'">net8.0-windows</TargetFramework>
+    <UseWPF Condition="'$(AcadVersion)' == '2025' Or '$(AcadVersion)' == '2026'">true</UseWPF>
+    <UseWindowsForms Condition="'$(AcadVersion)' == '2025' Or '$(AcadVersion)' == '2026'">true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AcadSdkDir Condition="'$(AcadSdkDir)' == ''">C:\Program Files\Autodesk\AutoCAD $(AcadVersion)</AcadSdkDir>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <PlatformTarget>x64</PlatformTarget>
     <AssemblyName>QKS_Loads_AcadPlugin</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RootNamespace>QKS_Loads_AcadPlugin</RootNamespace>
+    <Version>0.2.0</Version>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Web.Extensions" />
-    <Reference Include="accoremgd">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2024\accoremgd.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="acdbmgd">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2024\acdbmgd.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="acmgd">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2024\acmgd.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <Reference Include="accoremgd"><HintPath>$(AcadSdkDir)/accoremgd.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="acdbmgd"><HintPath>$(AcadSdkDir)/acdbmgd.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="acmgd"><HintPath>$(AcadSdkDir)/acmgd.dll</HintPath><Private>false</Private></Reference>
+    <Compile Include="QksLoadsCommands.cs;Plugin/**/*.cs;Shared/**/*.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="QksLoadsCommands.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if not exist &quot;C:\QKS_JSON_Data\Loads&quot; mkdir &quot;C:\QKS_JSON_Data\Loads&quot;&#xD;&#xA;copy /Y &quot;$(TargetPath)&quot; &quot;C:\QKS_JSON_Data\Loads\$(TargetFileName)&quot; 2&gt;nul || exit 0" />
+  <Target Name="CheckAcadSdk" BeforeTargets="ResolveReferences">
+    <Error Condition="'$(AcadVersion)' != '2018' And '$(AcadVersion)' != '2019' And '$(AcadVersion)' != '2020' And '$(AcadVersion)' != '2021' And '$(AcadVersion)' != '2022' And '$(AcadVersion)' != '2023' And '$(AcadVersion)' != '2024' And '$(AcadVersion)' != '2025' And '$(AcadVersion)' != '2026'" Text="Supported build targets: AutoCAD 2018-2026, Windows x64 only." />
+    <Error Condition="!Exists('$(AcadSdkDir)/acmgd.dll') Or !Exists('$(AcadSdkDir)/acdbmgd.dll') Or !Exists('$(AcadSdkDir)/accoremgd.dll')" Text="Missing AutoCAD SDK. Set -p:AcadSdkDir to the matching year's managed SDK folder." />
   </Target>
 </Project>

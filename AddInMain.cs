@@ -24,7 +24,7 @@ namespace QksExcelAddIn
 
                 foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    if (string.Equals(assembly.GetName().Name, requestedName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(assembly.GetName().FullName, args.Name, StringComparison.OrdinalIgnoreCase))
                     {
                         return assembly;
                     }

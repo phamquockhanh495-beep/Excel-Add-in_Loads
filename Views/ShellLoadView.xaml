@@ -6,7 +6,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="QKS LOADS - GÁN TẢI TRỌNG SÀN VÀO ETABS" 
+        Title="QKS LOADS - GÁN TẢI TRỌNG SÀN VÀO ETABS"
         Height="740" Width="1050"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -16,7 +16,7 @@
         Topmost="True"
         PreviewKeyDown="OnWindowPreviewKeyDown"
         Icon="pack://application:,,,/QksExcelAddIn;component/Resources/excel.ico">
-    
+
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -33,7 +33,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="GroupBox">
-                            <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" 
+                            <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                                     Background="White" CornerRadius="3" SnapsToDevicePixels="True">
                                 <Grid>
                                     <Grid.RowDefinitions>
@@ -146,12 +146,12 @@
                     <TextBlock Text="QKS" Foreground="#38BDF8" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
                     <TextBlock Text=" | " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" Margin="3,0,3,0"/>
                 </StackPanel>
-                <TextBlock Grid.Column="1" Text="GÁN TẢI TRỌNG SÀN VÀO ETABS" Foreground="White" 
-                           FontFamily="Segoe UI" FontSize="11.5" FontWeight="Bold" 
+                <TextBlock Grid.Column="1" Text="GÁN TẢI TRỌNG SÀN VÀO ETABS" Foreground="White"
+                           FontFamily="Segoe UI" FontSize="11.5" FontWeight="Bold"
                            VerticalAlignment="Center" Margin="2,0,0,0"/>
 
                 <!-- Minimize Button -->
-                <Button Grid.Column="2" Content="—" Foreground="White" Background="Transparent" 
+                <Button Grid.Column="2" Content="—" Foreground="White" Background="Transparent"
                         BorderThickness="0" FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"
                         Click="MinimizeButton_Click" Cursor="Hand">
                     <Button.Style>
@@ -175,7 +175,7 @@
                 </Button>
 
                 <!-- Close Button -->
-                <Button Grid.Column="3" Content="✕" Foreground="White" Background="Transparent" 
+                <Button Grid.Column="3" Content="✕" Foreground="White" Background="Transparent"
                         BorderThickness="0" FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"
                         Click="CloseButton_Click" Cursor="Hand">
                     <Button.Style>
@@ -304,12 +304,12 @@
                                         <TextBlock Text="Hướng Tải:" FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11"/>
                                         <ComboBox Grid.Column="1" x:Name="cboDirection">
                                             <ComboBoxItem Content="Gravity" Tag="10" IsSelected="True"/>
-                                            <ComboBoxItem Content="Global-X" Tag="1"/>
-                                            <ComboBoxItem Content="Global-Y" Tag="2"/>
-                                            <ComboBoxItem Content="Global-Z" Tag="3"/>
-                                            <ComboBoxItem Content="Local-1" Tag="4"/>
-                                            <ComboBoxItem Content="Local-2" Tag="5"/>
-                                            <ComboBoxItem Content="Local-3" Tag="6"/>
+                                            <ComboBoxItem Content="Global-X" Tag="4"/>
+                                            <ComboBoxItem Content="Global-Y" Tag="5"/>
+                                            <ComboBoxItem Content="Global-Z" Tag="6"/>
+                                            <ComboBoxItem Content="Local-1" Tag="1"/>
+                                            <ComboBoxItem Content="Local-2" Tag="2"/>
+                                            <ComboBoxItem Content="Local-3" Tag="3"/>
                                         </ComboBox>
                                     </Grid>
 
@@ -341,7 +341,7 @@
                             <!-- Section 3: Vùng tải cục bộ (Rectangle) -->
                             <GroupBox Header="VÙNG TẢI CỤC BỘ (RECTANGLE)" Style="{StaticResource QksBeamGroupBoxStyle}">
                                 <StackPanel Margin="0,2">
-                                    <TextBlock Text="Pick 2 điểm góc chéo trên CAD để gán tải phân vùng tức thì (không cần cắt/merge sàn trong ETABS):" 
+                                    <TextBlock Text="Pick 2 điểm góc chéo trên CAD để gán tải phân vùng tức thì (không cần cắt/merge sàn trong ETABS):"
                                                FontSize="10" Foreground="#555" TextWrapping="Wrap" Margin="0,0,0,5"/>
 
                                     <Grid Margin="0,2">
@@ -361,8 +361,8 @@
                                         <TextBlock Text="Giá Trị Tải (kN/m²):" FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11"/>
                                         <TextBox Grid.Column="1" Text="2.0" TextAlignment="Right" x:Name="txtZoneValue" FontFamily="Segoe UI" Typography.NumeralAlignment="Tabular" FontSize="10.5"/>
                                     </Grid>
-                                    
-                                    <Button x:Name="btnPickZoneRect" Content="📐 VẼ RECTANGLE GÁN TẢI" 
+
+                                    <Button x:Name="btnPickZoneRect" Content="📐 VẼ RECTANGLE GÁN TẢI"
                                             Height="28" Background="#FFF3E0" BorderBrush="#E65100" BorderThickness="1" Foreground="#E65100"
                                             FontWeight="Bold" FontSize="11" Cursor="Hand" Click="OnPickZoneRectClick">
                                         <Button.Style>
@@ -580,15 +580,15 @@
                                 <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Padding="8,5" Margin="0,4,0,0">
                                     <Grid>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                            <Button x:Name="btnExportExcel" Content="📤 Xuất Ra Excel" Style="{StaticResource MaterialOutlinedActionBtnStyle}" 
+                                            <Button x:Name="btnExportExcel" Content="📤 Xuất Ra Excel" Style="{StaticResource MaterialOutlinedActionBtnStyle}"
                                                     BorderBrush="#107C41" Foreground="#107C41" FontWeight="SemiBold" Click="OnExportExcelClick" Margin="0,0,6,0"/>
-                                            <Button x:Name="btnImportExcel" Content="📥 Nạp Từ Excel" Style="{StaticResource MaterialOutlinedActionBtnStyle}" 
+                                            <Button x:Name="btnImportExcel" Content="📥 Nạp Từ Excel" Style="{StaticResource MaterialOutlinedActionBtnStyle}"
                                                     BorderBrush="#0072BC" Foreground="#0072BC" FontWeight="SemiBold" Click="OnImportExcelClick"/>
                                         </StackPanel>
 
                                         <Button x:Name="btnSaveToEtabs" Content="💾 LƯU LOAD SETS VÀO ETABS" HorizontalAlignment="Right"
                                                 Height="28" Padding="14,0" Cursor="Hand"
-                                                Style="{StaticResource MaterialDesignRaisedButton}" 
+                                                Style="{StaticResource MaterialDesignRaisedButton}"
                                                 Background="#0072BC" BorderBrush="#0072BC" Foreground="White" FontWeight="Bold" FontSize="11"
                                                 materialDesign:RippleAssist.Feedback="White"
                                                 Click="OnSaveLoadSetsToEtabsClick"/>
@@ -626,7 +626,7 @@
                                           BorderThickness="1" BorderBrush="#E2E8F0">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Tiết Diện Sàn" Binding="{Binding SectionName}" Width="140" FontWeight="Bold" ElementStyle="{StaticResource QksDataGridElementStyle}"/>
-                                        
+
                                         <!-- TrueColor Pill Badge -->
                                         <DataGridTemplateColumn Header="Màu TrueColor" Width="110">
                                             <DataGridTemplateColumn.CellTemplate>
@@ -700,10 +700,10 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <CheckBox Grid.Column="0" x:Name="chkLiveCadSync" Content="⚡ Tự động cập nhật Text tải trọng trên CAD thời gian thực (Live In-Place Sync)" 
+                                            <CheckBox Grid.Column="0" x:Name="chkLiveCadSync" Content="⚡ Tự động cập nhật Text tải trọng trên CAD thời gian thực (Live In-Place Sync)"
                                                       IsChecked="True" FontWeight="SemiBold" Foreground="#0F2240" FontFamily="Segoe UI" FontSize="11" VerticalAlignment="Center"/>
-                                            
-                                            <Button Grid.Column="1" x:Name="btnExportSlabTableCad" Content="📊 XUẤT BẢNG THỐNG KÊ SÀN (CAD)" 
+
+                                            <Button Grid.Column="1" x:Name="btnExportSlabTableCad" Content="📊 XUẤT BẢNG THỐNG KÊ SÀN (CAD)"
                                                     Style="{StaticResource MaterialDesignRaisedButton}"
                                                     Background="#D97706" BorderBrush="#D97706" Foreground="White" Height="28" Padding="12,0"
                                                     FontWeight="Bold" FontSize="11" Click="OnExportSlabTableCadClick"

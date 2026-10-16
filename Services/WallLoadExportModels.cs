@@ -154,7 +154,7 @@ namespace QksExcelAddIn.Services
         public string FrameName { get; set; } = string.Empty;
         public string LoadPat { get; set; } = string.Empty;
         public string CSys { get; set; } = "Global";
-        public int Dir { get; set; } = 6; // 6 = Gravity
+        public int Dir { get; set; } = 10; // 10 = Gravity
         public double Dist1 { get; set; }
         public double Dist2 { get; set; }
         public double Val1 { get; set; }
