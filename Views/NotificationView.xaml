@@ -1,0 +1,289 @@
+﻿<Window x:Class="QksExcelAddIn.Views.NotificationView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="Thông Tin Gán Tải" Height="250" Width="420"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        FontFamily="Segoe UI">
+    
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/QksExcelAddIn;component/MaterialDesignResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="HeaderStyle" TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="#0F2240"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="Height" Value="28"/>
+                <Setter Property="Padding" Value="6,2"/>
+                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            </Style>
+
+            <Style x:Key="CellStyle" TargetType="DataGridCell">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+                <Setter Property="Padding" Value="4,2"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Style.Triggers>
+                    <Trigger Property="IsSelected" Value="True">
+                        <Setter Property="Background" Value="#E0F2FE"/>
+                        <Setter Property="Foreground" Value="#0F2240"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border BorderThickness="1" BorderBrush="#0F2240" Background="White">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="35"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="45"/>
+            </Grid.RowDefinitions>
+
+            <!-- Headbar (Navy #0F2240) -->
+            <Grid Grid.Row="0" Background="#0F2240" MouseDown="TitleBar_MouseDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="35"/>
+                </Grid.ColumnDefinitions>
+
+<StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,6,0">
+                    <Image Source="pack://application:,,,/QksExcelAddIn;component/Resources/excel.png" Width="18" Height="18" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="QKS" Foreground="#38BDF8" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
+                    <TextBlock Text=" | " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" Margin="3,0,3,0"/>
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="KẾT QUẢ TÍNH TOÁN GÁN TẢI TƯỜNG" Foreground="White" 
+                           FontFamily="Segoe UI" FontSize="11.5" FontWeight="Bold" 
+                           VerticalAlignment="Center" Margin="2,0,0,0" x:Name="lblHeadbarTitle"/>
+
+                <!-- Close Button -->
+                <Button Grid.Column="2" Content="✕" Foreground="White" Background="Transparent" 
+                        BorderThickness="0" FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"
+                        Click="CloseButton_Click" Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="border" Background="{TemplateBinding Background}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="border" Property="Background" Value="#DC3232"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+
+            <!-- 1. CHẾ ĐỘ 1 DẦM (SINGLE BEAM VIEW) -->
+            <Grid x:Name="gridSingleBeam" Grid.Row="1" Margin="16,10,16,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="50"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Vector Success Circle Icon -->
+                <Grid Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Ellipse Width="38" Height="38" Fill="#10B981"/>
+                    <TextBlock Text="✓" Foreground="White" FontSize="22" FontWeight="Bold" 
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,0"/>
+                </Grid>
+
+                <!-- Parameter List -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <TextBlock x:Name="lblWallType" Text="Loại tường: Tường 200" Margin="0,1.5" FontSize="12" FontFamily="Segoe UI" FontWeight="SemiBold" Foreground="#0F2240" Typography.NumeralAlignment="Tabular"/>
+                    <TextBlock x:Name="lblWallWeight" Text="Tải trọng tường: 5.80 kN/m²" Margin="0,1.5" FontSize="12" FontFamily="Segoe UI" Foreground="#333333" Typography.NumeralAlignment="Tabular"/>
+                    <TextBlock x:Name="lblReduction" Text="Hệ số gán tải: 1.00" Margin="0,1.5" FontSize="12" FontFamily="Segoe UI" Foreground="#333333" Typography.NumeralAlignment="Tabular"/>
+                    <TextBlock x:Name="lblStoryHeight" Text="Chiều cao tầng: 3.40 m" Margin="0,1.5" FontSize="12" FontFamily="Segoe UI" Foreground="#333333" Typography.NumeralAlignment="Tabular"/>
+                    <TextBlock x:Name="lblBeamDepth" Text="Trừ Chiều cao dầm: 400 mm" Margin="0,1.5" FontSize="12" FontFamily="Segoe UI" Foreground="#333333" Typography.NumeralAlignment="Tabular"/>
+                    <TextBlock x:Name="lblSlabDepth" Text="Trừ Chiều dày sàn: Đã gồm trong dầm" Margin="0,1.5" FontSize="12" FontFamily="Segoe UI" Foreground="#333333" Typography.NumeralAlignment="Tabular"/>
+                    <TextBlock x:Name="lblDoorReduction" Text="Hệ số cửa (n3): 1.00 (Tường đặc)" Margin="0,1.5" FontSize="12" FontFamily="Segoe UI" Foreground="#333333" Typography.NumeralAlignment="Tabular"/>
+                    <TextBlock x:Name="lblFinalLoad" Text="Tải gán trên dầm: 5.80 kN/m" FontFamily="Segoe UI" FontWeight="Bold" Foreground="#0072BC" Margin="0,3,0,0" FontSize="13" Typography.NumeralAlignment="Tabular"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- 2. CHẾ ĐỘ NHIỀU DẦM (MULTI-BEAM REPORT DATAGRID) -->
+            <Grid x:Name="gridMultiBeams" Grid.Row="1" Margin="12,8,12,4" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Sub-header thông báo -->
+                <Border Grid.Row="0" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="3" Padding="8,5" Margin="0,0,0,6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="CheckCircle" Width="16" Height="16" Foreground="#10B981" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Grid.Column="1" x:Name="lblMultiSummaryHeader" 
+                                   Text="Đã gán thành công các dầm với chiều cao dầm/sàn tầng trên được tự động bóc tách chính xác theo 3D." 
+                                   FontSize="11" Foreground="#166534" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   FontFamily="Segoe UI" Typography.NumeralAlignment="Tabular"/>
+                    </Grid>
+                </Border>
+
+                <!-- Bảng DataGrid danh sách dầm đã gán -->
+                <DataGrid Grid.Row="1" x:Name="dgMultiBeams" AutoGenerateColumns="False" 
+                          CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
+                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#E2E8F0"
+                          BorderBrush="#CBD5E1" BorderThickness="1" HeadersVisibility="Column"
+                          ColumnHeaderStyle="{StaticResource HeaderStyle}" CellStyle="{StaticResource CellStyle}"
+                          RowHeight="24" SelectionMode="Single" SelectionUnit="FullRow"
+                          FontFamily="Segoe UI" FontSize="11">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="STT" Binding="{Binding Stt}" Width="45">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontFamily" Value="Segoe UI"/>
+                                    <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="Tên Dầm" Binding="{Binding BeamName}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Foreground" Value="#0F2240"/>
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontFamily" Value="Segoe UI"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="Tiết Diện" Binding="{Binding Section}" Width="90">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontFamily" Value="Segoe UI"/>
+                                    <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn x:Name="colStoryHeight" Header="H Tầng" Binding="{Binding StoryHeight, StringFormat={}{0:F2} m}" Width="75">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="FontFamily" Value="Segoe UI"/>
+                                    <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn x:Name="colUpperBeam" Header="Dầm Trên Trừ" Binding="{Binding UpperBeamText}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="FontFamily" Value="Segoe UI"/>
+                                    <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn x:Name="colSlab" Header="Sàn Trên Trừ" Binding="{Binding SlabText}" Width="105">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="FontFamily" Value="Segoe UI"/>
+                                    <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn x:Name="colClearHeight" Header="H Thông Thủy" Binding="{Binding ClearHeight, StringFormat={}{0:F2} m}" Width="95">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="FontFamily" Value="Segoe UI"/>
+                                    <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn x:Name="colDoorCoeff" Header="Hệ Số Cửa" Binding="{Binding DoorCoeff, StringFormat={}{0:F2}}" Width="75">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontFamily" Value="Segoe UI"/>
+                                    <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="Tải Gán (kN/m)" Binding="{Binding FinalLoad, StringFormat={}{0:F2}}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Foreground" Value="#0072BC"/>
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="Margin" Value="0,0,6,0"/>
+                                    <Setter Property="FontFamily" Value="Segoe UI"/>
+                                    <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+
+            <!-- Footer Panel -->
+            <Grid Grid.Row="2" Background="#F5F6F8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="lblFooterSummary" Grid.Column="0" Margin="16,0,0,0" VerticalAlignment="Center" 
+                           FontSize="11" Foreground="#64748B" TextTrimming="CharacterEllipsis"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,16,0">
+                    <Button x:Name="btnCancel" Width="95" Height="28" Margin="0,0,8,0" Cursor="Hand"
+                            Click="OnCancelClick"
+                            Style="{StaticResource MaterialDesignFlatButton}" 
+                            Visibility="Collapsed"
+                            Background="#FEE2E2" Foreground="#DC2626" BorderBrush="#FECACA">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Close" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="#DC2626"/>
+                            <TextBlock Text="HỦY BỎ" VerticalAlignment="Center" FontFamily="Segoe UI" FontWeight="SemiBold" FontSize="11" Foreground="#DC2626"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="btnOk" MinWidth="80" Height="28" Cursor="Hand"
+                            IsDefault="True" Click="OnOkClick"
+                            Style="{StaticResource MaterialDesignRaisedButton}" 
+                            Background="#0F2240" BorderBrush="#0F2240" Foreground="White">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon x:Name="iconOk" Kind="Check" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="White"/>
+                            <TextBlock x:Name="txtOk" Text="OK" VerticalAlignment="Center" FontFamily="Segoe UI" FontWeight="Bold" FontSize="11" Foreground="White"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

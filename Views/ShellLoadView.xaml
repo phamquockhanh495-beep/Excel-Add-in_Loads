@@ -1,0 +1,798 @@
+﻿<Window x:Class="QksExcelAddIn.Views.ShellLoadView"
+        x:Name="rootShellLoadWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="QKS LOADS - GÁN TẢI TRỌNG SÀN VÀO ETABS" 
+        Height="740" Width="1050"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        FontSize="12"
+        FontFamily="Segoe UI"
+        Topmost="True"
+        PreviewKeyDown="OnWindowPreviewKeyDown"
+        Icon="pack://application:,,,/QksExcelAddIn;component/Resources/excel.ico">
+    
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/QksExcelAddIn;component/MaterialDesignResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Custom GroupBox Style chuẩn QKS Beam: Viền Navy #0F2240 mỏng, Header gạch chân xanh Royal #1565C0 -->
+            <Style x:Key="QksBeamGroupBoxStyle" TargetType="GroupBox">
+                <Setter Property="BorderBrush" Value="#0F2240"/>
+                <Setter Property="BorderThickness" Value="0.5"/>
+                <Setter Property="Margin" Value="0,0,0,5"/>
+                <Setter Property="Padding" Value="8,5"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GroupBox">
+                            <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" 
+                                    Background="White" CornerRadius="3" SnapsToDevicePixels="True">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- GroupBox Header -->
+                                    <Border Grid.Row="0" Background="Transparent" Padding="8,4,8,4" BorderBrush="#0F2240" BorderThickness="0,0,0,0.5">
+                                        <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/>
+                                    </Border>
+
+                                    <!-- GroupBox Content -->
+                                    <Border Grid.Row="1" BorderThickness="0" Background="Transparent" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="HeaderTemplate">
+                    <Setter.Value>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" FontFamily="Segoe UI" FontWeight="Bold" FontSize="11" Foreground="#1565C0"/>
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Custom ComboBox Style chuẩn Material Design gọn gàng -->
+            <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignComboBox}">
+                <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="Height" Value="24"/>
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="Foreground" Value="#0F2240"/>
+            </Style>
+
+            <!-- Custom TextBox Style chuẩn Material Design -->
+            <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBox}">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Padding" Value="4,1"/>
+                <Setter Property="Height" Value="24"/>
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="Foreground" Value="#0F2240"/>
+            </Style>
+
+            <!-- CheckBox Wrapper Style for Hover Highlight -->
+            <Style x:Key="CheckBoxHoverWrapperStyle" TargetType="Border">
+                <Setter Property="CornerRadius" Value="3"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Padding" Value="4,1"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#E3F2FD"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Nút Hành Động Lớn (Footer Action Button Style) theo chuẩn MaterialDesignRaisedButton -->
+            <Style x:Key="FooterActionButtonStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="FontSize" Value="11.5"/>
+                <Setter Property="Height" Value="38"/>
+                <Setter Property="Padding" Value="12,0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="4"/>
+                <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp2"/>
+                <Setter Property="materialDesign:RippleAssist.ClipToBounds" Value="True"/>
+            </Style>
+
+            <!-- Nút Action Viền Ngoài Chuẩn Material Design (Outlined Button) -->
+            <Style x:Key="MaterialOutlinedActionBtnStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+                <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="3"/>
+                <Setter Property="materialDesign:RippleAssist.ClipToBounds" Value="True"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Height" Value="24"/>
+                <Setter Property="Padding" Value="6,0"/>
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border BorderThickness="1" BorderBrush="#0F2240" Background="#F8FAFC">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="36"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="54"/>
+                <RowDefinition Height="26"/>
+            </Grid.RowDefinitions>
+
+            <!-- 1. HEADBAR (Xanh Navy #0F2240) chuẩn QKS Beam -->
+            <Grid Grid.Row="0" Background="#0F2240" MouseDown="TitleBar_MouseDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="36"/>
+                    <ColumnDefinition Width="36"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Logo Excel 3D từ Resources -->
+<StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,6,0">
+                    <Image Source="pack://application:,,,/QksExcelAddIn;component/Resources/excel.png" Width="18" Height="18" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="QKS" Foreground="#38BDF8" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
+                    <TextBlock Text=" | " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" Margin="3,0,3,0"/>
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="GÁN TẢI TRỌNG SÀN VÀO ETABS" Foreground="White" 
+                           FontFamily="Segoe UI" FontSize="11.5" FontWeight="Bold" 
+                           VerticalAlignment="Center" Margin="2,0,0,0"/>
+
+                <!-- Minimize Button -->
+                <Button Grid.Column="2" Content="—" Foreground="White" Background="Transparent" 
+                        BorderThickness="0" FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"
+                        Click="MinimizeButton_Click" Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="border" Background="{TemplateBinding Background}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="border" Property="Background" Value="#10B981"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Close Button -->
+                <Button Grid.Column="3" Content="✕" Foreground="White" Background="Transparent" 
+                        BorderThickness="0" FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"
+                        Click="CloseButton_Click" Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="border" Background="{TemplateBinding Background}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="border" Property="Background" Value="#DC3232"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+
+            <!-- 2. MAIN WORKSPACE (Bố cục 2 Cột: Sidebar 320px + Workspace Tabs) -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="320"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ================================================================= -->
+                <!-- CỘT TRÁI (SIDEBAR): THIẾT LẬP TOÀN CỤC & KẾT NỐI API               -->
+                <!-- ================================================================= -->
+                <Border Grid.Column="0" Background="White" BorderBrush="#CBD5E1" BorderThickness="0,0,1,0" Padding="8,8,8,4">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <!-- Section 0: Kết nối API -->
+                            <GroupBox Header="KẾT NỐI HỆ THỐNG (API)" Style="{StaticResource QksBeamGroupBoxStyle}">
+                                <StackPanel Margin="0,2">
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse x:Name="dotEtabs" Width="9" Height="9" Fill="#B71C1C" Margin="2,0,6,0" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <TextBlock Text="Model Etabs: " FontFamily="Segoe UI" FontWeight="SemiBold" Foreground="#475569" FontSize="11"/>
+                                            <TextBlock x:Name="lblEtabsModel" Text="Chưa kết nối" FontFamily="Segoe UI" Foreground="#B71C1C" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="215" Margin="10,0,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse x:Name="dotCad" Width="9" Height="9" Fill="#B71C1C" Margin="2,0,6,0" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <TextBlock Text="AutoCAD: " FontFamily="Segoe UI" FontWeight="SemiBold" Foreground="#475569" FontSize="11"/>
+                                            <TextBlock x:Name="lblCadDrawing" Text="Chưa kết nối" FontFamily="Segoe UI" Foreground="#B71C1C" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="215" Margin="25,0,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <!-- Section 1: Phạm vi & Vị trí gán -->
+                            <GroupBox Header="PHẠM VI &amp; VỊ TRÍ GÁN" Style="{StaticResource QksBeamGroupBoxStyle}">
+                                <StackPanel Margin="0,2">
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Tầng Update:" FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11"/>
+                                        <ComboBox Grid.Column="1" x:Name="cboStory" SelectionChanged="OnStoryChanged"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="28"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11">
+                                            <Run Text="BasePoint "/><Run FontFamily="Times New Roman" FontStyle="Italic">X</Run><Run BaselineAlignment="Subscript" FontSize="8.5">0</Run><Run Text=":"/>
+                                        </TextBlock>
+                                        <TextBox Grid.Column="1" Text="0" TextAlignment="Left" x:Name="txtBaseX" FontFamily="Segoe UI" Typography.NumeralAlignment="Tabular" FontSize="10.5"/>
+                                        <Button Grid.Column="2" Click="OnPickBasePointClick" Margin="2,0,0,0" Padding="0" Height="24" Width="26"
+                                                ToolTip="Pick điểm gốc BasePoint từ AutoCAD" Cursor="Hand"
+                                                Background="#F0F7FD" BorderBrush="#0072BC" BorderThickness="1"
+                                                Style="{StaticResource QksBeamDynamicButtonStyle}">
+                                            <materialDesign:PackIcon Kind="CrosshairsGps" Width="14" Height="14" Foreground="#0072BC" HorizontalAlignment="Center"/>
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11">
+                                            <Run Text="BasePoint "/><Run FontFamily="Times New Roman" FontStyle="Italic">Y</Run><Run BaselineAlignment="Subscript" FontSize="8.5">0</Run><Run Text=":"/>
+                                        </TextBlock>
+                                        <TextBox Grid.Column="1" Text="0" TextAlignment="Left" x:Name="txtBaseY" FontFamily="Segoe UI" Typography.NumeralAlignment="Tabular" FontSize="10.5"/>
+                                    </Grid>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <!-- Section 2: Thiết lập tải trọng chung -->
+                            <GroupBox x:Name="grpThietLapChung" Header="THIẾT LẬP TẢI TRỌNG CHUNG" Style="{StaticResource QksBeamGroupBoxStyle}">
+                                <StackPanel Margin="0,2">
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Loại Tải (Pattern):" FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11"/>
+                                        <ComboBox Grid.Column="1" x:Name="cboLoaiTai" SelectionChanged="OnSidebarPatternSelectionChanged"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Hướng Tải:" FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11"/>
+                                        <ComboBox Grid.Column="1" x:Name="cboDirection">
+                                            <ComboBoxItem Content="Gravity" Tag="10" IsSelected="True"/>
+                                            <ComboBoxItem Content="Global-X" Tag="1"/>
+                                            <ComboBoxItem Content="Global-Y" Tag="2"/>
+                                            <ComboBoxItem Content="Global-Z" Tag="3"/>
+                                            <ComboBoxItem Content="Local-1" Tag="4"/>
+                                            <ComboBoxItem Content="Local-2" Tag="5"/>
+                                            <ComboBoxItem Content="Local-3" Tag="6"/>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Chế Độ Gán:" FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11"/>
+                                        <ComboBox Grid.Column="1" x:Name="cboReplaceMode">
+                                            <ComboBoxItem Content="Replace" Tag="1" IsSelected="True"/>
+                                            <ComboBoxItem Content="Add" Tag="0"/>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11">
+                                            <Run Text="Hệ số gán ("/><Run FontFamily="Times New Roman" FontStyle="Italic">k</Run><Run Text="):"/>
+                                        </TextBlock>
+                                        <TextBox Grid.Column="1" Text="1" TextAlignment="Right" x:Name="txtFactorK" FontFamily="Segoe UI" Typography.NumeralAlignment="Tabular" FontSize="10.5"/>
+                                    </Grid>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <!-- Section 3: Vùng tải cục bộ (Rectangle) -->
+                            <GroupBox Header="VÙNG TẢI CỤC BỘ (RECTANGLE)" Style="{StaticResource QksBeamGroupBoxStyle}">
+                                <StackPanel Margin="0,2">
+                                    <TextBlock Text="Pick 2 điểm góc chéo trên CAD để gán tải phân vùng tức thì (không cần cắt/merge sàn trong ETABS):" 
+                                               FontSize="10" Foreground="#555" TextWrapping="Wrap" Margin="0,0,0,5"/>
+
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Loại Tải Vùng:" FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11"/>
+                                        <ComboBox Grid.Column="1" x:Name="cboZonePattern"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,2,0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Giá Trị Tải (kN/m²):" FontFamily="Segoe UI" Foreground="#333333" VerticalAlignment="Center" FontSize="11"/>
+                                        <TextBox Grid.Column="1" Text="2.0" TextAlignment="Right" x:Name="txtZoneValue" FontFamily="Segoe UI" Typography.NumeralAlignment="Tabular" FontSize="10.5"/>
+                                    </Grid>
+                                    
+                                    <Button x:Name="btnPickZoneRect" Content="📐 VẼ RECTANGLE GÁN TẢI" 
+                                            Height="28" Background="#FFF3E0" BorderBrush="#E65100" BorderThickness="1" Foreground="#E65100"
+                                            FontWeight="Bold" FontSize="11" Cursor="Hand" Click="OnPickZoneRectClick">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+                                                <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="3"/>
+                                                <Setter Property="materialDesign:RippleAssist.ClipToBounds" Value="True"/>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </GroupBox>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+
+                <!-- ================================================================= -->
+                <!-- CỘT PHẢI (WORKSPACE): TABCONTROL CHUẨN PHONG CÁCH QKS BEAM         -->
+                <!-- ================================================================= -->
+                <Grid Grid.Column="1" Background="#F8FAFC">
+                    <TabControl x:Name="mainTabControl" Style="{StaticResource QksBeamTabControlStyle}">
+
+                        <!-- ============================================================= -->
+                        <!-- TAB 1: XUẤT MẶT BẰNG TẢI SÀN (ETABS -> CAD)                   -->
+                        <!-- ============================================================= -->
+                        <TabItem Header="1. THÔNG TIN XUẤT MẶT BẰNG SÀN">
+                            <Grid Margin="10,8,10,6">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Box 1: Tùy chọn hiển thị tải trọng -->
+                                <GroupBox Grid.Row="0" Header="TÙY CHỌN HIỂN THỊ TẢI TRỌNG TRÊN BẢN VẼ CAD" Style="{StaticResource QksBeamGroupBoxStyle}">
+                                    <StackPanel Margin="0,2">
+                                        <Grid Margin="0,2,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Chế độ tải hiển thị:" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="11" Foreground="#0F2240"/>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                <RadioButton x:Name="radUniformPattern" Content="Theo Load Pattern" IsChecked="True" Checked="OnDisplayModeChanged" VerticalAlignment="Center" Margin="0,0,25,0" FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold"/>
+                                                <RadioButton x:Name="radLoadSet" Content="Theo Shell Uniform Load Set" Checked="OnDisplayModeChanged" VerticalAlignment="Center" FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Grid x:Name="gridLoadSetSelection" Margin="0,2,0,4" Visibility="Collapsed">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Chọn Shell Load Set:" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="11" Foreground="#0F2240"/>
+                                            <ComboBox Grid.Column="1" x:Name="cboDisplayLoadSet" SelectionChanged="OnDisplaySelectionChanged"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </GroupBox>
+
+                                <!-- Box 2: Cấu hình đồ họa & Bộ lọc diện tích tối thiểu -->
+                                <GroupBox Grid.Row="1" Header="CẤU HÌNH ĐỒ HỌA &amp; BỘ LỌC DIỆN TÍCH TỐI THIỂU" Style="{StaticResource QksBeamGroupBoxStyle}">
+                                    <StackPanel Margin="0,2">
+                                        <Grid Margin="0,2,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Chiều cao chữ (mm):" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="11" Foreground="#0F2240"/>
+                                            <TextBox Grid.Column="1" x:Name="txtTextHeight" Text="250.0" TextAlignment="Right"/>
+
+                                            <TextBlock Grid.Column="2" Text="Màu Text tải (ACI):" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="11" Foreground="#0F2240" Margin="10,0,0,0"/>
+                                            <ComboBox Grid.Column="3" x:Name="cboTextColor">
+                                                <ComboBoxItem Content="Cyan (ACI 4 - Xanh lơ)" Tag="4" IsSelected="True"/>
+                                                <ComboBoxItem Content="Yellow (ACI 2 - Vàng)" Tag="2"/>
+                                                <ComboBoxItem Content="Green (ACI 3 - Xanh lá)" Tag="3"/>
+                                                <ComboBoxItem Content="White (ACI 7 - Trắng)" Tag="7"/>
+                                                <ComboBoxItem Content="Red (ACI 1 - Đỏ)" Tag="1"/>
+                                            </ComboBox>
+                                        </Grid>
+
+                                        <Grid Margin="0,2,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="150"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Diện tích sàn Min (m²):" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="11" Foreground="#0F2240"/>
+                                            <TextBox Grid.Column="1" x:Name="txtMinArea" Text="0.50" TextAlignment="Right"/>
+                                            <TextBlock Grid.Column="2" Text="💡 Ô sàn bé hơn mức này chỉ vẽ viền, ẩn Text để tránh rối chữ" FontSize="10.5" Foreground="#64748B" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                        </Grid>
+
+                                        <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                            <CheckBox x:Name="chkDrawBoundary" Content="Vẽ đường bao sàn theo từng tiết diện sàn    " IsChecked="True" Margin="0,0,15,4" FontFamily="Segoe UI" FontSize="11"/>
+                                            <CheckBox x:Name="chkDrawHatch" Content="Tô Hatch sàn theo từng tiết diện sàn riêng biệt" IsChecked="True" Margin="0,0,15,4" FontFamily="Segoe UI" FontSize="11" FontWeight="Bold" Foreground="#0072BC"/>
+                                            <CheckBox x:Name="chkDrawRectangle" Content="Vẽ Khung chữ nhật bao quanh thông tin sàn" IsChecked="True" Margin="0,0,15,4" FontFamily="Segoe UI" FontSize="11"/>
+                                            <CheckBox x:Name="chkDrawText" Content="Chèn Text tiết diện &amp; Tải trọng" IsChecked="True" Margin="0,0,15,4" FontFamily="Segoe UI" FontSize="11"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </GroupBox>
+
+                                <!-- Box 3: Live Preview Thống Kê Mặt Bằng -->
+                                <Border Grid.Row="2" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="4" Padding="12,10" Margin="0,4,0,0" VerticalAlignment="Top">
+                                    <StackPanel Orientation="Vertical">
+                                        <TextBlock Text="📊 THỐNG KÊ MẶT BẰNG SÀN TẦNG HIỆN TẠI:" FontWeight="Bold" FontSize="11.5" Foreground="#0369A1" Margin="0,0,0,4"/>
+                                        <TextBlock x:Name="lblSlabStats" Text="• Số lượng ô sàn: 0 • Tổng diện tích: 0.00 m² • Số loại tiết diện: 0" FontSize="11" Foreground="#0F2240" FontFamily="Segoe UI"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+
+                        <!-- ============================================================= -->
+                        <!-- TAB 2: KHAI BÁO SHELL UNIFORM LOAD SETS                       -->
+                        <!-- ============================================================= -->
+                        <TabItem Header="2. KHAI BÁO SHELL UNIFORM LOAD SETS">
+                            <Grid Margin="10,8,10,6">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Left: Danh mục Load Sets -->
+                                    <GroupBox Grid.Column="0" Style="{StaticResource QksBeamGroupBoxStyle}" Header="DANH MỤC LOAD SETS" Margin="0,0,4,0">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="30"/>
+                                            </Grid.RowDefinitions>
+                                            <ListBox Grid.Row="0" x:Name="lstLoadSets" SelectionChanged="OnLoadSetSelected" MouseDoubleClick="OnLoadSetsMouseDoubleClick" Style="{StaticResource QksListBoxStyle}">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Height="28" Margin="2,1">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <materialDesign:PackIcon Grid.Column="0" Kind="LayersOutline" Width="15" Height="15" VerticalAlignment="Center" Margin="2,0,6,0" Foreground="#0072BC"/>
+                                                            <TextBox Grid.Column="1" Text="{Binding LoadSetName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                     FontWeight="SemiBold" FontSize="11.5" VerticalAlignment="Center"
+                                                                     BorderThickness="0" Background="Transparent"
+                                                                     Foreground="#0F2240" CaretBrush="#0072BC" SelectionBrush="#BAE6FD"
+                                                                     LostFocus="OnLoadSetNameLostFocus"
+                                                                     KeyDown="OnLoadSetNameKeyDown"
+                                                                     ToolTip="Nhấp đúp hoặc bấm nút 'Đổi Tên' để sửa tên Load Set"/>
+                                                            <materialDesign:PackIcon Grid.Column="2" Kind="PencilOutline" Width="13" Height="13" VerticalAlignment="Center" Margin="4,0,2,0" Foreground="#0072BC" Opacity="0.75"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                                <Button Content="+ Thêm Set" Style="{StaticResource MaterialOutlinedActionBtnStyle}" BorderBrush="#107C41" Foreground="#107C41" Click="OnAddLoadSetClick" Margin="0,0,3,0"/>
+                                                <Button Content="✏ Đổi Tên" Style="{StaticResource MaterialOutlinedActionBtnStyle}" BorderBrush="#0072BC" Foreground="#0072BC" Click="OnRenameLoadSetClick" Margin="0,0,3,0" ToolTip="Đổi tên Load Set đang chọn"/>
+                                                <Button Content="✕ Xóa Set" Style="{StaticResource MaterialOutlinedActionBtnStyle}" BorderBrush="#DC3232" Foreground="#DC3232" Click="OnDeleteLoadSetClick"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </GroupBox>
+
+                                    <!-- Right: Chi tiết Load Patterns trong Set -->
+                                    <GroupBox Grid.Column="1" Style="{StaticResource QksBeamGroupBoxStyle}" Header="CHI TIẾT THÀNH PHẦN TẢI TRỌNG (kN/m²)" Margin="4,0,0,0">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="30"/>
+                                            </Grid.RowDefinitions>
+                                            <DataGrid Grid.Row="0" x:Name="dgLoadSetDetails" AutoGenerateColumns="False" CanUserAddRows="False"
+                                                      ColumnHeaderStyle="{StaticResource QksDataGridColumnHeaderCenterStyle}"
+                                                      RowStyle="{StaticResource QksDataGridRowStyle}"
+                                                      CellStyle="{StaticResource QksDataGridCellStyle}"
+                                                      BorderThickness="1" BorderBrush="#E2E8F0">
+                                                <DataGrid.Columns>
+                                                    <!-- Cột Trường Hợp Tải (ComboBox trực tiếp từ ETABS) -->
+                                                    <DataGridTemplateColumn Header="Trường Hợp Tải (Pattern)" Width="*">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <ComboBox ItemsSource="{Binding AvailableLoadPatterns, ElementName=rootShellLoadWindow}"
+                                                                          SelectedItem="{Binding LoadPattern, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                          HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="26"
+                                                                          FontFamily="Segoe UI" FontSize="11" Margin="2,1"/>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+
+                                                    <!-- Cột Giá Trị Tải (kN/m²) -->
+                                                    <DataGridTextColumn Header="Giá Trị Tải (kN/m²)" Binding="{Binding LoadValue, StringFormat={}{0:0.##}}" Width="140" ElementStyle="{StaticResource QksDataGridElementCenterStyle}"/>
+
+                                                    <!-- Cột Hướng Tải (ComboBox) -->
+                                                    <DataGridTemplateColumn Header="Hướng Tải" Width="120">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <ComboBox ItemsSource="{Binding AvailableDirections, ElementName=rootShellLoadWindow}"
+                                                                          SelectedItem="{Binding Direction, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                          HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="26"
+                                                                          FontFamily="Segoe UI" FontSize="11" Margin="2,1"/>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                                <Button Content="+ Thêm Dòng Tải" Style="{StaticResource MaterialOutlinedActionBtnStyle}" BorderBrush="#0072BC" Foreground="#0072BC" Click="OnAddLoadDetailClick" Margin="0,0,4,0"/>
+                                                <Button Content="- Xóa Dòng" Style="{StaticResource MaterialOutlinedActionBtnStyle}" BorderBrush="#DC3232" Foreground="#DC3232" Click="OnDeleteLoadDetailClick"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </GroupBox>
+                                </Grid>
+
+                                <!-- Bottom Toolbar Tab 2: Excel Sync & Save to Etabs -->
+                                <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Padding="8,5" Margin="0,4,0,0">
+                                    <Grid>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <Button x:Name="btnExportExcel" Content="📤 Xuất Ra Excel" Style="{StaticResource MaterialOutlinedActionBtnStyle}" 
+                                                    BorderBrush="#107C41" Foreground="#107C41" FontWeight="SemiBold" Click="OnExportExcelClick" Margin="0,0,6,0"/>
+                                            <Button x:Name="btnImportExcel" Content="📥 Nạp Từ Excel" Style="{StaticResource MaterialOutlinedActionBtnStyle}" 
+                                                    BorderBrush="#0072BC" Foreground="#0072BC" FontWeight="SemiBold" Click="OnImportExcelClick"/>
+                                        </StackPanel>
+
+                                        <Button x:Name="btnSaveToEtabs" Content="💾 LƯU LOAD SETS VÀO ETABS" HorizontalAlignment="Right"
+                                                Height="28" Padding="14,0" Cursor="Hand"
+                                                Style="{StaticResource MaterialDesignRaisedButton}" 
+                                                Background="#0072BC" BorderBrush="#0072BC" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                materialDesign:RippleAssist.Feedback="White"
+                                                Click="OnSaveLoadSetsToEtabsClick"/>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+
+                        <!-- ============================================================= -->
+                        <!-- TAB 3: QUẢN LÝ TIẾT DIỆN SÀN & GÁN TẢI NHANH                  -->
+                        <!-- ============================================================= -->
+                        <TabItem Header="3. QUẢN LÝ TIẾT DIỆN SÀN &amp; GÁN TẢI NHANH">
+                            <Grid Margin="10,8,10,6">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Search Filter -->
+                                <Grid Grid.Row="0" Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🔍 Lọc tiết diện sàn:" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="11" Foreground="#0F2240"/>
+                                    <TextBox Grid.Column="1" x:Name="txtSearchSection" TextChanged="OnSearchSectionChanged"/>
+                                </Grid>
+
+                                <!-- DataGrid Slab Sections -->
+                                <DataGrid Grid.Row="1" x:Name="dgSlabSections" AutoGenerateColumns="False" CanUserAddRows="False"
+                                          ColumnHeaderStyle="{StaticResource QksDataGridColumnHeaderCenterStyle}"
+                                          RowStyle="{StaticResource QksDataGridRowStyle}"
+                                          CellStyle="{StaticResource QksDataGridCellStyle}"
+                                          BorderThickness="1" BorderBrush="#E2E8F0">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Tiết Diện Sàn" Binding="{Binding SectionName}" Width="140" FontWeight="Bold" ElementStyle="{StaticResource QksDataGridElementStyle}"/>
+                                        
+                                        <!-- TrueColor Pill Badge -->
+                                        <DataGridTemplateColumn Header="Màu TrueColor" Width="110">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border CornerRadius="10" Padding="8,1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                            Background="{Binding HexColor}">
+                                                        <TextBlock Text="{Binding HexColor}" Foreground="White" FontSize="9.5" FontWeight="SemiBold"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTextColumn Header="Số Ô Sàn" Binding="{Binding Count}" Width="90" ElementStyle="{StaticResource QksDataGridElementCenterStyle}"/>
+                                        <DataGridTextColumn Header="Tổng Diện Tích (m²)" Binding="{Binding TotalArea, StringFormat={}{0:0.##}}" Width="140" ElementStyle="{StaticResource QksDataGridElementCenterStyle}"/>
+
+                                        <!-- Nút Chọn CAD -->
+                                        <DataGridTemplateColumn Header="Hành Động" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="🔍 Chọn CAD" Style="{StaticResource MaterialOutlinedActionBtnStyle}"
+                                                            BorderBrush="#107C41" Foreground="#107C41" Height="22" Padding="8,0"
+                                                            Click="OnSelectCadSectionClick" Tag="{Binding SectionName}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <!-- Assignment Controls Panel -->
+                                <Border Grid.Row="2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,6,0,0">
+                                    <StackPanel Orientation="Vertical">
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- CHẾ ĐỘ A: LOAD SET -->
+                                            <GroupBox Grid.Column="0" Style="{StaticResource QksBeamGroupBoxStyle}" Header="CHẾ ĐỘ A: GÁN THEO LOAD SET" Margin="0,0,4,0">
+                                                <StackPanel Orientation="Vertical">
+                                                    <ComboBox x:Name="cboAssignLoadSet" Margin="0,0,0,4"/>
+                                                    <Button x:Name="btnAssignLoadSet" Content="GÁN LOAD SET (1-CLICK)" Style="{StaticResource MaterialDesignRaisedButton}"
+                                                            Background="#0072BC" BorderBrush="#0072BC" Foreground="White" Height="28" FontSize="11" FontWeight="Bold" Click="OnAssignLoadSetClick"/>
+                                                </StackPanel>
+                                            </GroupBox>
+
+                                            <!-- CHẾ ĐỘ B: UNIFORM LOAD -->
+                                            <GroupBox Grid.Column="1" Style="{StaticResource QksBeamGroupBoxStyle}" Header="CHẾ ĐỘ B: GÁN TRỰC TIẾP UNIFORM LOAD" Margin="4,0,0,0">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Grid Grid.Row="0" Margin="0,0,0,4">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="80"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <ComboBox Grid.Column="0" x:Name="cboAssignPattern" Margin="0,0,4,0"/>
+                                                        <TextBox Grid.Column="1" x:Name="txtAssignLoadVal" Text="2.0" TextAlignment="Right" ToolTip="Tải trọng (kN/m²)"/>
+                                                    </Grid>
+                                                    <Button Grid.Row="1" x:Name="btnAssignUniformLoad" Content="GÁN UNIFORM LOAD" Style="{StaticResource MaterialDesignRaisedButton}"
+                                                            Background="#107C41" BorderBrush="#107C41" Foreground="White" Height="28" FontSize="11" FontWeight="Bold" Click="OnAssignUniformLoadClick"/>
+                                                </Grid>
+                                            </GroupBox>
+                                        </Grid>
+
+                                        <!-- Live CAD Sync Option & Nút Xuất Bảng Thống Kê Sàn -->
+                                        <Grid Margin="2,4,2,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" x:Name="chkLiveCadSync" Content="⚡ Tự động cập nhật Text tải trọng trên CAD thời gian thực (Live In-Place Sync)" 
+                                                      IsChecked="True" FontWeight="SemiBold" Foreground="#0F2240" FontFamily="Segoe UI" FontSize="11" VerticalAlignment="Center"/>
+                                            
+                                            <Button Grid.Column="1" x:Name="btnExportSlabTableCad" Content="📊 XUẤT BẢNG THỐNG KÊ SÀN (CAD)" 
+                                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                                    Background="#D97706" BorderBrush="#D97706" Foreground="White" Height="28" Padding="12,0"
+                                                    FontWeight="Bold" FontSize="11" Click="OnExportSlabTableCadClick"
+                                                    ToolTip="Pick 1 điểm chèn trên AutoCAD để vẽ Bảng Thống Kê &amp; Chú Giải Màu Tiết Diện Sàn"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </Grid>
+
+            <!-- 3. ACTION FOOTER BAR (Height 54) - Đồng bộ 100% màu sắc & layout với WallLoadView -->
+            <Border Grid.Row="2" Background="White" BorderBrush="#CBD5E1" BorderThickness="0,1,0,0" Padding="8,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.2*"/>
+                        <ColumnDefinition Width="1.1*"/>
+                        <ColumnDefinition Width="1.2*"/>
+                        <ColumnDefinition Width="1.2*"/>
+                        <ColumnDefinition Width="1.1*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 1. Nút Gán Tải Vào ETABS -->
+                    <Button Grid.Column="0" Click="OnGanTaiEtabsClick" Margin="0,0,5,0" x:Name="btnGanTaiEtabs"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Background="#0F2240" BorderBrush="#0F2240" Foreground="White"
+                            materialDesign:RippleAssist.Feedback="White"
+                            ToolTip="Chuyển sang Tab gán tải và thực hiện gán vào mô hình ETABS">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="DatabaseArrowUp" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="White"/>
+                            <TextBlock Text="GÁN VÀO ETABS" VerticalAlignment="Center" FontWeight="Bold" FontSize="11"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- 2. Nút Xuất AutoCAD -->
+                    <Button Grid.Column="1" Click="OnXuatCadClick" Margin="0,0,5,0" x:Name="btnXuatCad"
+                            Style="{StaticResource FooterActionButtonStyle}" Background="#EC407A" BorderBrush="#EC407A"
+                            materialDesign:RippleAssist.Feedback="White"
+                            ToolTip="Xuất toàn bộ mặt bằng sàn, Hatch và Text tải trọng sang AutoCAD">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AlphabetABox" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="White"/>
+                            <TextBlock Text="XUẤT AUTOCAD" VerticalAlignment="Center" FontWeight="Bold" FontSize="11"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- 3. Nút Đồng Bộ CAD Live -->
+                    <Button Grid.Column="2" Click="OnLiveSyncCadButtonClick" Margin="0,0,5,0" x:Name="btnLiveSyncCad"
+                            Style="{StaticResource FooterActionButtonStyle}" Background="#8E24AA" BorderBrush="#8E24AA"
+                            materialDesign:RippleAssist.Feedback="White"
+                            ToolTip="Cập nhật nhanh giá trị tải trọng từ UI lên các Text trên bản vẽ AutoCAD">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Sync" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="White"/>
+                            <TextBlock Text="ĐỒNG BỘ CAD LIVE" VerticalAlignment="Center" FontWeight="Bold" FontSize="11"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- 4. Nút Nhập Tải Từ CAD -->
+                    <Button Grid.Column="3" Click="OnNhapCadClick" Margin="0,0,5,0" x:Name="btnNhapCad"
+                            Style="{StaticResource FooterActionButtonStyle}" Background="#0072BC" BorderBrush="#0072BC"
+                            materialDesign:RippleAssist.Feedback="White"
+                            ToolTip="Quét chọn các Text tải trọng trên AutoCAD để cập nhật trực tiếp vào mô hình ETABS">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="DownloadBox" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="White"/>
+                            <TextBlock Text="NHẬP TẢI TỪ CAD" VerticalAlignment="Center" FontWeight="Bold" FontSize="11"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- 5. Nút Lưu Cấu Hình -->
+                    <Button Grid.Column="4" Click="OnSaveConfigClick" Margin="0,0,0,0" x:Name="btnSaveConfig"
+                            Style="{StaticResource FooterActionButtonStyle}" Background="#107C41" BorderBrush="#107C41"
+                            materialDesign:RippleAssist.Feedback="White"
+                            ToolTip="Lưu lại các thông số cấu hình tải sàn làm mặc định">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ContentSaveAll" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="White"/>
+                            <TextBlock Text="LƯU CẤU HÌNH" VerticalAlignment="Center" FontWeight="Bold" FontSize="11"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- 4. FOOTER STATUS BAR (Height 26) -->
+            <Border Grid.Row="3" Background="#F1F5F9" BorderBrush="#CBD5E1" BorderThickness="0,1,0,0" Padding="10,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="7" Height="7" Fill="#10B981" Margin="0,0,6,0"/>
+                    <TextBlock x:Name="lblStatusText" Text="Sẵn sàng thực hiện." Foreground="#475569" FontSize="11" FontFamily="Segoe UI"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,535 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign2.Defaults.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Font.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.TextBlock.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Window.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ObsoleteBrushes.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.PasswordBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TextBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/Generic.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Badged.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Button.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Calendar.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Card.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.CheckBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Chip.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Clock.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ColorPicker.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ComboBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Dark.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.DataGrid.ComboBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.DataGrid.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.DatePicker.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.DialogHost.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Expander.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Flipper.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Font.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.GridSplitter.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.GroupBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Hyperlink.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Label.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Light.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ListBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ListView.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Menu.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.PasswordBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.PopupBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ProgressBar.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.RadioButton.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.RatingBar.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.RichTextBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ScrollBar.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ScrollViewer.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Shadows.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Slider.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.SmartHint.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Snackbar.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TabControl.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TextBlock.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TextBox.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Thumb.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TimePicker.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ToggleButton.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ToolBar.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ToolBarTray.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ToolTip.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TreeView.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ValidationErrorTemplate.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Window.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <Color x:Key="Color_00">#0F2240</Color>
+    <Color x:Key="Color_01">#0F2240</Color>
+
+    <SolidColorBrush x:Key="SColor_00" Color="{DynamicResource Color_00}" />
+    <SolidColorBrush x:Key="SColor_01" Color="{DynamicResource Color_01}" />
+
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Primary.Light" Color="{DynamicResource Color_00}" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Primary.Light.Foreground" Color="{DynamicResource Color_00}" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Primary" Color="{DynamicResource Color_00}" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Primary.Foreground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Primary.Dark" Color="{DynamicResource Color_00}" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Primary.Dark.Foreground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Secondary.Light" Color="{DynamicResource Color_01}" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Secondary.Light.Foreground" Color="{DynamicResource Color_01}" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Secondary" Color="{DynamicResource Color_01}" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Secondary.Foreground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Secondary.Dark" Color="{DynamicResource Color_01}" />
+    <SolidColorBrush x:Key="MaterialDesign.Brush.Secondary.Dark.Foreground" Color="#FFFFFF" />
+
+    <!-- QKS Beam Colors -->
+    <Color x:Key="Color_QksBlue">#0072BC</Color>
+    <SolidColorBrush x:Key="SColor_QksBlue" Color="#0072BC" />
+    <Color x:Key="Color_QksTabActive">#E8F4FD</Color>
+    <SolidColorBrush x:Key="SColor_QksTabActive" Color="#E8F4FD" />
+    <Color x:Key="Color_QksCadRed">#D92662</Color>
+    <SolidColorBrush x:Key="SColor_QksCadRed" Color="#D92662" />
+    <Color x:Key="Color_QksGreen">#107C41</Color>
+    <SolidColorBrush x:Key="SColor_QksGreen" Color="#107C41" />
+
+    <!-- ================================================================= -->
+    <!-- QKS BEAM DESIGN LISTBOX & LISTBOXITEM STYLES                      -->
+    <!-- Hiệu ứng hover và màu sắc chữ chuẩn 100% giống BeamDesign       -->
+    <!-- Normal: Text #0F2240 (Navy), Border #E0E0E0                       -->
+    <!-- Hover: Background #334155 (Slate), Text #FFFFFF (Trắng sáng)      -->
+    <!-- Selected: Background #E5EBF3 (Nền xám), Text #1565C0 (Xanh sáng)  -->
+    <!-- Selected + Hover: Background #DCE8F5, Text #0D47A1 (Xanh đậm)     -->
+    <!-- ================================================================= -->
+
+    <Style x:Key="QksListBoxItemStyle" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="#0F2240"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="Padding" Value="8,6,8,6"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="#E0E0E0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="true">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Trạng thái Được Chọn (Selected): Nền xanh sáng nhạt #E0F2FE, Text #0284C7, Bold -->
+                        <Trigger Property="IsSelected" Value="true">
+                            <Setter TargetName="Bd" Property="Background" Value="#E0F2FE"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="#0284C7"/>
+                            <Setter Property="Foreground" Value="#0369A1"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Trigger>
+                        <!-- Trạng thái Rê Chuột (Hover / MouseOver): Nền xanh băng dịu #F0F7FF, Viền #BAE6FD, Text #0072BC -->
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter TargetName="Bd" Property="Background" Value="#F0F7FF"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="#BAE6FD"/>
+                            <Setter Property="Foreground" Value="#0072BC"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                        <!-- Trạng thái Cả Được Chọn và Rê Chuột (Selected + MouseOver): Nền #BAE6FD, Text #0C4A6E -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsSelected" Value="true"/>
+                                <Condition Property="IsMouseOver" Value="true"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Bd" Property="Background" Value="#BAE6FD"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="#0284C7"/>
+                            <Setter Property="Foreground" Value="#0C4A6E"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Default ListBoxItem Style -->
+    <Style TargetType="ListBoxItem" BasedOn="{StaticResource QksListBoxItemStyle}"/>
+
+    <!-- QKS ListBox Style (Giống 100% BeamDesign) -->
+    <Style x:Key="QksListBoxStyle" TargetType="ListBox">
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="#0F2240"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ItemContainerStyle" Value="{StaticResource QksListBoxItemStyle}"/>
+    </Style>
+
+    <!-- Default ListBox Style -->
+    <Style TargetType="ListBox" BasedOn="{StaticResource QksListBoxStyle}"/>
+
+    <!-- QKS ComboBoxItem Style (Đồng bộ hover và màu chữ) -->
+    <Style x:Key="QksComboBoxItemStyle" TargetType="ComboBoxItem">
+        <Setter Property="Foreground" Value="#0F2240"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="Padding" Value="8,5,8,5"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="#F0F0F0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="true">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Selected: Nền #E0F2FE, Text #0072BC, Bold -->
+                        <Trigger Property="IsSelected" Value="true">
+                            <Setter TargetName="Bd" Property="Background" Value="#E0F2FE"/>
+                            <Setter Property="Foreground" Value="#0072BC"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Trigger>
+                        <!-- Hover: Nền #F0F7FF, Text #0072BC -->
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter TargetName="Bd" Property="Background" Value="#F0F7FF"/>
+                            <Setter Property="Foreground" Value="#0072BC"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                        <!-- Selected + Hover: Nền #BAE6FD, Text #0C4A6E, Bold -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsSelected" Value="true"/>
+                                <Condition Property="IsMouseOver" Value="true"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Bd" Property="Background" Value="#BAE6FD"/>
+                            <Setter Property="Foreground" Value="#0C4A6E"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Default ComboBoxItem Style -->
+    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource QksComboBoxItemStyle}"/>
+
+    <!-- QKS DataGrid Element Styles (Text màu xanh sáng #1565C0 khi chọn dòng, Tabular số học thẳng hàng) -->
+    <Style x:Key="QksDataGridElementStyle" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="4,2"/>
+        <Setter Property="Foreground" Value="#0F2240"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}" Value="True">
+                <Setter Property="Foreground" Value="#1565C0"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsMouseOver}" Value="True">
+                <Setter Property="Foreground" Value="#1565C0"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="QksDataGridElementCenterStyle" TargetType="TextBlock" BasedOn="{StaticResource QksDataGridElementStyle}">
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="TextAlignment" Value="Center"/>
+    </Style>
+
+    <!-- QKS DataGrid Editing Style -->
+    <Style x:Key="QksDataGridEditingStyle" TargetType="TextBox">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="2,1"/>
+        <Setter Property="Foreground" Value="#1565C0"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="#1565C0"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+
+    <!-- QKS DataGridCell Style -->
+    <Style x:Key="QksDataGridCellStyle" TargetType="DataGridCell">
+        <Setter Property="Padding" Value="4,2"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}" BorderThickness="0" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter VerticalAlignment="Center" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="#1565C0"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- QKS DataGridRow Style (Nền xám #E5EBF3, Text Xanh sáng #1565C0 khi Selected) -->
+    <Style x:Key="QksDataGridRowStyle" TargetType="DataGridRow">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="#0F2240"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="#EAEAEA"/>
+        <Style.Triggers>
+            <!-- Hover: Nền xám rất nhạt #F1F5F9, Text Xanh #1565C0 -->
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#F1F5F9"/>
+                <Setter Property="Foreground" Value="#1565C0"/>
+            </Trigger>
+            <!-- Selected: Nền xám #E5EBF3, Text Xanh sáng #1565C0 Nổi Bật -->
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="#E5EBF3"/>
+                <Setter Property="Foreground" Value="#1565C0"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+            </Trigger>
+            <!-- Selected + Hover: Nền #DCE8F5, Text Xanh đậm #0D47A1 -->
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsSelected" Value="True"/>
+                    <Condition Property="IsMouseOver" Value="True"/>
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="#DCE8F5"/>
+                <Setter Property="Foreground" Value="#0D47A1"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+            </MultiTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- QKS DataGrid ColumnHeader Style (Chuẩn QKS Beam: Căn giữa 100%, Xanh #0072BC, In đậm, Viền gạch đáy #0072BC) -->
+    <Style x:Key="QksDataGridColumnHeaderCenterStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="#0072BC"/>
+        <Setter Property="Background" Value="#F8FAFC"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1.5"/>
+        <Setter Property="BorderBrush" Value="#0072BC"/>
+        <Setter Property="Padding" Value="4,6"/>
+        <Setter Property="ContentTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" TextAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" Foreground="#0072BC" FontFamily="Segoe UI" FontSize="11.5"/>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Default DataGridRow Style -->
+    <Style TargetType="DataGridRow" BasedOn="{StaticResource QksDataGridRowStyle}"/>
+    <Style TargetType="DataGridCell" BasedOn="{StaticResource QksDataGridCellStyle}"/>
+    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource QksDataGridColumnHeaderCenterStyle}"/>
+
+    <!-- ================================================================= -->
+    <!-- QKS BEAM TABITEM STYLE                                            -->
+    <!-- Nền active #E8F4FD, chữ #0072BC in đậm, viền đáy #0072BC 2.5px    -->
+    <!-- Hover #F0F7FD, chữ #0072BC                                        -->
+    <!-- Inactive: Transparent, chữ #0F2240                                -->
+    <!-- ================================================================= -->
+    <Style x:Key="QksBeamTabItemStyle" TargetType="TabItem">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="#0F2240"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Padding" Value="16,8"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" 
+                            BorderBrush="Transparent" BorderThickness="0,0,0,2.5" 
+                            SnapsToDevicePixels="True" Margin="2,0">
+                        <ContentPresenter x:Name="contentPresenter"
+                                          ContentSource="Header"
+                                          Focusable="False"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#F0F7FD"/>
+                            <Setter Property="Foreground" Value="#0072BC"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#E8F4FD"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="#0072BC"/>
+                            <Setter Property="Foreground" Value="#0072BC"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- QKS Beam TabControl Style -->
+    <Style x:Key="QksBeamTabControlStyle" TargetType="TabControl">
+        <Setter Property="Background" Value="#F8FAFC"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="ItemContainerStyle" Value="{StaticResource QksBeamTabItemStyle}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid KeyboardNavigation.TabNavigation="Local">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <!-- Tab Headers Bar with Bottom Separator Line -->
+                        <Border Grid.Row="0" Background="White" BorderBrush="#CBD5E1" BorderThickness="0,0,0,1.5">
+                            <TabPanel x:Name="HeaderPanel" Panel.ZIndex="1" IsItemsHost="True" KeyboardNavigation.TabIndex="1"/>
+                        </Border>
+                        <!-- Content Area -->
+                        <Border Grid.Row="1" Background="{TemplateBinding Background}" BorderThickness="0">
+                            <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent"/>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ================================================================= -->
+    <!-- QKS BEAM BUTTON DYNAMIC HOVER STYLE                               -->
+    <!-- Nâng nhẹ -1.5px khi hover, lún nhẹ +1px khi bấm                   -->
+    <!-- ================================================================= -->
+    <Style x:Key="QksBeamDynamicButtonStyle" TargetType="Button">
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <TranslateTransform Y="0"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" 
+                            BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="{TemplateBinding BorderThickness}" 
+                            CornerRadius="3" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                          Margin="{TemplateBinding Padding}" 
+                                          RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="-1.5"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.25" Color="#000000"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="1"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect BlurRadius="2" ShadowDepth="1" Opacity="0.15" Color="#000000"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ================================================================= -->
+    <!-- QKS EXECUTION BUTTON STYLE (Form KẾT NỐI & ÁP DỤNG #0F2240)        -->
+    <!-- Nền Navy #0F2240, chữ trắng in đậm, hiệu ứng nâng hover và shadow   -->
+    <!-- ================================================================= -->
+    <Style x:Key="QksBeamExecutionButtonStyle" TargetType="Button" BasedOn="{StaticResource QksBeamDynamicButtonStyle}">
+        <Setter Property="Background" Value="#0F2240"/>
+        <Setter Property="BorderBrush" Value="#0F2240"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" 
+                            BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="{TemplateBinding BorderThickness}" 
+                            CornerRadius="3" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                          Margin="{TemplateBinding Padding}" 
+                                          RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#18355E"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="#0072BC"/>
+                            <Setter Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="-1.5"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.35" Color="#0F2240"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#0A172C"/>
+                            <Setter Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="1"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect BlurRadius="2" ShadowDepth="1" Opacity="0.2" Color="#0F2240"/>
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

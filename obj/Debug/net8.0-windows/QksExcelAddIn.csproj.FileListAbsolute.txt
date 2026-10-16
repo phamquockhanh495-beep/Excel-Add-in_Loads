@@ -1,0 +1,60 @@
+D:\QKS Excel Add-in\QksExcelAddIn\bin\Debug\net8.0-windows\QksExcelAddIn.deps.json
+D:\QKS Excel Add-in\QksExcelAddIn\bin\Debug\net8.0-windows\QksExcelAddIn.runtimeconfig.json
+D:\QKS Excel Add-in\QksExcelAddIn\bin\Debug\net8.0-windows\QksExcelAddIn.dll
+D:\QKS Excel Add-in\QksExcelAddIn\bin\Debug\net8.0-windows\QksExcelAddIn.pdb
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.csproj.AssemblyReference.cache
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\Views\NotificationView.baml
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\Views\WallLoadView.baml
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\Views\WindLoadView.baml
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\Views\NotificationView.g.cs
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\Views\WallLoadView.g.cs
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\Views\WindLoadView.g.cs
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn_MarkupCompile.cache
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.g.resources
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.GeneratedMSBuildEditorConfig.editorconfig
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.AssemblyInfoInputs.cache
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.AssemblyInfo.cs
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.csproj.CoreCompileInputs.cache
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.dll
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.pdb
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.genruntimeconfig.cache
+D:\QKS Excel Add-in\QksExcelAddIn\bin\Debug\net8.0-windows\Microsoft.Win32.SystemEvents.dll
+D:\QKS Excel Add-in\QksExcelAddIn\bin\Debug\net8.0-windows\System.Drawing.Common.dll
+D:\QKS Excel Add-in\QksExcelAddIn\bin\Debug\net8.0-windows\System.Private.Windows.Core.dll
+D:\QKS Excel Add-in\QksExcelAddIn\bin\Debug\net8.0-windows\System.Private.Windows.GdiPlus.dll
+D:\QKS Excel Add-in\QksExcelAddIn\bin\Debug\net8.0-windows\runtimes\win\lib\net8.0\Microsoft.Win32.SystemEvents.dll
+D:\QKS Excel Add-in\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcel.0618134E.Up2Date
+C:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\System.Drawing.Common.dll
+C:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\CSiAPIv1.dll
+C:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\MaterialDesignColors.dll
+C:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\MaterialDesignThemes.Wpf.dll
+C:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\Microsoft.Xaml.Behaviors.dll
+c:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\build2\QksExcelAddIn.deps.json
+c:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\build2\QksExcelAddIn.runtimeconfig.json
+c:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\build2\QksExcelAddIn.dll
+c:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\build2\QksExcelAddIn.pdb
+c:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\build2\MaterialDesignColors.dll
+c:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\build2\MaterialDesignThemes.Wpf.dll
+c:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\build2\Microsoft.Xaml.Behaviors.dll
+c:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\build2\System.Drawing.Common.dll
+c:\QKS Antigravity\Loads\QksExcelAddIn\bin\Debug\net8.0-windows\build2\CSiAPIv1.dll
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.csproj.AssemblyReference.cache
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\MaterialDesignResources.baml
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\Views\GetApiView.baml
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\Views\NotificationView.baml
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\Views\WallLoadView.baml
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\Views\WindLoadView.baml
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\Views\GetApiView.g.cs
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\Views\NotificationView.g.cs
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\Views\WallLoadView.g.cs
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\Views\WindLoadView.g.cs
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn_MarkupCompile.cache
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.g.resources
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.GeneratedMSBuildEditorConfig.editorconfig
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.AssemblyInfoInputs.cache
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.AssemblyInfo.cs
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.csproj.CoreCompileInputs.cache
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcel.0618134E.Up2Date
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.dll
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.pdb
+c:\QKS Antigravity\Loads\QksExcelAddIn\obj\Debug\net8.0-windows\QksExcelAddIn.genruntimeconfig.cache

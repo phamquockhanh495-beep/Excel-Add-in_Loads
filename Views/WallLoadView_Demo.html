@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QKS Loads - Demo Giao Diện Gán Tải Tường (Chuẩn Style QKS Beam)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0F2240;
+            --qks-blue: #0072BC;          /* Xanh chuẩn QKS Beam */
+            --qks-blue-hover: #005b96;
+            --qks-blue-active: #004573;
+            --qks-tab-bg-active: #E8F4FD;  /* Background tab active QKS Beam */
+            --qks-tab-bg-hover: #F0F7FD;
+            --qks-heading-blue: #0072BC;  /* Màu chữ Heading ListBox/DataGrid chuẩn QKS Beam */
+            --accent-green: #107C41;      /* Xanh Excel QKS Beam */
+            --accent-green-hover: #0d6334;
+            --accent-cad-red: #D92662;    /* Đỏ/Hồng CAD QKS Beam */
+            --accent-cad-hover: #b81b4f;
+            --accent-burgundy: #881337;   /* Màu mận Beam Plan */
+            --accent-sky: #E1F0FA;
+            --accent-sky-border: #93C5FD;
+            --accent-sky-text: #0369A1;
+            --accent-mint: #DCFCE7;
+            --accent-mint-border: #86EFAC;
+            --accent-mint-text: #166534;
+            --bg-window: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --border-color: #CBD5E1;
+            --border-light: #E2E8F0;
+            --text-main: #0F172A;
+            --text-secondary: #475569;
+            --text-muted: #94A3B8;
+            --radius-sm: 3px;
+            --radius-md: 5px;
+            --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08);
+            --shadow-modal: 0 16px 24px -4px rgba(15, 23, 42, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: #0b1320;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 16px;
+            color: var(--text-main);
+        }
+
+        .demo-banner {
+            max-width: 950px;
+            width: 100%;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #94A3B8;
+            font-size: 13px;
+        }
+
+        .demo-banner strong {
+            color: #F8FAFC;
+            font-size: 14.5px;
+        }
+
+        .badge-tag {
+            background: rgba(0, 114, 188, 0.2);
+            color: #38BDF8;
+            border: 1px solid rgba(0, 114, 188, 0.4);
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        /* WPF Window Container */
+        .wpf-window {
+            width: 940px;
+            height: 615px;
+            background: var(--bg-window);
+            border: 1px solid #1E293B;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-modal);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Title Bar */
+        .wpf-titlebar {
+            height: 35px;
+            background: var(--primary);
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            user-select: none;
+            cursor: move;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .titlebar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .titlebar-cad-badge {
+            background: #D92662;
+            color: white;
+            font-size: 11px;
+            font-weight: 800;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+        }
+
+        .titlebar-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .titlebar-right {
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }
+
+        .win-btn {
+            height: 35px;
+            width: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: #E2E8F0;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            font-size: 13px;
+        }
+
+        .win-btn.min:hover { background: #10B981; }
+        .win-btn.close:hover { background: #DC2626; }
+
+        /* Workspace Grid */
+        .wpf-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 310px 1fr;
+            height: calc(615px - 35px - 28px);
+            overflow: hidden;
+        }
+
+        /* Left Panel - Master Sidebar */
+        .sidebar {
+            background: #FFFFFF;
+            border-right: 1px solid var(--border-color);
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+        }
+
+        /* Right Panel - Tabbed Workspace */
+        .main-content {
+            background: var(--bg-window);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Cards and Groupboxes */
+        .qks-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            padding-bottom: 3px;
+            border-bottom: 1.5px solid var(--qks-blue); /* Đường line xanh chuẩn QKS Beam */
+        }
+
+        .card-header h3 {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--qks-blue); /* Tiêu đề màu xanh chuẩn QKS Beam */
+            letter-spacing: 0.2px;
+            text-transform: uppercase;
+        }
+
+        /* Connection Strip */
+        .conn-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2.5px 0;
+            font-size: 11px;
+        }
+
+        .conn-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot-online {
+            background: #10B981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+
+        .conn-val {
+            font-size: 11px;
+            font-weight: 600;
+            color: #107C41;
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .btn-api-cfg {
+            width: 100%;
+            margin-top: 5px;
+            height: 24px;
+            border: 1px solid var(--qks-blue);
+            background: #F0F7FD;
+            color: var(--qks-blue);
+            border-radius: var(--radius-sm);
+            font-size: 10.5px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-api-cfg:hover {
+            background: var(--qks-blue);
+            color: #FFFFFF;
+            transform: translateY(-1px);
+        }
+
+        /* Form Rows */
+        .form-row {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            align-items: center;
+            margin-bottom: 4px;
+            gap: 6px;
+        }
+
+        .form-row.has-btn {
+            grid-template-columns: 100px 1fr 26px;
+        }
+
+        .form-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .qks-input, .qks-select {
+            height: 24px;
+            padding: 2px 6px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            color: var(--text-main);
+            background: #FFFFFF;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .qks-input:focus, .qks-select:focus {
+            border-color: var(--qks-blue);
+            box-shadow: 0 0 0 2px rgba(0, 114, 188, 0.18);
+        }
+
+        .qks-input.text-right {
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .btn-icon-square {
+            height: 24px;
+            width: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--qks-blue);
+            background: #F0F7FD;
+            color: var(--qks-blue);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-icon-square:hover {
+            background: var(--qks-blue);
+            color: #FFFFFF;
+            transform: translateY(-1px);
+        }
+
+        /* ================================================================= */
+        /* TAB BAR - PHONG CÁCH CHUẨN QKS BEAM (THEO ẢNH NGƯỜI DÙNG CUNG CẤP)  */
+        /* Active: Nền #E8F4FD, Text #0072BC In Đậm, Underline #0072BC Dày 2.5px */
+        /* Inactive: Nền Trong Suốt, Text #0F2240, Hover #F0F7FD             */
+        /* ================================================================= */
+        .tab-bar {
+            height: 38px;
+            background: #FFFFFF;
+            border-bottom: 1.5px solid var(--border-color);
+            display: flex;
+            align-items: stretch;
+            padding: 0 8px;
+            gap: 2px;
+        }
+
+        .tab-btn {
+            height: 100%;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: transparent;
+            border: none;
+            border-bottom: 2.5px solid transparent;
+            color: #0F2240;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+            cursor: pointer;
+            transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                        color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                        border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            color: var(--qks-blue);
+            background: var(--qks-tab-bg-hover);
+        }
+
+        /* Trạng thái Tab Được Chọn chuẩn 100% QKS Beam */
+        .tab-btn.active {
+            color: var(--qks-blue);
+            background: var(--qks-tab-bg-active);
+            border-bottom: 2.5px solid var(--qks-blue);
+            box-shadow: inset 0 -1px 0 var(--qks-blue);
+        }
+
+        .tab-btn svg {
+            width: 14px;
+            height: 14px;
+            transition: transform 0.2s ease;
+        }
+
+        .tab-btn:hover svg {
+            transform: scale(1.1);
+        }
+
+        /* Tab Content Area */
+        .tab-content {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            animation: tabFadeIn 0.2s ease forwards;
+        }
+
+        @keyframes tabFadeIn {
+            from { opacity: 0; transform: translateY(3px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Sub Tab Bar (Nếu có Tab con giống QKS Beam: "Diện tích cốt thép (As)" | "Vật liệu & Combo Design") */
+        .sub-tab-bar {
+            display: flex;
+            border-bottom: 1.5px solid var(--qks-blue);
+            background: #FFFFFF;
+            margin-bottom: 6px;
+        }
+
+        .sub-tab-btn {
+            padding: 5px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            border: none;
+            background: transparent;
+            color: #0F2240;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .sub-tab-btn.active {
+            background: var(--qks-tab-bg-active);
+            color: var(--qks-blue);
+            border-bottom: 2px solid var(--qks-blue);
+        }
+
+        /* Parameters Grid */
+        .params-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 10px;
+            background: #FFFFFF;
+            padding: 8px 10px;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+        }
+
+        .wall-type-pills {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .pill-choice {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .pill-choice input[type="radio"] {
+            accent-color: var(--qks-blue);
+        }
+
+        /* Realtime Calculation Preview Bar */
+        .calc-preview-bar {
+            background: #F0FDF4;
+            border: 1px solid #BBF7D0;
+            border-radius: var(--radius-sm);
+            padding: 5px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .calc-formula {
+            font-size: 11px;
+            color: #166534;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .calc-badge {
+            background: #15803D;
+            color: #FFFFFF;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* CAD Method Cards */
+        .method-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .method-card {
+            border: 1px solid var(--border-color);
+            background: #FFFFFF;
+            border-radius: var(--radius-sm);
+            padding: 6px 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .method-card:hover {
+            border-color: var(--qks-blue);
+            background: var(--qks-tab-bg-hover);
+            transform: translateY(-1px);
+        }
+
+        .method-card.selected {
+            border-color: var(--qks-blue);
+            background: var(--qks-tab-bg-active);
+        }
+
+        .method-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            background: #E2E8F0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: var(--qks-blue);
+        }
+
+        .method-card.selected .method-icon {
+            background: var(--qks-blue);
+            color: #FFFFFF;
+        }
+
+        .method-info h4 {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 2px;
+        }
+
+        .method-info p {
+            font-size: 10px;
+            color: var(--text-secondary);
+            line-height: 1.25;
+        }
+
+        /* ================================================================= */
+        /* BUTTON STYLES & DYNAMIC HOVER EFFECTS CHUẨN QKS BEAM             */
+        /* Nút mềm mại, icon đẹp, hiệu ứng lift translateY(-1px) và shadow   */
+        /* ================================================================= */
+        .action-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 4px;
+        }
+
+        .btn-qks {
+            height: 32px;
+            padding: 0 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-qks:hover {
+            transform: translateY(-1.5px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-qks:active {
+            transform: translateY(1px) scale(0.99);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Button Themes matching QKS Beam */
+        .btn-qks-blue {
+            background: var(--qks-blue);
+            color: #FFFFFF;
+        }
+        .btn-qks-blue:hover { background: var(--qks-blue-hover); }
+
+        .btn-qks-green {
+            background: var(--accent-green); /* Nút XUẤT EXCEL kiểu QKS Beam */
+            color: #FFFFFF;
+        }
+        .btn-qks-green:hover { background: var(--accent-green-hover); }
+
+        .btn-qks-cad-red {
+            background: var(--accent-cad-red); /* Nút XUẤT AUTOCAD kiểu QKS Beam */
+            color: #FFFFFF;
+        }
+        .btn-qks-cad-red:hover { background: var(--accent-cad-hover); }
+
+        .btn-qks-sky {
+            background: var(--accent-sky);
+            border: 1px solid var(--accent-sky-border);
+            color: var(--accent-sky-text);
+        }
+        .btn-qks-sky:hover {
+            background: #BAE6FD;
+            color: #0284C7;
+        }
+
+        .btn-qks-mint {
+            background: var(--accent-mint);
+            border: 1px solid var(--accent-mint-border);
+            color: var(--accent-mint-text);
+        }
+        .btn-qks-mint:hover {
+            background: #BBF7D0;
+            color: #15803D;
+        }
+
+        /* Button thực thi chuẩn form KẾT NỐI & ÁP DỤNG (#0F2240) */
+        .btn-qks-navy {
+            background: #0F2240;
+            color: #FFFFFF;
+            border: 1px solid #1F3A60;
+            font-weight: 700;
+            box-shadow: 0 2px 6px rgba(15, 34, 64, 0.35);
+            letter-spacing: 0.3px;
+        }
+
+        .btn-qks-navy:hover {
+            background: #18355E;
+            border-color: #0072BC;
+            transform: translateY(-1.5px);
+            box-shadow: 0 5px 12px rgba(15, 34, 64, 0.45);
+        }
+
+        .btn-qks-navy:active {
+            background: #0A172C;
+            transform: translateY(1px);
+            box-shadow: 0 1px 3px rgba(15, 34, 64, 0.3);
+        }
+
+        /* MaterialDesign Indeterminate Progress Shimmer Wave (Chuẩn API AutoCAD - Hình 5) */
+        .btn-indeterminate-glow {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+            animation: shimmer-progress 2.2s infinite linear;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer-progress {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* SECTION ROW & CAD SELECTOR */
+        .section-row {
+            display: grid;
+            grid-template-columns: 140px 1fr 90px 90px 100px;
+            padding: 6px 10px;
+            border-bottom: 1px solid #F1F5F9;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .section-row:hover {
+            background: #F0F7FD;
+        }
+
+        .section-row.selected {
+            background: #E0F2FE;
+            border-left: 3px solid #0072BC;
+        }
+
+        .btn-select-cad {
+            background: #F1F5F9;
+            border: 1px solid #CBD5E1;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #0F2240;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-select-cad:hover {
+            background: #0072BC;
+            color: #FFFFFF;
+            border-color: #0072BC;
+        }
+
+        /* ================================================================= */
+        /* LISTBOX / DATAGRID HEADINGS - MÀU XANH ĐẶC TRƯNG CHUẨN QKS BEAM    */
+        /* Color: #0072BC, Bold, Centered, Underline Separator               */
+        /* ================================================================= */
+        .qks-table-wrap {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            background: #FFFFFF;
+        }
+
+        .qks-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        /* Heading ListBox / DataGrid chuẩn QKS Beam */
+        .qks-table th {
+            background: #F8FAFC;
+            color: var(--qks-heading-blue); /* MÀU XANH HEADING CHUẨN QKS BEAM */
+            font-weight: 700;
+            padding: 5px 8px;
+            text-align: center;
+            border-bottom: 1.5px solid var(--qks-blue); /* Đường gạch dưới chuẩn QKS Beam */
+            font-size: 11px;
+            letter-spacing: 0.2px;
+        }
+
+        .qks-table td {
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-main);
+        }
+
+        .qks-table tr:hover {
+            background: var(--qks-tab-bg-hover);
+        }
+
+        .qks-table tr.selected {
+            background: #E5EBF3; /* Nền xám/xanh nhạt chuẩn QksDataGridRowStyle */
+            font-weight: 600;
+            color: #1565C0;
+        }
+
+        .qks-table td.text-right {
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Status Footer */
+        .wpf-footer {
+            height: 28px;
+            background: #F1F5F9;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .footer-status-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10B981;
+        }
+
+        .footer-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Preview Box on Tab 2 */
+        .preview-box {
+            background: #1E293B;
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            color: #E2E8F0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .beam-preview-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+        }
+
+        .cad-axis {
+            height: 3px;
+            flex: 1;
+            background: #38BDF8;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cad-dot {
+            width: 9px;
+            height: 9px;
+            background: #FACC15;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .cad-text-tag {
+            background: rgba(0,0,0,0.65);
+            color: #EF4444;
+            padding: 1px 5px;
+            border-radius: 2px;
+            font-weight: bold;
+            font-size: 10.5px;
+            position: absolute;
+            top: -18px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="demo-banner">
+        <div>
+            <strong>QKS Loads</strong> &bull; Giao Diện Gán Tải Tường (Phong Cách Chuẩn QKS Beam)
+            <span class="badge-tag">Chuẩn QKS Beam UI</span>
+        </div>
+        <div>
+            <span>Đồng bộ 3 môi trường: Excel &bull; AutoCAD &bull; ETABS</span>
+        </div>
+    </div>
+
+    <!-- MAIN WPF WINDOW CONTAINER -->
+    <div class="wpf-window">
+        <!-- Title Bar -->
+        <div class="wpf-titlebar">
+            <div class="titlebar-left">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAADsAAAA7AF5KHG9AAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAArRJREFUWIXtl01IVFEUx3/nvodh1DRKFqHUNMwLSgoXbYJoExG0EqsBM5I2ZdEiolUQtAhqE0ZFGS0iywQtaSW06GNTQitr4SqkRIss/IIInfveaTHOR1bTcxpz0x8uvMO975zfvfedc9+FRZaUwkniilaVT5OQGTzXsr5cufXinHwI864bNsiKDq1YCnEzQ9zxiRtL3LHUOpZaJ0VUAzCAKKRSDADd8wfo1Ygr1LpCwlg84+OZgIRjSTiWaGDTS6ZhqUMotwXPNOb4vDY+EROA44OZbY4Pjs1rBWw3BU6KpOODa+lyU+Bm+iwYy6Drs73nnnyE9KpltBWIlHByv5txXAO2ZewcQFCaDzKknJ8BFkn/AQrVgTHgCYCk96yeHHAAPELwZ+2dQGWpAaIIbVMN8hRg5X29BJwiTdT6rkVOA3iXdQewt5jgUHgLDEp7pEsrAaJRzgBvgAFdzlmAWKtGDdz9g5+iAQCqcbkG8HaPTAeGZoGm4aR8A3BcriusLTZ4GACAxooH2gjwuUn6Rw5LP8C6m3oAofFvgocFAOVGRZdmZ1pzR6tFufq3wcMDlPb8KQJAOD6elKGMOdwsI6oc+VcAneP7pBOgqkPrqm9rHcD7Y/IQpXOhAUawnABI9OoSE9Cu0FHTpeUAWsYxgaHCLooHCBAOTSVlDGBikgvAZmCTTHEeYPCoTGrAQchWxHmrUCWcQGmJ9GiL6+Ngqc/rOxlr05jj45MCfCZZgFJcCeyHX6aAARpKkRuLfhr+BzB5TwtW7X6hbNbkACyvgC//IPhbt4yXGSOXBbtkyH+sMQnYIoqH4iF4QALwmOcve99F6SbE1e/HNNwtXy30WeibO3B1u65Sg4eyAZ2FkizcsvyxIuG3M/Td8NMhGQVGgRdz+za26hpRPE2vWLV1eR7W76LrOxBF2xeLYMrgAAAAAElFTkSuQmCC" width="18" height="18" style="vertical-align: middle; margin-right: 2px;" alt="Excel Logo"/>
+                <span class="titlebar-title">QKS LOADS - GÁN TẢI TRỌNG TƯỜNG VÀO ETABS</span>
+            </div>
+            <div class="titlebar-right">
+                <button class="win-btn min" title="Thu nhỏ">—</button>
+                <button class="win-btn close" title="Đóng">✕</button>
+            </div>
+        </div>
+
+        <!-- Body Grid: Left Sidebar (Master) + Right Tab Workspace (Detail) -->
+        <div class="wpf-body">
+            
+            <!-- LEFT PANEL: THIẾT LẬP CHUNG (GLOBAL SETTINGS) -->
+            <div class="sidebar">
+                
+                <!-- Section 0: Kết nối API -->
+                <div class="qks-card">
+                    <div class="card-header">
+                        <h3>KẾT NỐI HỆ THỐNG</h3>
+                    </div>
+                    <div class="conn-item">
+                        <div class="conn-label">
+                            <span class="status-dot dot-online"></span>
+                            <span>ETABS Model:</span>
+                        </div>
+                        <span class="conn-val" title="NhaPho_7Tang_V2.EDB">NhaPho_7Tang.EDB</span>
+                    </div>
+                    <div class="conn-item">
+                        <div class="conn-label">
+                            <span class="status-dot dot-online"></span>
+                            <span>AutoCAD Doc:</span>
+                        </div>
+                        <span class="conn-val" title="MatBang_KC_Tang3.dwg">MatBang_KC.dwg</span>
+                    </div>
+                    <button class="btn-api-cfg" onclick="alert('Mở cửa sổ Cấu Hình API')">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                        CẤU HÌNH API
+                    </button>
+                </div>
+
+                <!-- Section 1: Phạm Vi & Vị Trí Gán -->
+                <div class="qks-card">
+                    <div class="card-header">
+                        <h3>PHẠM VI & VỊ TRÍ GÁN</h3>
+                    </div>
+                    
+                    <div class="form-row">
+                        <span class="form-label">Tầng Update:</span>
+                        <select class="qks-select" id="selStory">
+                            <option>Story3 (Cao 3.4m)</option>
+                            <option>Story2 (Cao 3.6m)</option>
+                            <option>Story1 (Cao 3.8m)</option>
+                            <option>Roof (Cao 3.0m)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row has-btn">
+                        <span class="form-label">BasePoint X:</span>
+                        <input type="text" class="qks-input text-left" id="baseX" value="0">
+                        <button class="btn-icon-square" title="Pick điểm BasePoint từ AutoCAD" onclick="pickBasePoint()">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="form-row">
+                        <span class="form-label">BasePoint Y:</span>
+                        <input type="text" class="qks-input text-left" id="baseY" value="0">
+                    </div>
+                </div>
+
+                <!-- Section 2: Thông số Tải Trọng Chung -->
+                <div class="qks-card">
+                    <div class="card-header">
+                        <h3>THIẾT LẬP TẢI TRỌNG</h3>
+                    </div>
+
+                    <div class="form-row">
+                        <span class="form-label">Loại Tải (Pattern):</span>
+                        <select class="qks-select">
+                            <option>WALL (Tải tường xây)</option>
+                            <option>BW (Beam Wall)</option>
+                            <option>DEAD (Tĩnh tải)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <span class="form-label">Hướng Tải:</span>
+                        <select class="qks-select">
+                            <option selected>Gravity (Trọng lực)</option>
+                            <option>Global-Z</option>
+                            <option>Gravity Proj</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <span class="form-label">Chế Độ Gán:</span>
+                        <select class="qks-select">
+                            <option selected>Replace (Ghi đè - Chuẩn)</option>
+                            <option>Add (Cộng dồn)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <span class="form-label">Hệ Số Gán (k):</span>
+                        <input type="text" class="qks-input text-right" value="1.0">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT PANEL: WORKFLOW TABS (PHONG CÁCH QKS BEAM) -->
+            <div class="main-content">
+                
+                <!-- Tab Navigation Bar: Chuẩn style QKS Beam (Hiệu ứng nền #E8F4FD, chữ #0072BC, gạch chân 2.5px) -->
+                <div class="tab-bar">
+                    <button class="tab-btn active" onclick="switchTab('tab-assign', this)">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 2h2v4h-2V6zm0 6h2v4h-2v-4zm-4-6h2v4H7V6zm0 6h2v4H7v-4zm8-6h2v4h-2V6zm0 6h2v4h-2v-4z"/></svg>
+                        THÔNG TIN GÁN TẢI TƯỜNG
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('tab-export', this)">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+                        XUẤT MẶT BẰNG AUTOCAD
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('tab-sync', this)">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+                        ĐỒNG BỘ 2 CHIỀU (CAD &harr; ETABS)
+                    </button>
+                </div>
+
+                <!-- TAB 1: GÁN TẢI TƯỜNG (CAD -> ETABS) -->
+                <div class="tab-content active" id="tab-assign">
+                    
+                    <!-- Lựa chọn phương thức tính tải -->
+                    <div class="qks-card">
+                        <div class="card-header">
+                            <h3>PHƯƠNG THỨC XÁC ĐỊNH TẢI TƯỜNG</h3>
+                            <div class="wall-type-pills">
+                                <label class="pill-choice">
+                                    <input type="radio" name="calc_mode" checked onchange="toggleCalcMode('auto')">
+                                    <span>Tính Tự Động Theo TCVN</span>
+                                </label>
+                                <label class="pill-choice">
+                                    <input type="radio" name="calc_mode" onchange="toggleCalcMode('grid')">
+                                    <span>Chọn Từ Bảng Tải Định Mức</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Sub-view 1: Tính Tự Động -->
+                        <div id="view-calc-auto">
+                            <div class="params-grid">
+                                <div class="form-row">
+                                    <span class="form-label">&gamma; Gạch (kN/m³):</span>
+                                    <input type="text" class="qks-input text-right" id="klrGach" value="15.0" oninput="recalc()">
+                                </div>
+                                <div class="form-row">
+                                    <span class="form-label">Hệ số n1 gạch:</span>
+                                    <input type="text" class="qks-input text-right" id="n1Gach" value="1.1" oninput="recalc()">
+                                </div>
+                                <div class="form-row">
+                                    <span class="form-label">&gamma; Vữa (kN/m³):</span>
+                                    <input type="text" class="qks-input text-right" id="klrVua" value="18.0" oninput="recalc()">
+                                </div>
+                                <div class="form-row">
+                                    <span class="form-label">Hệ số n2 vữa:</span>
+                                    <input type="text" class="qks-input text-right" id="n2Vua" value="1.3" oninput="recalc()">
+                                </div>
+                                <div class="form-row">
+                                    <span class="form-label">Dày trát (mm):</span>
+                                    <input type="text" class="qks-input text-right" id="dayTrat" value="20" oninput="recalc()">
+                                </div>
+                                <div class="form-row">
+                                    <span class="form-label">Hệ số cửa n3:</span>
+                                    <input type="text" class="qks-input text-right" id="n3Cua" value="1.0" oninput="recalc()">
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 14px;">
+                                    <span style="font-size: 11px; font-weight: 700; color: var(--qks-blue);">Loại tường gán:</span>
+                                    <label class="pill-choice">
+                                        <input type="radio" name="wall_thick" id="radTuong100" onchange="recalc()">
+                                        <span>Tường 100 (t = 0.10m)</span>
+                                    </label>
+                                    <label class="pill-choice">
+                                        <input type="radio" name="wall_thick" id="radTuong200" checked onchange="recalc()">
+                                        <span>Tường 200 (t = 0.20m)</span>
+                                    </label>
+                                </div>
+
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <input type="checkbox" id="chkCustomBeam" onchange="toggleCustomBeam()">
+                                    <span style="font-size: 10.5px; color: var(--text-secondary);">Tự trừ dầm (m):</span>
+                                    <input type="text" class="qks-input text-right" id="customBeamH" value="0.40" style="width: 50px;" disabled oninput="recalc()">
+                                </div>
+                            </div>
+
+                            <!-- Realtime preview calculation badge -->
+                            <div class="calc-preview-bar" style="margin-top: 6px;">
+                                <div class="calc-formula">
+                                    <span>Tải diện tích g_tường = </span>
+                                    <strong id="valGtuong">3.77 kN/m²</strong>
+                                    <span>&bull; Chiều cao H_thông thủy &asymp; <strong id="valHth">3.00 m</strong></span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 11px; color: #166534; font-weight: 600;">Tải quy đổi q &asymp;</span>
+                                    <span class="calc-badge" id="valQout">11.31 kN/m</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sub-view 2: Chọn từ Grid (Màu Heading chuẩn QKS Beam, Mở rộng chiều cao 165px) -->
+                        <div id="view-calc-grid" style="display: none;">
+                            <div class="qks-table-wrap" style="max-height: 165px; height: 165px;">
+                                <table class="qks-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 50px;">CHỌN</th>
+                                            <th>TÊN LOẠI TƯỜNG</th>
+                                            <th style="width: 140px;">TẢI TRỌNG (kN/m)</th>
+                                            <th>GHI CHÚ KỸ THUẬT</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr onclick="selectGridRow(this, 'Tường 100 tiêu chuẩn', '5.80')">
+                                            <td style="text-align: center;"><input type="radio" name="grid_sel"></td>
+                                            <td>Tường 100 tiêu chuẩn</td>
+                                            <td class="text-right">5.80</td>
+                                            <td style="color: var(--text-secondary);">Gạch ống 4 lỗ + trát 2 mặt</td>
+                                        </tr>
+                                        <tr class="selected" onclick="selectGridRow(this, 'Tường 200 tiêu chuẩn', '10.50')">
+                                            <td style="text-align: center;"><input type="radio" name="grid_sel" checked></td>
+                                            <td>Tường 200 tiêu chuẩn</td>
+                                            <td class="text-right">10.50</td>
+                                            <td style="color: var(--text-secondary);">Tường bao che dày 200</td>
+                                        </tr>
+                                        <tr onclick="selectGridRow(this, 'Tường lửng / Lan can', '1.80')">
+                                            <td style="text-align: center;"><input type="radio" name="grid_sel"></td>
+                                            <td>Tường lửng / Lan can</td>
+                                            <td class="text-right">1.80</td>
+                                            <td style="color: var(--text-secondary);">Chiều cao H = 1.1m</td>
+                                        </tr>
+                                        <tr onclick="selectGridRow(this, 'Tường vách kính khung nhôm', '0.80')">
+                                            <td style="text-align: center;"><input type="radio" name="grid_sel"></td>
+                                            <td>Tường vách kính khung nhôm</td>
+                                            <td class="text-right">0.80</td>
+                                            <td style="color: var(--text-secondary);">Vách kính cường lực</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Realtime Selected Load Reminder Badge (Hình 3-4) -->
+                            <div class="calc-preview-bar" style="margin-top: 6px;">
+                                <div class="calc-formula">
+                                    <span>Loại tường gán: </span>
+                                    <strong id="valGridType">Tường 200 tiêu chuẩn</strong>
+                                    <span style="font-style: italic; color: #15803D;">&bull; (Chọn từ Bảng Định Mức)</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 11px; color: #166534;">Tải quy ước gán q =</span>
+                                    <span class="calc-badge" id="valGridLoad">10.50 kN/m</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phương thức thao tác trên CAD -->
+                    <div class="qks-card">
+                        <div class="card-header">
+                            <h3>PHƯƠNG THỨC TƯƠNG TÁC BẢN VẼ AUTOCAD</h3>
+                        </div>
+
+                        <div class="method-cards">
+                            <div class="method-card selected" id="cardMethodLines" onclick="selectMethod('lines')">
+                                <div class="method-icon">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h4v2H3zm0 6h4v2H3zm0 6h4v2H3zm6-12h12v2H9zm0 6h12v2H9zm0 6h12v2H9z"/></svg>
+                                </div>
+                                <div class="method-info">
+                                    <h4>1. Quét Nét Tường Kiến Trúc (Line / Polyline)</h4>
+                                    <p>Tự động đọc các nét tường từ CAD, so khớp dầm ETABS gần nhất và gán tải siêu tốc.</p>
+                                </div>
+                            </div>
+
+                            <div class="method-card" id="cardMethodPick" onclick="selectMethod('pick')">
+                                <div class="method-icon">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2l2 2-4 4 4 4-2 2-6-6 6-6zm10 0l6 6-6 6-2-2 4-4-4-4 2-2z"/></svg>
+                                </div>
+                                <div class="method-info">
+                                    <h4>2. Pick 2 Điểm Theo Dầm (Dây Nét Liền Đỏ)</h4>
+                                    <p>Click chọn điểm đầu và điểm cuối trên CAD, vẽ đoạn Line màu đỏ và tự động nhận diện dầm.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nút Hành Động Chuẩn Form API AutoCAD (Hình 5) -->
+                    <div class="action-bar-row">
+                        <button class="btn-qks btn-qks-navy" style="flex: 1; height: 34px; position: relative; overflow: hidden;" onclick="executeAssign()">
+                            <span class="btn-indeterminate-glow"></span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 6px;"><path d="M12 2C6.48 2 2 4.02 2 6.5s4.48 4.5 10 4.5 10-2.02 10-4.5S17.52 2 12 2zm0 13c-4.42 0-8-1.58-8-3.5V14c0 1.92 3.58 3.5 8 3.5s8-1.58 8-3.5v-2.5c0 1.92-3.58 3.5-8 3.5zm0 5c-4.42 0-8-1.58-8-3.5V19c0 1.92 3.58 3.5 8 3.5s8-1.58 8-3.5v-2.5c0 1.92-3.58 3.5-8 3.5zM12 9l4 4h-3v4h-2v-4H8l4-4z"/></svg>
+                            GÁN TẢI TRỌNG VÀO ETABS
+                        </button>
+                        <button class="btn-qks" style="width: 140px; height: 34px; background: #d4f5e0; border: 1px solid #BBDEFB; color: #15803D; font-weight: bold; position: relative; overflow: hidden;" onclick="saveConfiguration()">
+                            <span class="btn-indeterminate-glow"></span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                            LƯU DESIGN
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- TAB 2: XUẤT MẶT BẰNG CAD (ETABS -> CAD) -->
+                <div class="tab-content" id="tab-export">
+                    <div class="qks-card">
+                        <div class="card-header">
+                            <h3>TÙY CHỌN DỮ LIỆU XUẤT AUTOCAD</h3>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <span class="form-label">Chiều Cao Chữ:</span>
+                                <input type="number" class="qks-input text-right" value="200" style="width: 70px;">
+                            </div>
+                            <div class="form-row">
+                                <span class="form-label">Màu Text Tải:</span>
+                                <select class="qks-select">
+                                    <option>Red (1)</option>
+                                    <option>Yellow (2)</option>
+                                    <option>Green (3)</option>
+                                    <option>Cyan (4)</option>
+                                    <option>Blue (5)</option>
+                                    <option>White (7)</option>
+                                </select>
+                            </div>
+                            <div class="form-row" style="grid-column: span 2;">
+                                <span class="form-label">Màu Frame Dầm:</span>
+                                <select class="qks-select">
+                                    <option selected>Theo Tiết Diện Dầm (TrueColor RGB Phân Biệt Từng Tiết Diện)</option>
+                                    <option>Theo Màu Đơn Sắc (ACI 1 - 9)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- BẢNG KIỂM SOÁT & DANH MỤC TIẾT DIỆN DẦM (INTERACTIVE BEAM SECTION INSPECTOR) -->
+                        <div style="margin-top: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-size: 11px; font-weight: 700; color: var(--qks-blue); text-transform: uppercase;">
+                                    DANH MỤC TIẾT DIỆN DẦM & MÀU SẮC (TRUECOLOR RGB):
+                                </span>
+                                <span style="font-size: 10px; color: #64748B; font-family: monospace;">Click vào dầm để chọn trên AutoCAD</span>
+                            </div>
+
+                            <!-- Container bảng tiết diện dầm -->
+                            <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                <!-- Table Header -->
+                                <div style="display: grid; grid-template-columns: 140px 1fr 90px 90px 100px; background: #F8FAFC; border-bottom: 1.5px solid #0072BC; padding: 6px 10px; font-size: 11px; font-weight: 700; color: #0072BC; text-align: center;">
+                                    <div style="text-align: left;">MÀU SẮC DẦM</div>
+                                    <div style="text-align: left;">TIẾT DIỆN</div>
+                                    <div>SỐ LƯỢNG</div>
+                                    <div>TỔNG DÀI</div>
+                                    <div>CHỌN TRÊN CAD</div>
+                                </div>
+
+                                <!-- Table Body (List of sections - Mở Rộng Chiều Cao Hiển Thị Lên 240px) -->
+                                <div style="max-height: 250px; height: 240px; overflow-y: auto;" id="beamSectionList">
+                                    <!-- Row 1: B25x50 (Cyan #00CED1) -->
+                                    <div class="section-row" onclick="selectSectionOnCad('B25x50', '#00CED1')">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="width: 28px; height: 6px; border-radius: 3px; background: #00CED1; box-shadow: 0 1px 2px rgba(0,0,0,0.15);"></div>
+                                            <span style="font-family: monospace; font-size: 10px; color: #475569;">#00CED1</span>
+                                        </div>
+                                        <div style="font-weight: 700; color: #0F2240; font-size: 11.5px;">B25x50</div>
+                                        <div style="text-align: center; font-size: 11px; color: #334155; font-weight: 600;">18 dầm</div>
+                                        <div style="text-align: center; font-size: 11px; color: #64748B;">84.6 m</div>
+                                        <div style="text-align: center;">
+                                            <button class="btn-select-cad" onclick="event.stopPropagation(); selectSectionOnCad('B25x50', '#00CED1');">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                                                Chọn CAD
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 2: B20x35 (Cam #FF8C00) -->
+                                    <div class="section-row" onclick="selectSectionOnCad('B20x35', '#FF8C00')">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="width: 28px; height: 6px; border-radius: 3px; background: #FF8C00; box-shadow: 0 1px 2px rgba(0,0,0,0.15);"></div>
+                                            <span style="font-family: monospace; font-size: 10px; color: #475569;">#FF8C00</span>
+                                        </div>
+                                        <div style="font-weight: 700; color: #0F2240; font-size: 11.5px;">B20x35</div>
+                                        <div style="text-align: center; font-size: 11px; color: #334155; font-weight: 600;">12 dầm</div>
+                                        <div style="text-align: center; font-size: 11px; color: #64748B;">48.2 m</div>
+                                        <div style="text-align: center;">
+                                            <button class="btn-select-cad" onclick="event.stopPropagation(); selectSectionOnCad('B20x35', '#FF8C00');">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                                                Chọn CAD
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 3: B30x60 (Xanh lá mạ #32CD32) -->
+                                    <div class="section-row" onclick="selectSectionOnCad('B30x60', '#32CD32')">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="width: 28px; height: 6px; border-radius: 3px; background: #32CD32; box-shadow: 0 1px 2px rgba(0,0,0,0.15);"></div>
+                                            <span style="font-family: monospace; font-size: 10px; color: #475569;">#32CD32</span>
+                                        </div>
+                                        <div style="font-weight: 700; color: #0F2240; font-size: 11.5px;">B30x60</div>
+                                        <div style="text-align: center; font-size: 11px; color: #334155; font-weight: 600;">6 dầm</div>
+                                        <div style="text-align: center; font-size: 11px; color: #64748B;">36.0 m</div>
+                                        <div style="text-align: center;">
+                                            <button class="btn-select-cad" onclick="event.stopPropagation(); selectSectionOnCad('B30x60', '#32CD32');">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                                                Chọn CAD
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 4: B20x40 (Tím #BA55D3) -->
+                                    <div class="section-row" onclick="selectSectionOnCad('B20x40', '#BA55D3')">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="width: 28px; height: 6px; border-radius: 3px; background: #BA55D3; box-shadow: 0 1px 2px rgba(0,0,0,0.15);"></div>
+                                            <span style="font-family: monospace; font-size: 10px; color: #475569;">#BA55D3</span>
+                                        </div>
+                                        <div style="font-weight: 700; color: #0F2240; font-size: 11.5px;">B20x40</div>
+                                        <div style="text-align: center; font-size: 11px; color: #334155; font-weight: 600;">8 dầm</div>
+                                        <div style="text-align: center; font-size: 11px; color: #64748B;">32.8 m</div>
+                                        <div style="text-align: center;">
+                                            <button class="btn-select-cad" onclick="event.stopPropagation(); selectSectionOnCad('B20x40', '#BA55D3');">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                                                Chọn CAD
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 5: SB15x30 (Xanh Royal #1E90FF) -->
+                                    <div class="section-row" onclick="selectSectionOnCad('SB15x30', '#1E90FF')">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="width: 28px; height: 6px; border-radius: 3px; background: #1E90FF; box-shadow: 0 1px 2px rgba(0,0,0,0.15);"></div>
+                                            <span style="font-family: monospace; font-size: 10px; color: #475569;">#1E90FF</span>
+                                        </div>
+                                        <div style="font-weight: 700; color: #0F2240; font-size: 11.5px;">SB15x30</div>
+                                        <div style="text-align: center; font-size: 11px; color: #334155; font-weight: 600;">5 dầm phụ</div>
+                                        <div style="text-align: center; font-size: 11px; color: #64748B;">16.5 m</div>
+                                        <div style="text-align: center;">
+                                            <button class="btn-select-cad" onclick="event.stopPropagation(); selectSectionOnCad('SB15x30', '#1E90FF');">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                                                Chọn CAD
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 6: B22x45 (Vàng Hổ Phách #FFBF00) -->
+                                    <div class="section-row" onclick="selectSectionOnCad('B22x45', '#FFBF00')">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="width: 28px; height: 6px; border-radius: 3px; background: #FFBF00; box-shadow: 0 1px 2px rgba(0,0,0,0.15);"></div>
+                                            <span style="font-family: monospace; font-size: 10px; color: #475569;">#FFBF00</span>
+                                        </div>
+                                        <div style="font-weight: 700; color: #0F2240; font-size: 11.5px;">B22x45</div>
+                                        <div style="text-align: center; font-size: 11px; color: #334155; font-weight: 600;">9 dầm</div>
+                                        <div style="text-align: center; font-size: 11px; color: #64748B;">41.5 m</div>
+                                        <div style="text-align: center;">
+                                            <button class="btn-select-cad" onclick="event.stopPropagation(); selectSectionOnCad('B22x45', '#FFBF00');">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                                                Chọn CAD
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 7: B35x70 (Đỏ Đô #C0392B) -->
+                                    <div class="section-row" onclick="selectSectionOnCad('B35x70', '#C0392B')">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="width: 28px; height: 6px; border-radius: 3px; background: #C0392B; box-shadow: 0 1px 2px rgba(0,0,0,0.15);"></div>
+                                            <span style="font-family: monospace; font-size: 10px; color: #475569;">#C0392B</span>
+                                        </div>
+                                        <div style="font-weight: 700; color: #0F2240; font-size: 11.5px;">B35x70</div>
+                                        <div style="text-align: center; font-size: 11px; color: #334155; font-weight: 600;">4 dầm chính</div>
+                                        <div style="text-align: center; font-size: 11px; color: #64748B;">28.0 m</div>
+                                        <div style="text-align: center;">
+                                            <button class="btn-select-cad" onclick="event.stopPropagation(); selectSectionOnCad('B35x70', '#C0392B');">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                                                Chọn CAD
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Table Footer / Tip -->
+                                <div style="background: #F1F5F9; border-top: 1px solid #E2E8F0; padding: 4px 10px; font-size: 10.5px; color: #475569; display: flex; justify-content: space-between; align-items: center;">
+                                    <span id="txtSectionCadStatus">💡 Nhấp vào bất kỳ hàng tiết diện nào để quét chọn (Select) các dầm đó trên AutoCAD.</span>
+                                    <span style="font-weight: 700; color: var(--qks-blue);">Tổng: 5 loại tiết diện (49 dầm)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nút Hành Động Chuẩn Form API AutoCAD (Hình 5) -->
+                    <div class="action-bar-row">
+                        <button class="btn-qks" style="flex: 1.5; height: 34px; background: #EC407A; border: 1px solid #f6a0bd; color: white; font-weight: bold; position: relative; overflow: hidden;" onclick="alert('Đang xuất mặt bằng dầm kết cấu sang AutoCAD...')">
+                            <span class="btn-indeterminate-glow"></span>
+                            <span style="background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.4); color: white; width: 22px; height: 22px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; margin-right: 6px;">A</span>
+                            XUẤT AUTOCAD
+                        </button>
+                        <button class="btn-qks" style="flex: 1; height: 34px; background: #d4f5e0; border: 1px solid #588b6b; color: #588b6b; font-weight: bold; position: relative; overflow: hidden;" onclick="clearCadSelection()">
+                            <span class="btn-indeterminate-glow"></span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                            BỎ CHỌN TRÊN CAD
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 3: ĐỒNG BỘ 2 CHIỀU (CAD -> ETABS) -->
+                <div class="tab-content" id="tab-sync">
+                    <div class="qks-card">
+                        <div class="card-header">
+                            <h3>QUY TRÌNH ĐỒNG BỘ 2 CHIỀU (BIDIRECTIONAL SYNC)</h3>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+                            <div style="background: #F0F7FD; border-left: 3px solid var(--qks-blue); padding: 8px 10px; border-radius: 2px;">
+                                <strong style="color: var(--qks-blue);">Quy trình 4 bước đơn giản:</strong>
+                                <ol style="margin-left: 18px; margin-top: 3px;">
+                                    <li>Kỹ sư mở bản vẽ AutoCAD đã xuất mặt bằng từ Tab 2.</li>
+                                    <li>Chỉnh sửa trực tiếp số liệu Text tải (ví dụ: sửa <code>8.5</code> &rarr; <code>10.5</code>, hoặc sửa thành <code>0</code> để xóa tải).</li>
+                                    <li>Nhấn nút <strong>CẬP NHẬT TẢI TỪ CAD VÀO ETABS</strong> bên dưới.</li>
+                                    <li>Hệ thống tự động bóc tách số qua Regex, đối chiếu XData dầm và cập nhật mô hình ETABS trong tích tắc!</li>
+                                </ol>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                                <input type="checkbox" id="chkAutoConfirm" checked>
+                                <span>Tự động xóa tải phân bố cũ (Replace) trước khi gán các phân đoạn mới tránh cộng dồn.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nút Hành Động Tab 3 Chuẩn Form API AutoCAD (Hình 5) -->
+                    <div class="action-bar-row">
+                        <button class="btn-qks" style="flex: 1; height: 34px; background: #E3F2FD; border: 1px solid #1565C0; color: #1565C0; font-weight: bold; position: relative; overflow: hidden;" onclick="alert('Đang quét text trên AutoCAD và nạp vào ETABS...')">
+                            <span class="btn-indeterminate-glow"></span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 6px;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+                            CẬP NHẬT TẢI TỪ CAD VÀO ETABS
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Footer Status Bar -->
+        <div class="wpf-footer">
+            <div class="footer-left">
+                <span class="footer-status-icon"></span>
+                <span id="statusBarText">Sẵn sàng thực hiện - Đã nạp 8 dầm tại tầng Story3.</span>
+            </div>
+            <div class="footer-right">
+                <span style="font-size: 10.5px; color: #94A3B8;">QKS Loads v2.0 &bull; Extension QKS</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Minh Họa CustomMessageBox với Logo Excel chuẩn QKS Beam -->
+    <div style="margin-top: 24px; max-width: 940px; width: 100%;">
+        <div style="color: #94A3B8; font-size: 12.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+            <strong style="color: #F8FAFC;">Minh Họa Hộp Thoại CustomMessageBox</strong>
+            <span class="badge-tag">Logo Excel &bull; Đã Thu Gọn Chiều Cao Cân Đối</span>
+        </div>
+        
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+            <!-- Box 1: Thông Báo Xuất CAD Thành Công (Hình 2 - Đã Bỏ Dòng Nhắc & Tối Ưu Chiều Cao) -->
+            <div style="width: 450px; background: white; border: 1px solid #0F2240; border-radius: 4px; box-shadow: 0 12px 28px rgba(0,0,0,0.35); overflow: hidden; align-self: flex-start; height: fit-content;">
+                <!-- Headbar CustomMessageBox có Logo Excel -->
+                <div style="height: 34px; background: #0F2240; display: flex; align-items: center; justify-content: space-between; padding: 0 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAADsAAAA7AF5KHG9AAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAArRJREFUWIXtl01IVFEUx3/nvodh1DRKFqHUNMwLSgoXbYJoExG0EqsBM5I2ZdEiolUQtAhqE0ZFGS0iywQtaSW06GNTQitr4SqkRIss/IIInfveaTHOR1bTcxpz0x8uvMO975zfvfedc9+FRZaUwkniilaVT5OQGTzXsr5cufXinHwI864bNsiKDq1YCnEzQ9zxiRtL3LHUOpZaJ0VUAzCAKKRSDADd8wfo1Ygr1LpCwlg84+OZgIRjSTiWaGDTS6ZhqUMotwXPNOb4vDY+EROA44OZbY4Pjs1rBWw3BU6KpOODa+lyU+Bm+iwYy6Drs73nnnyE9KpltBWIlHByv5txXAO2ZewcQFCaDzKknJ8BFkn/AQrVgTHgCYCk96yeHHAAPELwZ+2dQGWpAaIIbVMN8hRg5X29BJwiTdT6rkVOA3iXdQewt5jgUHgLDEp7pEsrAaJRzgBvgAFdzlmAWKtGDdz9g5+iAQCqcbkG8HaPTAeGZoGm4aR8A3BcriusLTZ4GACAxooH2gjwuUn6Rw5LP8C6m3oAofFvgocFAOVGRZdmZ1pzR6tFufq3wcMDlPb8KQJAOD6elKGMOdwsI6oc+VcAneP7pBOgqkPrqm9rHcD7Y/IQpXOhAUawnABI9OoSE9Cu0FHTpeUAWsYxgaHCLooHCBAOTSVlDGBikgvAZmCTTHEeYPCoTGrAQchWxHmrUCWcQGmJ9GiL6+Ngqc/rOxlr05jj45MCfCZZgFJcCeyHX6aAARpKkRuLfhr+BzB5TwtW7X6hbNbkACyvgC//IPhbt4yXGSOXBbtkyH+sMQnYIoqH4iF4QALwmOcve99F6SbE1e/HNNwtXy30WeibO3B1u65Sg4eyAZ2FkizcsvyxIuG3M/Td8NMhGQVGgRdz+za26hpRPE2vWLV1eR7W76LrOxBF2xeLYMrgAAAAAElFTkSuQmCC" width="18" height="18" style="vertical-align: middle;" alt="Excel Logo"/>
+                        <span style="color: white; font-weight: bold; font-size: 11.5px;">Xuất CAD Thành Công</span>
+                    </div>
+                    <button style="background: transparent; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 12px;">✕</button>
+                </div>
+                <!-- Body CustomMessageBox -->
+                <div style="padding: 14px 16px; display: flex; gap: 14px; align-items: flex-start;">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: #DCFCE7; border: 2px solid #16A34A; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #15803D; font-size: 18px; font-weight: bold;">✓</div>
+                    <div style="font-size: 11.5px; color: #0F2240; line-height: 18px;">
+                        Đã xuất thành công mặt bằng tải dầm sang AutoCAD:<br><br>
+                        • Nguồn dầm: Quét chọn trực tiếp trong ETABS<br>
+                        • Trường hợp tải: WALL (Gravity)<br>
+                        • Số lượng dầm: 49 dầm<br>
+                        • Số phân đoạn tải: 56 phân đoạn<br>
+                        • Số điểm ngưng tải (Dot): 12
+                    </div>
+                </div>
+                <!-- Footer CustomMessageBox (Thu Gọn Chiều Cao Cân Đối 40px) -->
+                <div style="padding: 6px 16px; display: flex; justify-content: flex-end; gap: 8px; background: #F8FAFC; border-top: 1px solid #E2E8F0;">
+                    <button class="btn-qks btn-qks-navy" style="height: 28px; padding: 0 20px; font-size: 11px;">OK</button>
+                </div>
+            </div>
+
+            <!-- Box 2: Hộp thoại Xác Nhận (Kích Thước Khớp Chuẩn Button, Tránh Thừa Frame - Hình 2) -->
+            <div style="width: 450px; background: white; border: 1px solid #0F2240; border-radius: 4px; box-shadow: 0 12px 28px rgba(0,0,0,0.35); overflow: hidden; align-self: flex-start; height: fit-content;">
+                <!-- Headbar CustomMessageBox có Logo Excel -->
+                <div style="height: 34px; background: #0F2240; display: flex; align-items: center; justify-content: space-between; padding: 0 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAADsAAAA7AF5KHG9AAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAArRJREFUWIXtl01IVFEUx3/nvodh1DRKFqHUNMwLSgoXbYJoExG0EqsBM5I2ZdEiolUQtAhqE0ZFGS0iywQtaSW06GNTQitr4SqkRIss/IIInfveaTHOR1bTcxpz0x8uvMO975zfvfedc9+FRZaUwkniilaVT5OQGTzXsr5cufXinHwI864bNsiKDq1YCnEzQ9zxiRtL3LHUOpZaJ0VUAzCAKKRSDADd8wfo1Ygr1LpCwlg84+OZgIRjSTiWaGDTS6ZhqUMotwXPNOb4vDY+EROA44OZbY4Pjs1rBWw3BU6KpOODa+lyU+Bm+iwYy6Drs73nnnyE9KpltBWIlHByv5txXAO2ZewcQFCaDzKknJ8BFkn/AQrVgTHgCYCk96yeHHAAPELwZ+2dQGWpAaIIbVMN8hRg5X29BJwiTdT6rkVOA3iXdQewt5jgUHgLDEp7pEsrAaJRzgBvgAFdzlmAWKtGDdz9g5+iAQCqcbkG8HaPTAeGZoGm4aR8A3BcriusLTZ4GACAxooH2gjwuUn6Rw5LP8C6m3oAofFvgocFAOVGRZdmZ1pzR6tFufq3wcMDlPb8KQJAOD6elKGMOdwsI6oc+VcAneP7pBOgqkPrqm9rHcD7Y/IQpXOhAUawnABI9OoSE9Cu0FHTpeUAWsYxgaHCLooHCBAOTSVlDGBikgvAZmCTTHEeYPCoTGrAQchWxHmrUCWcQGmJ9GiL6+Ngqc/rOxlr05jj45MCfCZZgFJcCeyHX6aAARpKkRuLfhr+BzB5TwtW7X6hbNbkACyvgC//IPhbt4yXGSOXBbtkyH+sMQnYIoqH4iF4QALwmOcve99F6SbE1e/HNNwtXy30WeibO3B1u65Sg4eyAZ2FkizcsvyxIuG3M/Td8NMhGQVGgRdz+za26hpRPE2vWLV1eR7W76LrOxBF2xeLYMrgAAAAAElFTkSuQmCC" width="18" height="18" style="vertical-align: middle;" alt="Excel Logo"/>
+                        <span style="color: white; font-weight: bold; font-size: 11.5px;">Xác Nhận Nhập Tải Từ Bản Vẽ AutoCAD</span>
+                    </div>
+                    <button style="background: transparent; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 12px;">✕</button>
+                </div>
+                <!-- Body CustomMessageBox -->
+                <div style="padding: 14px 16px; display: flex; gap: 14px; align-items: flex-start;">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: #FEF3C7; border: 2px solid #F59E0B; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #D97706; font-size: 18px; font-weight: bold;">?</div>
+                    <div style="font-size: 11.5px; color: #0F2240; line-height: 18px;">
+                        Vui lòng xác nhận đã thực hiện chọn điểm <strong>BasePoint</strong> (0, 0) và <strong>Tầng Update</strong> để thực hiện nhập tải vào mô hình ETABS.
+                    </div>
+                </div>
+                <!-- Footer CustomMessageBox (Khớp chuẩn sát button, không thừa frame) -->
+                <div style="padding: 6px 16px; display: flex; justify-content: flex-end; gap: 8px; background: #F8FAFC; border-top: 1px solid #E2E8F0;">
+                    <button class="btn-qks btn-qks-navy" style="height: 28px; padding: 0 16px; font-size: 11px;">Xác Nhận</button>
+                    <button style="height: 28px; padding: 0 16px; background: white; color: #0F2240; border: 1px solid #CBD5E1; border-radius: 3px; font-size: 11px; font-weight: 600; cursor: pointer;">Hủy Bỏ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function toggleCalcMode(mode) {
+            if (mode === 'auto') {
+                document.getElementById('view-calc-auto').style.display = 'block';
+                document.getElementById('view-calc-grid').style.display = 'none';
+            } else {
+                document.getElementById('view-calc-auto').style.display = 'none';
+                document.getElementById('view-calc-grid').style.display = 'block';
+            }
+        }
+
+        function selectGridRow(tr, typeName, loadVal) {
+            document.querySelectorAll('#view-calc-grid tbody tr').forEach(r => r.classList.remove('selected'));
+            tr.classList.add('selected');
+            const radio = tr.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+            document.getElementById('valGridType').innerText = typeName;
+            document.getElementById('valGridLoad').innerText = loadVal + ' kN/m';
+            document.getElementById('statusBarText').innerText = "Đã chọn loại tường định mức: " + typeName + " (" + loadVal + " kN/m)";
+        }
+
+        function selectMethod(m) {
+            document.getElementById('cardMethodLines').classList.remove('selected');
+            document.getElementById('cardMethodPick').classList.remove('selected');
+            if (m === 'lines') {
+                document.getElementById('cardMethodLines').classList.add('selected');
+            } else {
+                document.getElementById('cardMethodPick').classList.add('selected');
+            }
+        }
+
+        function toggleCustomBeam() {
+            const chk = document.getElementById('chkCustomBeam');
+            const inp = document.getElementById('customBeamH');
+            inp.disabled = !chk.checked;
+            recalc();
+        }
+
+        function recalc() {
+            const klrGach = parseFloat(document.getElementById('klrGach').value) || 15.0;
+            const n1 = parseFloat(document.getElementById('n1Gach').value) || 1.1;
+            const klrVua = parseFloat(document.getElementById('klrVua').value) || 18.0;
+            const n2 = parseFloat(document.getElementById('n2Vua').value) || 1.3;
+            const dayTratMm = parseFloat(document.getElementById('dayTrat').value) || 20.0;
+            const n3 = parseFloat(document.getElementById('n3Cua').value) || 1.0;
+            const is200 = document.getElementById('radTuong200').checked;
+            const tWall = is200 ? 0.20 : 0.10;
+            const tTrat = dayTratMm / 1000.0;
+
+            const gTuong = ((klrGach * n1 * tWall) + (klrVua * n2 * tTrat)) * n3;
+            document.getElementById('valGtuong').innerText = gTuong.toFixed(2) + " kN/m²";
+
+            const chkCustom = document.getElementById('chkCustomBeam').checked;
+            const beamH = chkCustom ? (parseFloat(document.getElementById('customBeamH').value) || 0.40) : 0.40;
+            const storyH = 3.40;
+            const hTh = Math.max(0.1, storyH - beamH);
+            document.getElementById('valHth').innerText = hTh.toFixed(2) + " m";
+
+            const q = gTuong * hTh * 1.0;
+            document.getElementById('valQout').innerText = q.toFixed(2) + " kN/m";
+        }
+
+        function pickBasePoint() {
+            document.getElementById('statusBarText').innerText = "Vui lòng click chọn 1 điểm BasePoint trên bản vẽ AutoCAD...";
+            setTimeout(() => {
+                document.getElementById('baseX').value = "-8913.15";
+                document.getElementById('baseY').value = "-5421.69";
+                document.getElementById('statusBarText').innerText = "Đã nhận BasePoint từ AutoCAD: (-8913.15, -5421.69)";
+            }, 800);
+        }
+
+        function executeAssign() {
+            const isLines = document.getElementById('cardMethodLines').classList.contains('selected');
+            const modeText = isLines ? "Quét Nét Tường" : "Pick 2 Điểm";
+            document.getElementById('statusBarText').innerText = "Đang thực hiện gán tải theo phương thức: " + modeText + "...";
+            setTimeout(() => {
+                alert("Gán tải thành công vào mô hình ETABS!\n\nThông số:\n- Tầng: Story3\n- Giá trị: " + document.getElementById('valQout').innerText + "\n- Chế độ: Replace");
+                document.getElementById('statusBarText').innerText = "Gán tải hoàn tất. Mô hình ETABS 3D đã được làm mới tức thì.";
+            }, 300);
+        }
+
+        function saveConfiguration() {
+            alert("Đã lưu các thông số thiết lập vào cấu hình mặc định (JSON Config) thành công!");
+            document.getElementById('statusBarText').innerText = "Cấu hình cá nhân đã được lưu.";
+        }
+
+        function selectSectionOnCad(sectionName, colorHex) {
+            // Remove selected class from all rows
+            document.querySelectorAll('.section-row').forEach(row => row.classList.remove('selected'));
+            
+            // Highlight clicked row
+            event.currentTarget.classList.add('selected');
+
+            // Update status text
+            const statusEl = document.getElementById('txtSectionCadStatus');
+            if (statusEl) {
+                statusEl.innerHTML = `<strong style="color: #0072BC;">[AutoCAD Sync]</strong> Đã quét chọn toàn bộ dầm tiết diện <strong>${sectionName}</strong> (<span style="color:${colorHex}">●</span> ${colorHex}) trên bản vẽ CAD!`;
+            }
+
+            const mainStatus = document.getElementById('statusBarText');
+            if (mainStatus) {
+                mainStatus.innerText = `Đã phát lệnh QKS_WALL_SELECT_SECTION "${sectionName}" sang AutoCAD. Dầm đang được highlight.`;
+            }
+        }
+
+        function clearCadSelection() {
+            document.querySelectorAll('.section-row').forEach(row => row.classList.remove('selected'));
+            const statusEl = document.getElementById('txtSectionCadStatus');
+            if (statusEl) {
+                statusEl.innerHTML = `💡 Đã hủy chọn (Deselect / ESC) trên AutoCAD. Click vào bất kỳ hàng tiết diện nào để chọn lại.`;
+            }
+            const mainStatus = document.getElementById('statusBarText');
+            if (mainStatus) {
+                mainStatus.innerText = `Đã gửi lệnh hủy chọn (Clear Selection) sang AutoCAD.`;
+            }
+        }
+
+        // Initialize calculation
+        recalc();
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DnaLibrary Name="QKS Loads Add-In" RuntimeVersion="v4.0" xmlns="http://schemas.excel-dna.net/addin/2020/07/dnalibrary">
+  <ExternalLibrary Path="QksExcelAddIn.dll" ExplicitExports="true" LoadFromBytes="true" Pack="true" IncludePdb="false" />
+  <Reference Path="CSiAPIv1.dll" Pack="true" />
+  <Reference Path="MaterialDesignColors.dll" Pack="true" />
+  <Reference Path="MaterialDesignThemes.Wpf.dll" Pack="true" />
+  <Reference Path="Microsoft.Xaml.Behaviors.dll" Pack="true" />
+</DnaLibrary>
