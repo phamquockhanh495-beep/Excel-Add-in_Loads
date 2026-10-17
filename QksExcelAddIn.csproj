@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="AddInMain.cs;Ribbon/**/*.cs;Services/**/*.cs;Views/**/*.cs;Shared/**/*.cs" />
+    <Compile Include="AddInMain.cs;Ribbon/**/*.cs;Services/**/*.cs;Views/**/*.cs;Shared/**/*.cs;Modeling/**/*.cs;ViewModels/**/*.cs" />
   </ItemGroup>
   <Target Name="CheckEtabsApi" BeforeTargets="ResolveReferences">
     <Error Condition="!Exists('$(EtabsApiPath)')" Text="Missing ETABS API. Set -p:EtabsApiPath=path/to/CSiAPIv1.dll." />

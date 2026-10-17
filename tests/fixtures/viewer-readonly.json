@@ -1,0 +1,25 @@
+{
+  "SchemaVersion": 1,
+  "Source": "SYNTHETIC TEST FIXTURE · KHÔNG PHẢI MÔ HÌNH THẬT",
+  "Version": "1",
+  "Identity": "qks-test-fixture-only",
+  "SourceUnits": "kN/m/C",
+  "CapturedUtc": "2026-10-17T00:00:00Z",
+  "Levels": [{"Name":"Base","Elevation":0},{"Name":"L1","Elevation":3},{"Name":"Roof","Elevation":6}],
+  "Elements": [
+    {"Id":"Frame:C1","Name":"C1","Label":"C1","Story":"L1","Property":"C400","Kind":"Column","Vertices":[{"X":0,"Y":0,"Z":0},{"X":0,"Y":0,"Z":6}]},
+    {"Id":"Frame:C2","Name":"C2","Label":"C2","Story":"L1","Property":"C400","Kind":"Column","Vertices":[{"X":6,"Y":0,"Z":0},{"X":6,"Y":0,"Z":6}]},
+    {"Id":"Frame:B1","Name":"B1","Label":"B1","Story":"L1","Property":"B200x400","Kind":"Beam","Vertices":[{"X":0,"Y":0,"Z":3},{"X":6,"Y":0,"Z":3}],"LocalAxisDegrees":0},
+    {"Id":"Frame:B2","Name":"B2","Label":"B2","Story":"Roof","Property":"B200x400","Kind":"Beam","Vertices":[{"X":0,"Y":0,"Z":6},{"X":6,"Y":0,"Z":6}],"LocalAxisDegrees":0},
+    {"Id":"Frame:B3","Name":"B3","Label":"B3","Story":"Roof","Property":"B200x400","Kind":"Beam","Vertices":[{"X":6,"Y":0,"Z":6},{"X":6,"Y":4,"Z":6}],"LocalAxisDegrees":0},
+    {"Id":"Frame:B4","Name":"B4","Label":"B4","Story":"Roof","Property":"B200x400","Kind":"Beam","Vertices":[{"X":6,"Y":4,"Z":6},{"X":0,"Y":4,"Z":6}],"LocalAxisDegrees":0},
+    {"Id":"Frame:B5","Name":"B5","Label":"B5","Story":"Roof","Property":"B200x400","Kind":"Beam","Vertices":[{"X":0,"Y":4,"Z":6},{"X":0,"Y":0,"Z":6}],"LocalAxisDegrees":0},
+    {"Id":"Area:S1","Name":"S1","Label":"S1","Story":"Roof","Property":"S150","Kind":"Slab","Vertices":[{"X":0,"Y":0,"Z":6},{"X":6,"Y":0,"Z":6},{"X":6,"Y":4,"Z":6},{"X":0,"Y":4,"Z":6}]}
+  ],
+  "Loads": [
+    {"ElementId":"Frame:B1","Pattern":"SDL","Kind":"Frame force/length","CoordinateSystem":"Global","Direction":10,"Start":0,"End":1,"Value1":8,"Value2":8,"Unit":"kN/m"},
+    {"ElementId":"Frame:B2","Pattern":"WX","Kind":"Frame force/length","CoordinateSystem":"Global","Direction":4,"Start":0,"End":1,"Value1":-2,"Value2":-3,"Unit":"kN/m"},
+    {"ElementId":"Area:S1","Pattern":"LL","Kind":"Area uniform","CoordinateSystem":"Global","Direction":10,"Start":0,"End":1,"Value1":3,"Value2":3,"Unit":"kN/m²"}
+  ],
+  "Diagnostics": ["Dữ liệu nhân tạo để thử giao diện offline. Không phải dữ liệu trích từ ETABS/SAFE.","Chưa có opening trong fixture cơ bản; kiểm thử polygon lõm/cut nằm trong bộ core tests."]
+}

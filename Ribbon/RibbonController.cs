@@ -32,6 +32,7 @@ namespace QksExcelAddIn.Ribbon
           <button id='btnGetApi' label='Kết Nối API' getImage='GetImage' size='large' onAction='ClickButton' />
         </group>
         <group id='grpLoads' label='Gán Tải Trọng'>
+          <button id='btnVisualWorkspace' label='Mô Hình 2D' getImage='GetImage' size='large' onAction='ClickButton' />
           <button id='btnWindLoad' label='Tải Gió' getImage='GetImage' size='large' onAction='ClickButton' />
           <button id='btnWallLoad' label='Tải Tường' getImage='GetImage' size='large' onAction='ClickButton' />
           <button id='btnShellLoad' label='Tải Sàn' getImage='GetImage' size='large' onAction='ClickButton' />
@@ -52,6 +53,7 @@ namespace QksExcelAddIn.Ribbon
                     "btnWindLoad" => "windload",
                     "btnWallLoad" => "wallload",
                     "btnShellLoad" => "shellload",
+                    "btnVisualWorkspace" => "shellload",
                     _ => control.Id
                 };
 
@@ -106,6 +108,9 @@ namespace QksExcelAddIn.Ribbon
             {
                 switch (control.Id)
                 {
+                    case "btnVisualWorkspace":
+                        ShowWindowOnSeparateThread<VisualLoadWorkspaceView>();
+                        break;
                     case "btnGetApi":
                         ShowWindowOnSeparateThread<GetApiView>();
                         break;

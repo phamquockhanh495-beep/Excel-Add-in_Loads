@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Newtonsoft.Json.Linq;
 using Qks.Shared;
 
-internal static class Program
+internal static partial class Program
 {
     private static int passed, failed;
     private static void Check(string name, Action test)
@@ -63,6 +63,8 @@ internal static class Program
                 if (errors.Count != 0) throw new Exception(string.Join("\n", errors));
             }
         });
+        ViewerTestRoot = root;
+        ViewerTests();
         Console.WriteLine($"Completed: {passed} passed, {failed} failed; host integration tests are separate.");
         return failed == 0 ? 0 : 1;
     }
