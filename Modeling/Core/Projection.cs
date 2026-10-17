@@ -30,6 +30,12 @@ namespace QksExcelAddIn.Modeling.Core
             double a = angleDegrees * Math.PI / 180, sign = reverse ? -1 : 1;
             return new ViewPlane(new Vec3(x, y, 0), new Vec3(sign * Math.Cos(a), sign * Math.Sin(a), 0), new Vec3(0, 0, 1), halfDepth);
         }
+        public static ViewPlane ElevationThrough(Vec2 first, Vec2 second, double halfDepth)
+        {
+            double dx = second.X - first.X, dy = second.Y - first.Y;
+            if (!Number.Finite(dx) || !Number.Finite(dy) || dx * dx + dy * dy < 1e-12) throw new ArgumentException("Hai điểm mặt đứng phải khác nhau và hữu hạn.");
+            return Elevation(first.X, first.Y, Math.Atan2(dy, dx) * 180 / Math.PI, halfDepth);
+        }
         public Vec2 Project(Vec3 p) { var d = p - Origin; return new Vec2(d.Dot(U), d.Dot(V)); }
         public double Depth(Vec3 p) => (p - Origin).Dot(Normal);
         public Vec3 Unproject(Vec2 p) => Origin + U * p.X + V * p.Y;

@@ -17,13 +17,20 @@ namespace QksExcelAddIn.Views.Controls
         public static readonly DependencyProperty HasOpeningsProperty = DependencyProperty.Register(nameof(HasOpenings), typeof(bool), typeof(StructuralCanvas), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
         public static readonly DependencyProperty ColorByPropertyProperty = DependencyProperty.Register(nameof(ColorByProperty), typeof(bool), typeof(StructuralCanvas), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
         public static readonly DependencyProperty ColorOverridesProperty = DependencyProperty.Register(nameof(ColorOverrides), typeof(Dictionary<string, string>), typeof(StructuralCanvas), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+        public static readonly DependencyProperty DraftOverlaysProperty = DependencyProperty.Register(nameof(DraftOverlays), typeof(IReadOnlyList<DraftOverlay>), typeof(StructuralCanvas), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+        public static readonly DependencyProperty ShowDraftValuesProperty = DependencyProperty.Register(nameof(ShowDraftValues), typeof(bool), typeof(StructuralCanvas), new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
         public IReadOnlyList<ProjectedElement>? Items { get => (IReadOnlyList<ProjectedElement>?)GetValue(ItemsProperty); set => SetValue(ItemsProperty, value); }
         public string SelectedId { get => (string)GetValue(SelectedIdProperty); set => SetValue(SelectedIdProperty, value); }
         public bool ShowLabels { get => (bool)GetValue(ShowLabelsProperty); set => SetValue(ShowLabelsProperty, value); }
         public bool HasOpenings { get => (bool)GetValue(HasOpeningsProperty); set => SetValue(HasOpeningsProperty, value); }
         public bool ColorByProperty { get => (bool)GetValue(ColorByPropertyProperty); set => SetValue(ColorByPropertyProperty, value); }
         public Dictionary<string, string>? ColorOverrides { get => (Dictionary<string, string>?)GetValue(ColorOverridesProperty); set => SetValue(ColorOverridesProperty, value); }
+        public IReadOnlyList<DraftOverlay>? DraftOverlays { get => (IReadOnlyList<DraftOverlay>?)GetValue(DraftOverlaysProperty); set => SetValue(DraftOverlaysProperty, value); }
+        public bool ShowDraftValues { get => (bool)GetValue(ShowDraftValuesProperty); set => SetValue(ShowDraftValuesProperty, value); }
         public event Action<ModelElement>? Picked;
+        public event Action<Vec2>? PlanePointPicked;
+        public bool PickingPlanePoints { get; set; }
+        public Vec2? FirstPlanePoint { get; set; }
         private double scale = 50, ox = 100, oy = 300;
         private Point? pan;
         private bool fitted;
@@ -73,7 +80,23 @@ namespace QksExcelAddIn.Views.Controls
                     }
                 }
             }
-            var caption = new FormattedText(items.Count == 0 ? "Chưa có hình học trong vùng xem" : "U →   V ↑     " + (openings ? "Có opening: chỉ vẽ biên area" : ""),
+            int draftLabels = 0;
+            foreach (var overlay in DraftOverlays ?? Array.Empty<DraftOverlay>()) {
+                var pen = new Pen(new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B5CF6")), 3) { DashStyle = DashStyles.Dash };
+                foreach (var s in overlay.Geometry.Segments) {
+                    if (overlay.ElementId == SelectedId) dc.DrawLine(new Pen(Brushes.DarkOrange, 6), Screen(s.A), Screen(s.B));
+                    dc.DrawLine(pen, Screen(s.A), Screen(s.B));
+                }
+                if (ShowDraftValues && draftLabels < 200 && overlay.Geometry.Segments.Count > 0) {
+                    var s = overlay.Geometry.Segments[0]; var p = Screen(new Vec2((s.A.X+s.B.X)/2,(s.A.Y+s.B.Y)/2));
+                    if (p.X >= 0 && p.Y >= 0 && p.X < ActualWidth && p.Y < ActualHeight) {
+                        var text = new FormattedText(overlay.Text, System.Globalization.CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 11, pen.Brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+                        dc.DrawText(text, new Point(p.X+5,p.Y+8)); draftLabels++;
+                    }
+                }
+            }
+            if (FirstPlanePoint.HasValue) dc.DrawEllipse(Brushes.White, new Pen(Brushes.Teal, 2), Screen(FirstPlanePoint.Value), 6, 6);
+            var caption = new FormattedText(items.Count == 0 ? "Chưa có hình học trong vùng xem" : "U →   V ↑     " + (openings ? "Có opening: chỉ vẽ biên area · " : "") + ((DraftOverlays?.Count ?? 0)>0 ? "Tím: NHÁP, chưa ghi" : ""),
                 System.Globalization.CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 12, Brushes.SlateGray, VisualTreeHelper.GetDpi(this).PixelsPerDip);
             dc.DrawText(caption, new Point(14, Math.Max(5, ActualHeight - 28)));
         }
@@ -88,6 +111,11 @@ namespace QksExcelAddIn.Views.Controls
             if (e.ChangedButton == MouseButton.Middle || e.ChangedButton == MouseButton.Right) { pan = p; CaptureMouse(); Cursor = Cursors.Hand; }
             else if (e.ChangedButton == MouseButton.Left) {
                 var world = new Vec2((p.X - ox) / scale, (oy - p.Y) / scale);
+                if (PickingPlanePoints) {
+                    var vertices = (Items ?? Array.Empty<ProjectedElement>()).SelectMany(i => i.Source.Vertices).Select(v => new Vec2(v.X,v.Y));
+                    var nearest = vertices.Select(v => new { Point=v, Distance=(Screen(v)-p).Length }).Where(v => v.Distance<=8).OrderBy(v=>v.Distance).FirstOrDefault();
+                    PlanePointPicked?.Invoke(nearest?.Point ?? world); e.Handled = true; return;
+                }
                 var hits = (Items ?? Array.Empty<ProjectedElement>()).Where(i => i.Segments.Any(s => Projection.Distance(world, s) * scale <= 7)).OrderBy(i => i.Source.Id, StringComparer.Ordinal).ToArray();
                 if (hits.Length > 0) {
                     int index = (Keyboard.Modifiers & ModifierKeys.Control) != 0 ? Array.FindIndex(hits, i => i.Source.Id == SelectedId) + 1 : 0;
@@ -100,7 +128,7 @@ namespace QksExcelAddIn.Views.Controls
         {
             if (pan.HasValue) { var p = e.GetPosition(this); ox += p.X - pan.Value.X; oy += p.Y - pan.Value.Y; pan = p; InvalidateVisual(); }
         }
-        protected override void OnMouseUp(MouseButtonEventArgs e) { pan = null; ReleaseMouseCapture(); Cursor = Cursors.Arrow; }
-        protected override void OnLostMouseCapture(MouseEventArgs e) { pan = null; Cursor = Cursors.Arrow; }
+        protected override void OnMouseUp(MouseButtonEventArgs e) { pan = null; ReleaseMouseCapture(); Cursor = PickingPlanePoints ? Cursors.Cross : Cursors.Arrow; }
+        protected override void OnLostMouseCapture(MouseEventArgs e) { pan = null; Cursor = PickingPlanePoints ? Cursors.Cross : Cursors.Arrow; }
     }
 }

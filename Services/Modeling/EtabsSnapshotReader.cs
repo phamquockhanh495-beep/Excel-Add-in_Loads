@@ -73,6 +73,9 @@ namespace QksExcelAddIn.Services.Modeling
             }
             var elements = new List<ModelElement>(); var loads = new List<ExistingLoad>(); var levels = new List<ModelLevel>();
             int count = 0; string[] names = Array.Empty<string>();
+            int patternCode = sap.LoadPatterns.GetNameList(ref count, ref names);
+            var patterns = Names(patternCode, count, names, "LoadPatterns.GetNameList");
+            count = 0; names = Array.Empty<string>();
             int rc = sap.Story.GetNameList(ref count, ref names);
             foreach (string name in Names(rc, count, names, "Story.GetNameList")) {
                 double z = 0; Ok(sap.Story.GetElevation(name, ref z), "Story.GetElevation " + name); levels.Add(new ModelLevel(name, z * scale.LengthToMetres));
@@ -124,7 +127,7 @@ namespace QksExcelAddIn.Services.Modeling
             if (optionalErrorCount > 0) diagnostics.Add("Tổng số lỗi/không hỗ trợ metadata hoặc tải tùy chọn: " + optionalErrorCount + ". Giới hạn 197 thông báo chi tiết; không coi tải thiếu là 0.");
             progress("Đọc xong " + elements.Count + " đối tượng.");
             return new ModelSnapshot(1, "ETABS", version, identity, force + "/" + length + "/" + temperature,
-                DateTime.UtcNow, elements, levels.OrderBy(l => l.Elevation), loads, diagnostics);
+                DateTime.UtcNow, elements, levels.OrderBy(l => l.Elevation), loads, diagnostics, patterns);
         }
         private static void ReadFrameLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional)
         {

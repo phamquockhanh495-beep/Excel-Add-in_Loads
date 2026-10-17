@@ -332,7 +332,7 @@ Nguồn màu API phải được adapter chuẩn hóa đúng sRGB/encoding thự
 
 Phạm vi ước lượng: Plan + Elevation ETABS, Plan SAFE với phiên bản/capability được chốt, ba tab tải và luồng nháp/apply. Tải gió trong phần cơ sở là nhập tải đã xác định, hiển thị và quy đổi theo giả thiết được duyệt; chưa bao gồm engine tính theo tiêu chuẩn chưa chọn, bản đồ gió, mọi phiên bản host hoặc mặt đứng cong trải phẳng.
 
-Giả định một lập trình viên WPF/CSI làm việc tập trung, tuần 5 ngày, có máy Windows với ETABS/SAFE được cấp phép và một kỹ sư nghiệp vụ phản hồi đều. Đã có bản sửa QKS hiện tại để tái sử dụng. Cập nhật 17/10/2026: đã triển khai [prototype viewer/MVVM Preview 1](VIEWER-PREVIEW-1.md), chưa nghiệm thu Windows/CSI. Thời lượng dưới đây là ước lượng cho V1 đầy đủ, không phải cam kết hoặc thời gian tạo prototype.
+Giả định một lập trình viên WPF/CSI làm việc tập trung, tuần 5 ngày, có máy Windows với ETABS/SAFE được cấp phép và một kỹ sư nghiệp vụ phản hồi đều. Đã có bản sửa QKS hiện tại để tái sử dụng. Cập nhật 17/10/2026: đã triển khai [Preview 2: nháp tải tường/sàn và Elevation hai điểm](VIEWER-PREVIEW-2.md), chưa nghiệm thu Windows/CSI. Thời lượng dưới đây là ước lượng cho V1 đầy đủ, không phải cam kết hoặc thời gian tạo prototype.
 
 | Giai đoạn | Công việc và đầu ra | Ngày làm việc | Điều kiện hoàn tất |
 |---|---|---:|---|
@@ -381,4 +381,4 @@ Tổ chức công việc theo G0→G1→G2→G3→G4→G5→G6→G7, có kiểm 
 2. Tài liệu mô tả nghiệp vụ ba nhóm tải, hợp đồng dữ liệu, định dạng và palette.
 3. Layout/VM/module map, đặc tả Elevation ETABS, các mốc nghiệm thu và dự toán 50–85 ngày làm việc để chuyển thành công việc phát triển.
 
-Đợt thiết kế ban đầu chưa triển khai WPF. Cập nhật 17/10/2026: đã có mã và XLL [Preview 1](VIEWER-PREVIEW-1.md), còn kiểm chứng host. Người dùng chốt mục tiêu **SAFE v18–v22**, ưu tiên **v22.5** đang dùng; đây là phạm vi cần phát triển/kiểm tra, chưa phải cam kết tương thích đã được chứng minh. Tiêu chuẩn gió và model đối chứng vẫn cần chốt ở G0.
+Đợt thiết kế ban đầu chưa triển khai WPF. Cập nhật 17/10/2026: đã có mã và XLL [Preview 2](VIEWER-PREVIEW-2.md), gồm prototype G3/G4; còn kiểm chứng host, Apply và các phần chưa hoàn tất của kế hoạch. Người dùng chốt mục tiêu **SAFE v18–v22**, ưu tiên **v22.5** đang dùng; đây là phạm vi cần phát triển/kiểm tra, chưa phải cam kết tương thích đã được chứng minh. Tiêu chuẩn gió và model đối chứng vẫn cần chốt ở G0.

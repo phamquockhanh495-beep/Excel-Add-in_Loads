@@ -65,6 +65,7 @@ internal static partial class Program
         });
         ViewerTestRoot = root;
         ViewerTests();
+        DraftTests();
         Console.WriteLine($"Completed: {passed} passed, {failed} failed; host integration tests are separate.");
         return failed == 0 ? 0 : 1;
     }

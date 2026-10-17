@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using Microsoft.Win32;
 using Qks.Shared;
 using QksExcelAddIn.Modeling.Core;
@@ -20,11 +22,16 @@ namespace QksExcelAddIn.Views
         private readonly VisualWorkspaceViewModel vm = new VisualWorkspaceViewModel();
         private CancellationTokenSource? cancellation;
         private bool closed;
+        private Vec2? firstPlanePoint;
         private static string ColorFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QKS", "Viewer", "property-colors.json");
         public VisualLoadWorkspaceView()
         {
             InitializeComponent(); DataContext = vm;
             Canvas.Picked += element => vm.SelectedElement = element;
+            Canvas.PlanePointPicked += PlanePointPicked;
+            vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(vm.Elevation) && vm.Elevation && Canvas.PickingPlanePoints) StopPlanePicking(); };
+            PreviewKeyDown += Window_KeyDown;
+            Closing += (_, e) => { if (!SavePendingDrafts()) e.Cancel = true; };
             AppConnectionManager.ConnectionChanged += ConnectionChanged;
             Closed += (_, __) => { closed = true; cancellation?.Cancel(); AppConnectionManager.ConnectionChanged -= ConnectionChanged; };
             try {
@@ -37,12 +44,14 @@ namespace QksExcelAddIn.Views
         }
         private void ConnectionChanged() => Dispatcher.BeginInvoke(new Action(() => {
             if (closed) return;
+            StopPlanePicking();
             cancellation?.Cancel(); vm.SetSnapshot(null, false); vm.Status = "Kết nối đã đổi. Hãy Đọc mô hình để lấy dữ liệu mới.";
         }));
         private void Connect_Click(object sender, RoutedEventArgs e) => new GetApiView().Show();
         private async void Read_Click(object sender, RoutedEventArgs e)
         {
             if (vm.Busy) return;
+            StopPlanePicking();
             vm.SetSnapshot(null, false); vm.Busy = true; cancellation = new CancellationTokenSource();
             try {
                 var snapshot = await new EtabsSnapshotReader().ReadAsync(message => vm.Status = message, cancellation.Token);
@@ -65,7 +74,7 @@ namespace QksExcelAddIn.Views
         {
             var dialog = new OpenFileDialog { Filter = "QKS model snapshot (*.json)|*.json" };
             if (dialog.ShowDialog(this) != true) return;
-            try { vm.SetSnapshot(JsonCodec.Deserialize<ModelSnapshot>(JsonCodec.Read(dialog.FileName)), true); Canvas.Fit(); }
+            try { StopPlanePicking(); vm.SetSnapshot(JsonCodec.Deserialize<ModelSnapshot>(JsonCodec.Read(dialog.FileName)), true); Canvas.Fit(); }
             catch (Exception ex) { vm.Status = "Không mở được snapshot: " + ex.GetBaseException().Message; }
         }
         private void Save_Click(object sender, RoutedEventArgs e)
@@ -91,6 +100,74 @@ namespace QksExcelAddIn.Views
                 var colors = new Dictionary<string, string>(vm.ColorOverrides, StringComparer.Ordinal) { [vm.PropertyKey] = vm.PropertyColor! };
                 SaveAtomic(ColorFile, JsonCodec.Serialize(colors)); vm.ColorOverrides = colors; vm.NotifyStyle(); Canvas.InvalidateVisual(); vm.Status = "Đã lưu màu property vào profile QKS trên máy này.";
             } catch (Exception ex) { vm.Status = "Không lưu được màu: " + ex.Message; }
+        }
+        private void TryDraft(Action operation)
+        {
+            try { operation(); }
+            catch (Exception ex) { vm.Status = "Không cập nhật nháp: " + ex.GetBaseException().Message; }
+        }
+        private void PutDraft_Click(object sender, RoutedEventArgs e) => TryDraft(() => { vm.SaveEditorToDraft(); WorkspaceTabs.SelectedItem = DraftTab; });
+        private void ResetDraftEditor_Click(object sender, RoutedEventArgs e) => vm.ResetDraftEditor();
+        private void DeleteDraft_Click(object sender, RoutedEventArgs e) => vm.DeleteDraft();
+        private void UndoDraft_Click(object sender, RoutedEventArgs e) => vm.UndoDraft();
+        private void RedoDraft_Click(object sender, RoutedEventArgs e) => vm.RedoDraft();
+        private void Draft_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is DraftLoad load) TryDraft(() => vm.EditDraft(load));
+        }
+        private bool SaveDraftFile()
+        {
+            if (vm.Drafts == null) { vm.Status = "Chưa có bộ nháp để lưu."; return false; }
+            var dialog = new SaveFileDialog { Filter = "QKS load draft (*.qksdraft.json)|*.qksdraft.json", FileName = "QKS-loads.qksdraft.json" };
+            if (dialog.ShowDialog(this) != true) return false;
+            try {
+                SaveAtomic(dialog.FileName, JsonCodec.Serialize(vm.Drafts.Document())); vm.Drafts.MarkSaved(); vm.NotifyDraftState();
+                vm.Status = "Đã lưu nháp (chưa ghi model): " + dialog.FileName; return true;
+            } catch (Exception ex) { vm.Status = "Không lưu được nháp: " + ex.Message; return false; }
+        }
+        private bool SavePendingDrafts()
+        {
+            if (vm.Drafts?.IsDirty != true) return true;
+            var answer = System.Windows.MessageBox.Show(this, "Bộ nháp có thay đổi chưa lưu. Lưu nháp trước khi tiếp tục?", "QKS · Nháp tải", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            return answer == MessageBoxResult.No || answer == MessageBoxResult.Yes && SaveDraftFile();
+        }
+        private void SaveDraft_Click(object sender, RoutedEventArgs e) => SaveDraftFile();
+        private void OpenDraft_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog { Filter = "QKS load draft (*.qksdraft.json)|*.qksdraft.json" };
+            if (dialog.ShowDialog(this) != true || !SavePendingDrafts()) return;
+            TryDraft(() => { vm.ImportDraft(JsonCodec.Deserialize<DraftDocument>(JsonCodec.Read(dialog.FileName))); WorkspaceTabs.SelectedItem = DraftTab; vm.Status = "Đã mở nháp gắn đúng snapshot; chưa ghi model."; });
+        }
+        private void NewDraft_Click(object sender, RoutedEventArgs e)
+        {
+            if (!SavePendingDrafts()) return;
+            TryDraft(() => { vm.NewDraftSet(); vm.Status = "Đã tạo bộ nháp mới cho snapshot hiện tại."; });
+        }
+        private void StopPlanePicking()
+        {
+            Canvas.PickingPlanePoints = false; Canvas.FirstPlanePoint = null; firstPlanePoint = null; Canvas.Cursor = Cursors.Arrow; Canvas.InvalidateVisual();
+        }
+        private void PickElevation_Click(object sender, RoutedEventArgs e)
+        {
+            if (Canvas.PickingPlanePoints) { StopPlanePicking(); vm.Status = "Đã hủy chọn mặt đứng."; return; }
+            if (vm.Snapshot == null || vm.Busy) { vm.Status = "Mở/đọc snapshot trước khi chọn hai điểm."; return; }
+            try { vm.PreparePlanPointPicking(); }
+            catch (Exception ex) { vm.Status = ex.Message; return; }
+            PlanRadio.IsChecked = true; Canvas.Fit(); Canvas.PickingPlanePoints = true; Canvas.Cursor = Cursors.Cross;
+            vm.Status = "Chọn điểm thứ nhất trên Plan; snap đỉnh trong 8 DIP. Esc để hủy.";
+        }
+        private void PlanePointPicked(Vec2 point)
+        {
+            if (!firstPlanePoint.HasValue) { firstPlanePoint = point; Canvas.FirstPlanePoint = point; Canvas.InvalidateVisual(); vm.Status = "Chọn điểm thứ hai xác định hướng U; Esc để hủy."; return; }
+            try { vm.SetElevationThrough(firstPlanePoint.Value, point); StopPlanePicking(); Canvas.Fit(); }
+            catch (Exception ex) { vm.Status = ex.Message + " Chọn lại điểm thứ hai."; }
+        }
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape && Canvas.PickingPlanePoints) { StopPlanePicking(); vm.Status = "Đã hủy chọn mặt đứng."; e.Handled = true; }
+            if (Keyboard.FocusedElement is TextBoxBase || Keyboard.Modifiers != ModifierKeys.Control) return;
+            if (e.Key == Key.Z) { vm.UndoDraft(); e.Handled = true; }
+            if (e.Key == Key.Y) { vm.RedoDraft(); e.Handled = true; }
         }
     }
 }

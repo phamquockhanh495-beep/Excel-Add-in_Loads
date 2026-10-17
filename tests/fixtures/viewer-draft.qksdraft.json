@@ -1,0 +1,31 @@
+{
+  "SchemaVersion": 1,
+  "SnapshotIdentity": "qks-test-fixture-only",
+  "SnapshotFingerprint": "2f1b8b07ce755e81e9ca3c7939f7155ddf890a7eeba51dbfd8b2784cea90211b",
+  "Loads": [
+    {
+      "Id": "11111111111111111111111111111111",
+      "ElementId": "Frame:B1",
+      "Kind": 0,
+      "Pattern": "SDL",
+      "Direction": 10,
+      "Start": 0.16666666666666666,
+      "End": 0.8333333333333334,
+      "Value1": 8.0,
+      "Value2": 10.0,
+      "Action": 1
+    },
+    {
+      "Id": "22222222222222222222222222222222",
+      "ElementId": "Area:S1",
+      "Kind": 1,
+      "Pattern": "LL",
+      "Direction": 10,
+      "Start": 0.0,
+      "End": 1.0,
+      "Value1": 4.0,
+      "Value2": 4.0,
+      "Action": 1
+    }
+  ]
+}

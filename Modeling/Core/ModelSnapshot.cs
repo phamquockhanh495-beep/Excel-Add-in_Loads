@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -84,9 +85,10 @@ namespace QksExcelAddIn.Modeling.Core
         public IReadOnlyList<ModelLevel> Levels { get; }
         public IReadOnlyList<ExistingLoad> Loads { get; }
         public IReadOnlyList<string> Diagnostics { get; }
+        public IReadOnlyList<string> LoadPatterns { get; }
         public ModelSnapshot(int schemaVersion, string source, string version, string identity, string sourceUnits,
             DateTime capturedUtc, IEnumerable<ModelElement> elements, IEnumerable<ModelLevel> levels,
-            IEnumerable<ExistingLoad> loads, IEnumerable<string> diagnostics)
+            IEnumerable<ExistingLoad> loads, IEnumerable<string> diagnostics, IEnumerable<string>? loadPatterns = null)
         {
             SchemaVersion = schemaVersion; Source = source; Version = version; Identity = identity;
             SourceUnits = sourceUnits; CapturedUtc = capturedUtc;
@@ -94,6 +96,7 @@ namespace QksExcelAddIn.Modeling.Core
             Levels = new ReadOnlyCollection<ModelLevel>(levels.ToArray());
             Loads = new ReadOnlyCollection<ExistingLoad>(loads.ToArray());
             Diagnostics = new ReadOnlyCollection<string>(diagnostics.ToArray());
+            LoadPatterns = new ReadOnlyCollection<string>((loadPatterns ?? Loads.Select(l => l.Pattern)).Distinct(StringComparer.Ordinal).OrderBy(p => p, StringComparer.Ordinal).ToArray());
             Validate();
         }
         public void Validate()
@@ -105,6 +108,7 @@ namespace QksExcelAddIn.Modeling.Core
                     e.Vertices.Any(p => !p.IsFinite) || e.LocalAxisDegrees.HasValue && !Number.Finite(e.LocalAxisDegrees.Value) || !Enum.IsDefined(typeof(ElementKind), e.Kind))
                     throw new ArgumentException("Đối tượng snapshot không hợp lệ: " + e.Id);
             if (Levels.Any(l => !Number.Finite(l.Elevation))) throw new ArgumentException("Cao độ không hợp lệ.");
+            if (LoadPatterns.Any(string.IsNullOrWhiteSpace)) throw new ArgumentException("Tên load pattern không hợp lệ.");
             foreach (var l in Loads)
                 if (!ids.Contains(l.ElementId) || !Number.Finite(l.Start) || !Number.Finite(l.End) ||
                     !Number.Finite(l.Value1) || !Number.Finite(l.Value2)) throw new ArgumentException("Tải snapshot không hợp lệ.");

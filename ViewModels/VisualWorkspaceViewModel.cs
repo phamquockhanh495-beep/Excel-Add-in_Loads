@@ -9,7 +9,7 @@ using QksExcelAddIn.Modeling.Core;
 
 namespace QksExcelAddIn.ViewModels
 {
-    public sealed class VisualWorkspaceViewModel : INotifyPropertyChanged
+    public sealed partial class VisualWorkspaceViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         private void Changed([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -26,7 +26,7 @@ namespace QksExcelAddIn.ViewModels
         public bool HasOpenings => Snapshot?.Elements.Any(e => e.Kind == ElementKind.Opening) == true;
         public string Counts => Scene.Count + "/" + (Snapshot?.Elements.Count ?? 0) + " đối tượng · " + (Snapshot?.Loads.Count ?? 0) + " bản ghi tải đã đọc · m / kN";
         private bool busy;
-        public bool Busy { get => busy; set { busy = value; Changed(); Changed(nameof(CanRead)); } }
+        public bool Busy { get => busy; set { busy = value; Changed(); Changed(nameof(CanRead)); Changed(nameof(CanEditDraft)); Changed(nameof(CanUndoDraft)); Changed(nameof(CanRedoDraft)); Changed(nameof(CanDeleteDraft)); } }
         public bool CanRead => !Busy;
         private ModelLevel? level;
         public ModelLevel? Level { get => level; set { level = value; Changed(); Refresh(); } }
@@ -42,6 +42,7 @@ namespace QksExcelAddIn.ViewModels
         public string Kind { get => kind; set { kind = value; Changed(); Refresh(); } }
         public string Search { get => search; set { search = value; Changed(); Refresh(); } }
         public bool ShowLabels { get; set; } = true;
+        public bool ShowDraftValues { get; set; } = true;
         public bool ColorByProperty { get; set; }
         public Dictionary<string, string> ColorOverrides { get; set; } = new Dictionary<string, string>(StringComparer.Ordinal);
         public string PropertyKey => SelectedElement == null ? "" : SelectedElement.Kind + "|" + SelectedElement.Property;
@@ -50,9 +51,11 @@ namespace QksExcelAddIn.ViewModels
         public ModelElement? SelectedElement {
             get => selected;
             set {
+                if (ReferenceEquals(selected, value)) return;
                 selected = value; Changed(); Changed(nameof(VisibleLoads)); Changed(nameof(SelectedId)); Changed(nameof(PropertyKey)); Changed(nameof(Inspector));
                 PropertyColor = value == null ? "#2563EB" : ColorOverrides.TryGetValue(PropertyKey, out var c) ? c : PropertyColors.ForProperty(PropertyKey);
                 Changed(nameof(PropertyColor));
+                OnSelectionChanged();
             }
         }
         public string SelectedId => SelectedElement?.Id ?? "";
@@ -66,12 +69,13 @@ namespace QksExcelAddIn.ViewModels
             snapshot?.Validate(); Snapshot = snapshot;
             Levels = snapshot?.Levels ?? Array.Empty<ModelLevel>();
             level = Levels.LastOrDefault(); SelectedElement = null;
+            OnSnapshotChanged(snapshot);
             SourceText = snapshot == null ? "Chưa có snapshot" : (offline ? "OFFLINE · " : "SNAPSHOT · ") + snapshot.Source + " " + snapshot.Version + " · " + snapshot.CapturedUtc.ToLocalTime().ToString("dd/MM HH:mm:ss") + " · " + snapshot.Identity;
             Changed(nameof(Levels)); Changed(nameof(Level)); Changed(nameof(SourceText)); Changed(nameof(Diagnostics)); Changed(nameof(VisibleLoads)); Changed(nameof(HasOpenings)); Refresh();
         }
         private static double Parse(string value)
         {
-            if (!double.TryParse(value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double result) || !Number.Finite(result)) throw new ArgumentException("Tọa độ/góc/dải xem phải là số hữu hạn.");
+            if (!double.TryParse(value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double result) || !Number.Finite(result)) throw new ArgumentException("Giá trị phải là số hữu hạn, dùng dấu thập phân . hoặc ,.");
             return result;
         }
         public void Refresh()
@@ -86,11 +90,12 @@ namespace QksExcelAddIn.ViewModels
                     var projected = Projection.Build(element, plane); if (projected != null) scene.Add(projected);
                 }
                 Scene = scene.AsReadOnly(); VisibleElements = scene.Select(e => e.Source).ToArray();
+                UpdateDraftOverlays(plane);
                 Changed(nameof(Scene)); Changed(nameof(VisibleElements)); Changed(nameof(Counts));
                 if (!Busy) Status = Elevation ? "Elevation · U ngang, V = +Z · dải ±" + depth + " m. Nét đứt: đối tượng bị cắt bởi dải xem." : "Plan · XY · Z=" + (Level?.Elevation ?? 0) + " m · dải ±" + depth + " m.";
             }
             catch (Exception ex) { Status = "Không cập nhật hình: " + ex.Message; }
         }
-        public void NotifyStyle() { Changed(nameof(ColorByProperty)); Changed(nameof(ShowLabels)); Changed(nameof(ColorOverrides)); }
+        public void NotifyStyle() { Changed(nameof(ColorByProperty)); Changed(nameof(ShowLabels)); Changed(nameof(ShowDraftValues)); Changed(nameof(ColorOverrides)); }
     }
 }
