@@ -28,7 +28,7 @@ namespace QksExcelAddIn.ViewModels
         public bool HasOpenings => Snapshot?.Elements.Any(e => e.Kind == ElementKind.Opening) == true;
         public string Counts => Scene.Count + "/" + DisplayElements.Count + " đối tượng · " + (Snapshot?.Loads.Count(l => displayIds.Contains(l.ElementId)) ?? 0) + " tải · m/kN";
         private bool busy;
-        public bool Busy { get => busy; set { busy = value; Changed(); Changed(nameof(CanRead)); Changed(nameof(CanEditDraft)); Changed(nameof(CanUndoDraft)); Changed(nameof(CanRedoDraft)); Changed(nameof(CanDeleteDraft)); } }
+        public bool Busy { get => busy; set { busy = value; Changed(); Changed(nameof(CanRead)); Changed(nameof(CanEditDraft)); Changed(nameof(CanUndoDraft)); Changed(nameof(CanRedoDraft)); Changed(nameof(CanDeleteDraft)); NotifyApply(); NotifyWind(); } }
         public bool CanRead => !Busy;
         private ModelLevel? level;
         public ModelLevel? Level { get => level; set { level = value; Changed(); Refresh(); } }
@@ -69,14 +69,15 @@ namespace QksExcelAddIn.ViewModels
             "\n\n" + string.Join("\n", SelectedElement.Vertices.Select((p, i) => $"P{i + 1}: {p.X:0.###}, {p.Y:0.###}, {p.Z:0.###} m"));
         public void SetSnapshot(ModelSnapshot? snapshot, bool offline)
         {
-            snapshot?.Validate(); Snapshot = snapshot;
+            snapshot?.Validate(); Snapshot = snapshot; Offline = offline; applyNeedsRead = false;
             DisplayElements = snapshot?.Elements.Where(e => e.Kind != ElementKind.Column).ToArray() ?? Array.Empty<ModelElement>();
             displayIds = new HashSet<string>(DisplayElements.Select(e => e.Id), StringComparer.Ordinal);
             Levels = snapshot?.Levels ?? Array.Empty<ModelLevel>();
             level = Levels.LastOrDefault(); SelectedElement = null;
             OnSnapshotChanged(snapshot);
+            NotifyWind();
             SourceText = snapshot == null ? "Chưa có snapshot" : (offline ? "OFFLINE · " : "SNAPSHOT · ") + snapshot.Source + " " + snapshot.Version + " · " + snapshot.CapturedUtc.ToLocalTime().ToString("dd/MM HH:mm:ss") + " · " + snapshot.Identity;
-            Changed(nameof(Levels)); Changed(nameof(Level)); Changed(nameof(SourceText)); Changed(nameof(Diagnostics)); Changed(nameof(VisibleLoads)); Changed(nameof(HasOpenings)); Refresh();
+            Changed(nameof(Levels)); Changed(nameof(Level)); Changed(nameof(SourceText)); Changed(nameof(Diagnostics)); Changed(nameof(VisibleLoads)); Changed(nameof(HasOpenings)); NotifyApply(); Refresh();
         }
         private static double Parse(string value)
         {

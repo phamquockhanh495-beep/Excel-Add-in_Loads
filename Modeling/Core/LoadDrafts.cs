@@ -10,7 +10,7 @@ using Qks.Shared;
 
 namespace QksExcelAddIn.Modeling.Core
 {
-    public enum DraftKind { WallLine, SlabUniform }
+    public enum DraftKind { WallLine, SlabUniform, WindLine }
     public enum DraftAction { Add, ReplaceMatching }
 
     public sealed class DraftLoad
@@ -37,19 +37,23 @@ namespace QksExcelAddIn.Modeling.Core
         public double Value2 { get; }
         [JsonProperty(Required = Required.Always)]
         public DraftAction Action { get; }
+        public string Basis { get; }
         [JsonIgnore]
-        public string Unit => Kind == DraftKind.WallLine ? "kN/m" : "kN/m²";
+        public bool IsLine => Kind == DraftKind.WallLine || Kind == DraftKind.WindLine;
         [JsonIgnore]
-        public string KindName => Kind == DraftKind.WallLine ? "Tường" : "Sàn";
+        public string Unit => IsLine ? "kN/m" : "kN/m²";
+        [JsonIgnore]
+        public string KindName => Kind == DraftKind.WallLine ? "Tường" : Kind == DraftKind.WindLine ? "Gió dầm biên" : "Sàn";
         [JsonIgnore]
         public string ActionName => Action == DraftAction.Add ? "Thêm tải" : "Thay cùng phạm vi";
         [JsonIgnore]
         public string DirectionName => Direction == 10 ? "Gravity" : Direction == 4 ? "Global-X" : Direction == 5 ? "Global-Y" : "Global-Z";
         public DraftLoad(string id, string elementId, DraftKind kind, string pattern, int direction,
-            double start, double end, double value1, double value2, DraftAction action)
+            double start, double end, double value1, double value2, DraftAction action, string basis = "")
         {
             Id = id; ElementId = elementId; Kind = kind; Pattern = pattern; Direction = direction;
             Start = start; End = end; Value1 = value1; Value2 = value2; Action = action;
+            Basis = basis ?? "";
         }
         public static DraftLoad WallFromMetres(ModelElement frame, string pattern, int direction, double startMetres,
             double endMetres, double value1, double value2, DraftAction action, string? id = null)
@@ -59,7 +63,7 @@ namespace QksExcelAddIn.Modeling.Core
             return new DraftLoad(id ?? Guid.NewGuid().ToString("N"), frame.Id, DraftKind.WallLine, pattern, direction,
                 startMetres / length, endMetres / length, value1, value2, action);
         }
-        public ExistingLoad AsLoad() => new ExistingLoad(ElementId, Pattern, Kind == DraftKind.WallLine ? "Frame force/length" : "Area uniform",
+        public ExistingLoad AsLoad() => new ExistingLoad(ElementId, Pattern, IsLine ? "Frame force/length" : "Area uniform",
             CoordinateSystem, Direction, Start, End, Value1, Value2, Unit);
     }
 
@@ -118,13 +122,16 @@ namespace QksExcelAddIn.Modeling.Core
         private DraftLoad[] current = Array.Empty<DraftLoad>();
         private readonly Stack<DraftLoad[]> undo = new Stack<DraftLoad[]>(), redo = new Stack<DraftLoad[]>();
         private string savedState;
+        private readonly Dictionary<string, ModelElement> elements;
         public IReadOnlyList<DraftLoad> Loads => Array.AsReadOnly(current);
         public bool CanUndo => undo.Count > 0;
         public bool CanRedo => redo.Count > 0;
         public bool IsDirty => State(current) != savedState;
-        public DraftWorkspace(ModelSnapshot snapshot)
+        public DraftWorkspace(ModelSnapshot snapshot) : this(snapshot, null) { }
+        internal DraftWorkspace(ModelSnapshot snapshot, string? knownFingerprint)
         {
-            snapshot.Validate(); Snapshot = snapshot; Fingerprint = SnapshotFingerprint.Of(snapshot); savedState = State(current);
+            snapshot.Validate(); Snapshot = snapshot; Fingerprint = knownFingerprint ?? SnapshotFingerprint.Of(snapshot); savedState = State(current);
+            elements = Snapshot.Elements.ToDictionary(e => e.Id, StringComparer.Ordinal);
         }
         private static string State(IEnumerable<DraftLoad> loads) => SnapshotFingerprint.Hash(JsonCodec.Serialize(loads.OrderBy(l => l.Id, StringComparer.Ordinal)));
         public void MarkSaved() => savedState = State(current);
@@ -158,7 +165,6 @@ namespace QksExcelAddIn.Modeling.Core
         {
             if (loads.Length > 10000) throw new ArgumentException("Bộ nháp vượt giới hạn 10.000 dòng.");
             var ids = new HashSet<string>(StringComparer.Ordinal);
-            var elements = Snapshot.Elements.ToDictionary(e => e.Id, StringComparer.Ordinal);
             foreach (var l in loads) {
                 if (l == null || !Guid.TryParseExact(l.Id, "N", out _) || !ids.Add(l.Id)) throw new ArgumentException("ID dòng nháp thiếu hoặc trùng.");
                 if (!Enum.IsDefined(typeof(DraftKind), l.Kind) || !Enum.IsDefined(typeof(DraftAction), l.Action)) throw new ArgumentException("Loại/thao tác nháp chưa hỗ trợ.");
@@ -167,8 +173,9 @@ namespace QksExcelAddIn.Modeling.Core
                 if (l.Direction != 4 && l.Direction != 5 && l.Direction != 6 && l.Direction != 10) throw new ArgumentException("Nháp hiện hỗ trợ Global X/Y/Z và Gravity.");
                 if (!Number.Finite(l.Start) || !Number.Finite(l.End) || !Number.Finite(l.Value1) || !Number.Finite(l.Value2) || l.Start < 0 || l.End > 1 || l.Start >= l.End)
                     throw new ArgumentException("Đoạn tải/giá trị phải hữu hạn; 0 ≤ r1 < r2 ≤ 1.");
-                if (l.Kind == DraftKind.WallLine && (e.Kind != ElementKind.Beam || e.Vertices.Count != 2 || !(e.Length3D > 1e-9)))
+                if (l.IsLine && (e.Kind != ElementKind.Beam || e.Vertices.Count != 2 || !(e.Length3D > 1e-9)))
                     throw new ArgumentException("Tải tường nháp cần dầm có chiều dài 3D hợp lệ.");
+                if (l.Kind == DraftKind.WindLine && l.Direction != 4 && l.Direction != 5) throw new ArgumentException("Gió dầm biên hiện hỗ trợ Global X/Y.");
                 if (l.Kind == DraftKind.SlabUniform) {
                     if (e.Kind != ElementKind.Slab || e.Vertices.Count < 3 || l.Start != 0 || l.End != 1 || l.Value1 != l.Value2)
                         throw new ArgumentException("Tải sàn nháp cần slab và một giá trị uniform cho toàn area.");
@@ -177,7 +184,7 @@ namespace QksExcelAddIn.Modeling.Core
                     if (!Number.Finite(normal.Length) || normal.Length < 1e-9) throw new ArgumentException("Area suy biến, không thể soạn tải diện.");
                 }
             }
-            foreach (var group in loads.GroupBy(l => new {l.ElementId,l.Kind,l.Pattern,l.Direction})) {
+            foreach (var group in loads.GroupBy(l => new {l.ElementId,PhysicalKind=l.AsLoad().Kind,l.Pattern,l.Direction})) {
                 var ordered = group.OrderBy(l => l.Start).ToArray();
                 if (ordered.Select(l => l.Action).Distinct().Count() > 1) throw new ArgumentException("Cùng phạm vi tải không được trộn Add và ReplaceMatching.");
                 for (int i=1; i<ordered.Length; i++)

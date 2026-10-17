@@ -11,15 +11,15 @@ $api = (Resolve-Path -LiteralPath $ApiPath).Path
 if ([IO.Path]::GetExtension($api) -ne '.dll') { throw 'ApiPath must identify the CSI API DLL.' }
 $assembly = [Reflection.Assembly]::LoadFrom($api)
 $methods = @()
-$wanted = @('GetVersion', 'GetPresentUnits_2', 'GetModelFilename', 'GetNameList', 'GetCoordCartesian', 'GetPoints', 'GetSection', 'GetProperty', 'GetOpening', 'GetDesignOrientation', 'GetLoadDistributed', 'GetLoadUniform', 'GetElevation')
-foreach ($typeName in @('cSapModel', 'cPointObj', 'cFrameObj', 'cAreaObj', 'cStory', 'cGridSys')) {
+$wanted = @('GetVersion', 'GetPresentUnits', 'SetPresentUnits', 'GetPresentUnits_2', 'GetModelFilename', 'GetModelIsLocked', 'Save', 'GetNameList', 'GetCoordCartesian', 'GetPoints', 'GetSection', 'GetProperty', 'GetOpening', 'GetDesignOrientation', 'GetLoadDistributed', 'SetLoadDistributed', 'DeleteLoadDistributed', 'GetLoadUniform', 'SetLoadUniform', 'DeleteLoadUniform', 'GetElevation', 'GetUserLoad', 'SetUserLoad', 'GetAutoWindCode', 'GetLoadType', 'GetDiaphragm', 'ModalPeriod', 'GetAvailableTables', 'GetTableForDisplayArray')
+foreach ($typeName in @('cSapModel', 'cFile', 'cPointObj', 'cFrameObj', 'cAreaObj', 'cStory', 'cGridSys', 'cLoadPatterns', 'cAutoWind', 'cDiaphragm', 'cAnalysisResults', 'cDatabaseTables')) {
     $type = $assembly.GetTypes() | Where-Object { $_.Name -eq $typeName } | Select-Object -First 1
     if (-not $type) { $methods += [ordered]@{ type = $typeName; status = 'not-found' }; continue }
     foreach ($method in $type.GetMethods() | Where-Object { $_.Name -in $wanted }) {
         $methods += [ordered]@{
             type = $type.FullName; method = $method.Name
             returns = $method.ReturnType.FullName
-            parameters = @($method.GetParameters() | ForEach-Object { [ordered]@{ name = $_.Name; type = $_.ParameterType.FullName; optional = $_.IsOptional } })
+            parameters = @($method.GetParameters() | ForEach-Object { [ordered]@{ name = $_.Name; type = $_.ParameterType.FullName; optional = $_.IsOptional; defaultValue = if ($_.IsOptional) { [string]$_.DefaultValue } else { $null } } })
         }
     }
 }

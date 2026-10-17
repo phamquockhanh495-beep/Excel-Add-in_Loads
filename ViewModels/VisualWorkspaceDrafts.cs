@@ -45,7 +45,7 @@ namespace QksExcelAddIn.ViewModels
         private void OnSnapshotChanged(ModelSnapshot? snapshot)
         {
             snapshotFingerprint = snapshot == null ? "" : SnapshotFingerprint.Of(snapshot);
-            if (snapshot != null && (Drafts == null || Drafts.Loads.Count == 0 && !Drafts.IsDirty)) Drafts = new DraftWorkspace(snapshot);
+            if (snapshot != null && (Drafts == null || Drafts.Loads.Count == 0 && !Drafts.IsDirty)) Drafts = new DraftWorkspace(snapshot, snapshotFingerprint);
             if (!AvailablePatterns.Contains(DraftPattern, StringComparer.Ordinal)) DraftPattern = AvailablePatterns.FirstOrDefault() ?? "";
             Changed(nameof(AvailablePatterns)); Changed(nameof(DraftPattern)); NotifyDraftState();
         }
@@ -57,7 +57,7 @@ namespace QksExcelAddIn.ViewModels
                 else if (SelectedElement?.Kind == ElementKind.Beam) draftModuleIndex = 0;
             }
             DraftStartMetres = "0"; DraftEndMetres = (SelectedElement?.Length3D ?? 0).ToString("R", CultureInfo.InvariantCulture);
-            NotifyDraftEditor(); Changed(nameof(ComparisonRows));
+            NotifyDraftEditor(); Changed(nameof(ComparisonRows)); NotifyWind();
         }
         private void NotifyDraftEditor()
         {
@@ -67,6 +67,7 @@ namespace QksExcelAddIn.ViewModels
         {
             foreach (string name in new[] { nameof(DraftContextActive), nameof(DraftRows), nameof(DraftStatus), nameof(CanUndoDraft), nameof(CanRedoDraft), nameof(ComparisonRows) }) Changed(name);
             NotifyDraftEditor(); Refresh();
+            NotifyApply();
         }
         public void ResetDraftEditor() { editingId = null; NotifyDraftEditor(); }
         public void NewDraftSet()
@@ -88,7 +89,7 @@ namespace QksExcelAddIn.ViewModels
         {
             if (!DraftContextActive || !DraftRows.Any(l => l.Id == load.Id)) throw new InvalidOperationException("Bộ nháp đang tách snapshot hoặc dòng không còn tồn tại.");
             SelectedElement = Snapshot!.Elements.Single(e => e.Id == load.ElementId);
-            draftModuleIndex = load.Kind == DraftKind.WallLine ? 0 : 1; editingId = load.Id;
+            draftModuleIndex = load.Kind == DraftKind.WindLine ? 2 : load.Kind == DraftKind.WallLine ? 0 : 1; editingId = load.Id;
             DraftPattern = load.Pattern; DraftDirection = load.DirectionName; DraftActionName = load.Action == DraftAction.Add ? DraftActions[0] : DraftActions[1];
             double length = SelectedElement.Length3D ?? 0;
             DraftStartMetres = (load.Start * length).ToString("R", CultureInfo.InvariantCulture); DraftEndMetres = (load.End * length).ToString("R", CultureInfo.InvariantCulture);

@@ -330,6 +330,8 @@ Nguồn màu API phải được adapter chuẩn hóa đúng sRGB/encoding thự
 
 ## 9. Giai đoạn phát triển và dự toán thời gian
 
+Cập nhật Preview 3 ngày 17/10/2026: [báo cáo G5–G7](VIEWER-PREVIEW-3.md). Đã có mã thử Apply ETABS và hai nhánh gió (dầm biên/User Loads đã có), kiểm thử core/VM và benchmark nhân tạo; chưa hoàn tất nghiệm thu host, adapter SAFE, engine TCVN 2737:2023 hoặc tự lấy tâm cứng. [Phạm vi gió mới theo yêu cầu](WIND-TCVN2737-2023.md) thay cho giả định chỉ nhập p/q ở các bản kế hoạch trước.
+
 Phạm vi ước lượng: Plan + Elevation ETABS, Plan SAFE với phiên bản/capability được chốt, ba tab tải và luồng nháp/apply. Tải gió trong phần cơ sở là nhập tải đã xác định, hiển thị và quy đổi theo giả thiết được duyệt; chưa bao gồm engine tính theo tiêu chuẩn chưa chọn, bản đồ gió, mọi phiên bản host hoặc mặt đứng cong trải phẳng.
 
 Giả định một lập trình viên WPF/CSI làm việc tập trung, tuần 5 ngày, có máy Windows với ETABS/SAFE được cấp phép và một kỹ sư nghiệp vụ phản hồi đều. Đã có bản sửa QKS hiện tại để tái sử dụng. Cập nhật 17/10/2026: đã triển khai [Preview 2: nháp tải tường/sàn và Elevation hai điểm](VIEWER-PREVIEW-2.md), chưa nghiệm thu Windows/CSI. Thời lượng dưới đây là ước lượng cho V1 đầy đủ, không phải cam kết hoặc thời gian tạo prototype.

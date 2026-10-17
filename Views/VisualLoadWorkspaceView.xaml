@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:viewer="clr-namespace:QksExcelAddIn.Views.Controls"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        Title="QKS · Không gian tải trọng 2D · Preview 2.1" Width="1180" Height="740" MinWidth="640" MinHeight="360"
+        Title="QKS · Không gian tải trọng 2D · Preview 3" Width="1180" Height="740" MinWidth="640" MinHeight="360"
         WindowStyle="None" ResizeMode="CanResize" Background="#F8FAFC" Foreground="#0F2240"
         FontFamily="Segoe UI" FontSize="11.5" WindowStartupLocation="CenterScreen"
         Icon="pack://application:,,,/QksExcelAddIn;component/Resources/excel.ico">
@@ -28,7 +28,7 @@
                 <TextBlock Text="QKS" Foreground="#38BDF8" FontWeight="Bold"/>
                 <TextBlock Text="  |  " Foreground="#64748B"/>
             </StackPanel>
-            <TextBlock Grid.Column="1" Text="KHÔNG GIAN TẢI TRỌNG 2D · PREVIEW 2.1" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Grid.Column="1" Text="KHÔNG GIAN TẢI TRỌNG 2D · PREVIEW 3" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             <StackPanel Grid.Column="2" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
                 <Button Content="—" Style="{StaticResource QksTitleBarButton}" ToolTip="Thu nhỏ" Click="Minimize_Click"/>
                 <Button x:Name="MaximizeButton" Content="□" Style="{StaticResource QksTitleBarButton}" ToolTip="Phóng to / Khôi phục" Click="Maximize_Click"/>
@@ -95,6 +95,14 @@
                     <TabItem Header="Tải đã đọc"><DataGrid ItemsSource="{Binding VisibleLoads}"><DataGrid.Columns>
                         <DataGridTextColumn Header="ID" Binding="{Binding ElementId}"/><DataGridTextColumn Header="Pattern" Binding="{Binding Pattern}"/><DataGridTextColumn Header="Loại" Binding="{Binding Kind}"/><DataGridTextColumn Header="CSys" Binding="{Binding CoordinateSystem}"/><DataGridTextColumn Header="Dir API" Binding="{Binding Direction}"/><DataGridTextColumn Header="r1" Binding="{Binding Start, StringFormat=0.###}"/><DataGridTextColumn Header="r2" Binding="{Binding End, StringFormat=0.###}"/><DataGridTextColumn Header="V1" Binding="{Binding Value1, StringFormat=0.###}"/><DataGridTextColumn Header="V2" Binding="{Binding Value2, StringFormat=0.###}"/><DataGridTextColumn Header="Đơn vị" Binding="{Binding Unit}"/>
                     </DataGrid.Columns></DataGrid></TabItem>
+                    <TabItem x:Name="UserWindTab" Header="User Loads gió"><DataGrid x:Name="WindUserTable" ItemsSource="{Binding WindUserRows}" SelectedItem="{Binding SelectedWindUserRow}" IsReadOnly="False" IsEnabled="{Binding CanRead}" CanUserAddRows="False" CanUserDeleteRows="False"><DataGrid.Columns>
+                        <DataGridTextColumn Header="Khóa diaphragm (API)" Binding="{Binding DiaphragmKey}" IsReadOnly="True" Width="170"/>
+                        <DataGridTextColumn Header="Fx (kN)" Binding="{Binding Fx, ValidatesOnExceptions=True}"/>
+                        <DataGridTextColumn Header="Fy (kN)" Binding="{Binding Fy, ValidatesOnExceptions=True}"/>
+                        <DataGridTextColumn Header="Mz (kN·m)" Binding="{Binding Mz, ValidatesOnExceptions=True}"/>
+                        <DataGridTextColumn Header="X (m)" Binding="{Binding X, ValidatesOnExceptions=True}"/>
+                        <DataGridTextColumn Header="Y (m)" Binding="{Binding Y, ValidatesOnExceptions=True}"/>
+                    </DataGrid.Columns></DataGrid></TabItem>
                     <TabItem Header="Chẩn đoán"><TextBox Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"/></TabItem>
                 </TabControl>
             </Grid>
@@ -111,12 +119,43 @@
                     <TabItem Header="Dầm/Tường"><viewer:LoadDraftEditor DraftCommitted="DraftCommitted"/></TabItem>
                     <TabItem Header="Sàn"><viewer:LoadDraftEditor DraftCommitted="DraftCommitted"/></TabItem>
                     <TabItem Header="Gió"><StackPanel Margin="0,8">
-                        <TextBlock Text="TẢI GIÓ" FontWeight="SemiBold"/>
-                        <TextBlock Margin="0,6" TextWrapping="Wrap" Text="Đang phát triển tải gió theo phương/cao độ và giả thiết nghiệp vụ đã chốt."/>
+                        <TextBlock Text="GIÓ · DẦM BIÊN / USER LOADS" FontWeight="SemiBold"/>
+                        <TextBlock Margin="0,6" TextWrapping="Wrap" Foreground="#9A3412" Text="TCVN 2737:2023: engine hệ số theo T chưa mở. Các ô dưới chỉ quy đổi áp lực đã tính/kiểm chứng; không phải kết quả tự tính theo tiêu chuẩn."/>
+                        <StackPanel IsEnabled="{Binding CanRead}">
+                            <TextBlock Text="Nguồn/bảng tính đã kiểm chứng"/><TextBox Text="{Binding WindReference, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="T1 (s) · tham chiếu, chưa tự tính Gf"/><TextBox Text="{Binding WindPeriod, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Load Pattern"/><ComboBox ItemsSource="{Binding AvailablePatterns}" SelectedItem="{Binding DraftPattern}"/>
+                            <ComboBox ItemsSource="{Binding WindDirections}" SelectedItem="{Binding WindDirection}"/>
+                            <TextBlock Text="Dải áp lực: Z dưới / Z trên (m)"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding WindBottom}"/><TextBox Grid.Column="1" Text="{Binding WindTop}"/></Grid>
+                            <TextBlock Text="p dưới / p trên có dấu (kN/m²)"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding WindPressureBottom}"/><TextBox Grid.Column="1" Text="{Binding WindPressureTop}"/></Grid>
+                            <Expander Header="1. Gió vào dầm biên" IsExpanded="True"><StackPanel>
+                                <TextBlock Text="Tự chọn dầm biên trên hình/bảng. Không tự nhận diện biên." TextWrapping="Wrap" Foreground="#64748B"/>
+                                <TextBlock Text="Chiều cao đón gió (m) · q = p × h"/><TextBox Text="{Binding WindTributaryHeight}"/>
+                                <ComboBox ItemsSource="{Binding DraftActions}" SelectedItem="{Binding DraftActionName}"/>
+                                <Button Content="Thêm / cập nhật nháp gió" Click="WindBeam_Click" IsEnabled="{Binding CanBuildWind}"/>
+                                <Button Content="Xóa dòng nháp đang chọn" Click="DeleteWindDraft_Click" IsEnabled="{Binding CanDeleteDraft}"/>
+                            </StackPanel></Expander>
+                            <Expander Header="2. User Loads / diaphragm"><StackPanel>
+                                <Button Content="Đọc User Loads của pattern" Click="ReadUserWind_Click"/>
+                                <TextBlock Text="{Binding WindUserStatus}" TextWrapping="Wrap" Foreground="#64748B"/>
+                                <TextBlock Text="Sửa Fx/Fy/Mz/X/Y ở bảng User Loads gió. Chỉ sửa khóa API đã có; chưa tự tạo khóa tầng hoặc tự lấy tâm cứng." TextWrapping="Wrap"/>
+                                <TextBlock Text="Quy đổi F: Z đáy / Z đỉnh tầng (m)"/>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding WindStoryBottom}"/><TextBox Grid.Column="1" Text="{Binding WindStoryTop}"/></Grid>
+                                <TextBlock Text="Bề rộng đón gió (m)"/><TextBox Text="{Binding WindFacadeWidth}"/>
+                                <Button Content="Quy đổi p → F hàng đang chọn" Click="WindForce_Click"/>
+                                <WrapPanel><Button Content="Lưu gió" Click="SaveUserWind_Click"/><Button Content="Mở gió" Click="OpenUserWind_Click"/></WrapPanel>
+                                <Button Content="Kiểm tra và Apply User Loads" Click="ApplyUserWind_Click" IsEnabled="{Binding CanApplyUserWind}"/>
+                            </StackPanel></Expander>
+                        </StackPanel>
                     </StackPanel></TabItem>
                 </TabControl>
                 <WrapPanel><Button Content="Undo" IsEnabled="{Binding CanUndoDraft}" Click="UndoDraft_Click"/><Button Content="Redo" IsEnabled="{Binding CanRedoDraft}" Click="RedoDraft_Click"/></WrapPanel>
-                <TextBlock Text="Tím: NHÁP. Trước/Sau gồm tải đã đọc. Chưa có Apply vào ETABS/SAFE." TextWrapping="Wrap" Foreground="#9A3412" Margin="0,5"/>
+                <TextBlock Text="Tím: NHÁP. Trước/Sau gồm tải đã đọc. Apply chỉ mở với nguồn ETABS trực tiếp." TextWrapping="Wrap" Foreground="#9A3412" Margin="0,5"/>
+                <Button Content="Kiểm tra và Apply ETABS" Click="Apply_Click" IsEnabled="{Binding CanApply}"/>
+                <TextBlock Text="{Binding ApplySummary}" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
+                <Button Content="Lưu báo cáo Apply" Click="SaveApplyReport_Click" IsEnabled="{Binding CanRead}"/>
                 <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Click cạnh: chọn · Ctrl + click: đổi đối tượng chồng nhau" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
             </StackPanel></ScrollViewer></Border>
         </Grid>

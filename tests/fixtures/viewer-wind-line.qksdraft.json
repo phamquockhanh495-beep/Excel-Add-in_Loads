@@ -1,0 +1,20 @@
+{
+  "SchemaVersion": 1,
+  "SnapshotIdentity": "qks-test-fixture-only",
+  "SnapshotFingerprint": "2f1b8b07ce755e81e9ca3c7939f7155ddf890a7eeba51dbfd8b2784cea90211b",
+  "Loads": [
+    {
+      "Id": "33333333333333333333333333333333",
+      "ElementId": "Frame:B2",
+      "Kind": 2,
+      "Pattern": "WX",
+      "Direction": 4,
+      "Start": 0.0,
+      "End": 1.0,
+      "Value1": -4.0,
+      "Value2": -4.0,
+      "Action": 1,
+      "Basis": "SYNTHETIC DEMO ONLY; not a TCVN calculation"
+    }
+  ]
+}

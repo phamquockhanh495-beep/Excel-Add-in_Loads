@@ -22,6 +22,7 @@ namespace QksExcelAddIn.Views
         private readonly VisualWorkspaceViewModel vm = new VisualWorkspaceViewModel();
         private CancellationTokenSource? cancellation;
         private bool closed;
+        private static readonly SemaphoreSlim ApplyGate = new SemaphoreSlim(1, 1);
         private Vec2? firstPlanePoint;
         private bool displayVisible = true, editorVisible = true;
         private int panelMode = -1, tableMode = -1;
@@ -37,7 +38,7 @@ namespace QksExcelAddIn.Views
             Canvas.PlanePointPicked += PlanePointPicked;
             vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(vm.Elevation) && vm.Elevation && Canvas.PickingPlanePoints) StopPlanePicking(); };
             PreviewKeyDown += Window_KeyDown;
-            Closing += (_, e) => { if (!SavePendingDrafts()) e.Cancel = true; };
+            Closing += (_, e) => { if (vm.Busy) { e.Cancel = true; vm.Status = "Chờ tác vụ kết thúc hoặc Hủy đọc trước khi đóng."; } else if (!CommitWindGrid() || !SavePendingDrafts()) e.Cancel = true; };
             AppConnectionManager.ConnectionChanged += ConnectionChanged;
             Closed += (_, __) => { closed = true; cancellation?.Cancel(); AppConnectionManager.ConnectionChanged -= ConnectionChanged; };
             try {
@@ -67,6 +68,32 @@ namespace QksExcelAddIn.Views
             finally { cancellation.Dispose(); cancellation = null; vm.Busy = false; }
         }
         private void Cancel_Click(object sender, RoutedEventArgs e) => cancellation?.Cancel();
+        private async void Apply_Click(object sender, RoutedEventArgs e)
+        {
+            if (!vm.CanApply || !await ApplyGate.WaitAsync(0)) return;
+            var document = vm.Drafts!.Document(); vm.Busy = true; cancellation = new CancellationTokenSource();
+            try {
+                var host = new EtabsLoadApplyHost(message => vm.Status = "Preflight · " + message);
+                var fresh = await host.ReadSnapshotAsync(cancellation.Token);
+                var plan = ApplyPlan.Create(fresh, document, host.Capabilities);
+                cancellation.Token.ThrowIfCancellationRequested();
+                string review = "Model: " + plan.Identity + "\n" + plan.DraftCount + " dòng nháp / " + plan.Groups.Count + " phạm vi cấu kiện–pattern.\n" +
+                    string.Join("\n", plan.Groups.Take(12).Select(g => g.Element.Id + " / " + g.Pattern + (g.Replace ? " · THAY" : " · THÊM"))) +
+                    "\n\nModel sẽ được lưu và sao lưu SHA-256 vào QKS_Backups trước khi ghi. Đọc lại để kiểm tra toàn bộ tải của cấu kiện. Nếu lỗi: dừng, không tự rollback hoặc tự thử lại.\n\nBản thử chưa nghiệm thu Windows; hãy dùng model thử. Tiến hành ghi?";
+                if (System.Windows.MessageBox.Show(this, review, "QKS · Kiểm tra Apply ETABS", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) { vm.Status = "Đã hủy Apply, chưa ghi model."; return; }
+                var report = await LoadApply.ExecuteAsync(document, host, cancellation.Token);
+                vm.SetApplyReport(report); vm.Status = report.Outcome + " · " + report.Error + (report.BackupPath.Length > 0 ? " · Backup: " + report.BackupPath : "");
+            } catch (Exception ex) { vm.Status = "Không Apply: " + ex.GetBaseException().Message; }
+            finally { cancellation.Dispose(); cancellation = null; vm.Busy = false; ApplyGate.Release(); }
+        }
+        private void SaveApplyReport_Click(object sender, RoutedEventArgs e)
+        {
+            if (vm.LastWriteReport == null) { vm.Status = "Chưa có báo cáo Apply."; return; }
+            var dialog = new SaveFileDialog { Filter = "QKS apply report (*.json)|*.json", FileName = "QKS-apply-report.json" };
+            if (dialog.ShowDialog(this) != true) return;
+            try { SaveAtomic(dialog.FileName, JsonCodec.Serialize(vm.LastWriteReport)); vm.Status = "Đã lưu báo cáo Apply."; }
+            catch (Exception ex) { vm.Status = "Không lưu được báo cáo: " + ex.Message; }
+        }
         private void Plan_Checked(object sender, RoutedEventArgs e) { if (DataContext != null) vm.Elevation = false; }
         private void Project_Click(object sender, RoutedEventArgs e) { vm.Refresh(); Canvas.Fit(); }
         private void Fit_Click(object sender, RoutedEventArgs e) => Canvas.Fit();
@@ -131,9 +158,10 @@ namespace QksExcelAddIn.Views
         }
         private bool SavePendingDrafts()
         {
-            if (vm.Drafts?.IsDirty != true) return true;
+            if (vm.Drafts?.IsDirty != true && !vm.WindUserDirty) return true;
             var answer = System.Windows.MessageBox.Show(this, "Bộ nháp có thay đổi chưa lưu. Lưu nháp trước khi tiếp tục?", "QKS · Nháp tải", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-            return answer == MessageBoxResult.No || answer == MessageBoxResult.Yes && SaveDraftFile();
+            return answer == MessageBoxResult.No || answer == MessageBoxResult.Yes &&
+                (vm.Drafts?.IsDirty != true || SaveDraftFile()) && (!vm.WindUserDirty || SaveUserWindFile());
         }
         private void SaveDraft_Click(object sender, RoutedEventArgs e) => SaveDraftFile();
         private void OpenDraft_Click(object sender, RoutedEventArgs e)

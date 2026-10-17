@@ -1,0 +1,38 @@
+{
+  "SchemaVersion": 1,
+  "Identity": "qks-test-fixture-only-wind-user",
+  "ModelFingerprint": "9ada4170dc4f103cec0afa4deb70b7591088fdab9b9e1c872f6a8d75a826691c",
+  "Before": {
+    "Pattern": "WX_USER",
+    "Code": "User Loads",
+    "Rows": [
+      {
+        "DiaphragmKey": "SYNTHETIC-KEY-L1",
+        "Fx": 10.0,
+        "Fy": 0.0,
+        "Mz": 0.0,
+        "X": 3.0,
+        "Y": 2.0
+      },
+      {
+        "DiaphragmKey": "SYNTHETIC-KEY-ROOF",
+        "Fx": 20.0,
+        "Fy": 0.0,
+        "Mz": 0.0,
+        "X": 3.0,
+        "Y": 2.0
+      }
+    ]
+  },
+  "Changes": [
+    {
+      "DiaphragmKey": "SYNTHETIC-KEY-ROOF",
+      "Fx": 25.0,
+      "Fy": 0.0,
+      "Mz": 2.0,
+      "X": 3.0,
+      "Y": 2.0
+    }
+  ],
+  "Basis": "Synthetic example only; keys do not identify a real ETABS diaphragm; no TCVN calculation"
+}

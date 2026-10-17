@@ -24,6 +24,7 @@ internal static partial class Program
     public static int Main(string[] args)
     {
         string root = args.Length == 0 ? Directory.GetCurrentDirectory() : Path.GetFullPath(args[0]);
+        if (args.Length == 3 && args[1] == "--benchmark") return Benchmarks(args[2]);
         Check("negative named load", () => { var v = LoadTextParser.Parse("SDL=-2.5 kN/m²", "D").Single(); Assert(v.Pattern == "SDL" && v.Value == -2.5); });
         Check("decimal comma", () => Assert(LoadTextParser.Parse("Tải tường = +2,75", "D").Single().Value == 2.75));
         Check("scientific notation", () => Assert(LoadTextParser.Parse("W-X=-1.5e2", "D").Single().Value == -150));
@@ -67,6 +68,8 @@ internal static partial class Program
         ViewerTests();
         DraftTests();
         LayoutTests();
+        ApplyTests();
+        WindTests();
         Console.WriteLine($"Completed: {passed} passed, {failed} failed; host integration tests are separate.");
         return failed == 0 ? 0 : 1;
     }

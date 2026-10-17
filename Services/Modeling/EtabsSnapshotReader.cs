@@ -13,11 +13,11 @@ namespace QksExcelAddIn.Services.Modeling
     public sealed class EtabsSnapshotReader
     {
         private static readonly SemaphoreSlim Gate = new SemaphoreSlim(1, 1);
-        public async Task<ModelSnapshot> ReadAsync(Action<string> progress, CancellationToken token)
+        public async Task<ModelSnapshot> ReadAsync(Action<string> progress, CancellationToken token, bool requireCompleteLoads = false)
         {
             if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA) throw new InvalidOperationException("Reader cần luồng STA.");
             if (!await Gate.WaitAsync(0, token)) throw new InvalidOperationException("Một cửa sổ khác đang đọc mô hình. Hãy chờ đọc xong.");
-            try { return await ReadCoreAsync(progress, token); }
+            try { return await ReadCoreAsync(progress, token, requireCompleteLoads); }
             finally { Gate.Release(); }
         }
         private static void Ok(int code, string call) { if (code != 0) throw new InvalidOperationException(call + " trả mã " + code); }
@@ -31,7 +31,7 @@ namespace QksExcelAddIn.Services.Modeling
         {
             if (count < 0 || arrays.Any(a => a == null ? count != 0 : a.Length < count)) throw new InvalidOperationException("API trả mảng tải không đồng bộ.");
         }
-        private async Task<ModelSnapshot> ReadCoreAsync(Action<string> progress, CancellationToken token)
+        private async Task<ModelSnapshot> ReadCoreAsync(Action<string> progress, CancellationToken token, bool requireCompleteLoads)
         {
             var connection = AppConnectionManager.ActiveEtabs ?? throw new InvalidOperationException("Hãy dùng Kết nối API để chọn ETABS trước.");
             var sap = AppConnectionManager.GetSapModel() ?? throw new InvalidOperationException("ETABS chưa kết nối.");
@@ -61,6 +61,10 @@ namespace QksExcelAddIn.Services.Modeling
                 if (code == 0) return;
                 optionalErrorCount++;
                 if (diagnostics.Count < 200) diagnostics.Add(message + " (API " + code + ")");
+            }
+            void LoadError(int code, string message) {
+                if (requireCompleteLoads && code != 0) throw new InvalidOperationException(message + " (API " + code + "); không thể Apply khi thiếu baseline tải.");
+                Optional(code, message);
             }
             var points = new Dictionary<string, Vec3>(StringComparer.Ordinal);
             Vec3 Point(string name) {
@@ -97,7 +101,7 @@ namespace QksExcelAddIn.Services.Modeling
                     orientation == eFrameDesignOrientation.Column ? ElementKind.Column : orientation == eFrameDesignOrientation.Brace ? ElementKind.Brace : ElementKind.Other;
                 var element = new ModelElement("Frame:" + name, name, label, story, property, kind, new[] { pa, pb }, axisResult == 0 ? (double?)angle : null, advanced);
                 elements.Add(element);
-                ReadFrameLoads(sap, element, scale, loads, Optional);
+                ReadFrameLoads(sap, element, scale, loads, LoadError);
                 if (i % 25 == 0) await Yield("Đọc frame " + (i + 1) + "/" + frames.Length);
             }
             count = 0; names = Array.Empty<string>(); rc = sap.AreaObj.GetNameList(ref count, ref names);
@@ -117,7 +121,7 @@ namespace QksExcelAddIn.Services.Modeling
                 ElementKind kind = opening ? ElementKind.Opening : orientationResult != 0 ? ElementKind.Other :
                     orientation == eAreaDesignOrientation.Floor ? ElementKind.Slab : orientation == eAreaDesignOrientation.Wall ? ElementKind.Wall : ElementKind.Other;
                 var element = new ModelElement("Area:" + name, name, label, story, property, kind, vertices);
-                elements.Add(element); ReadAreaLoads(sap, element, scale, loads, Optional);
+                elements.Add(element); ReadAreaLoads(sap, element, scale, loads, LoadError);
                 if (i % 25 == 0) await Yield("Đọc area " + (i + 1) + "/" + areas.Length);
             }
             Guard();
@@ -129,7 +133,7 @@ namespace QksExcelAddIn.Services.Modeling
             return new ModelSnapshot(1, "ETABS", version, identity, force + "/" + length + "/" + temperature,
                 DateTime.UtcNow, elements, levels.OrderBy(l => l.Elevation), loads, diagnostics, patterns);
         }
-        private static void ReadFrameLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional)
+        internal static void ReadFrameLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional)
         {
             int n = 0; string[] names = Array.Empty<string>(), patterns = Array.Empty<string>(), systems = Array.Empty<string>();
             int[] types = Array.Empty<int>(), directions = Array.Empty<int>();
@@ -145,7 +149,7 @@ namespace QksExcelAddIn.Services.Modeling
                 loads.Add(new ExistingLoad(e.Id, patterns[i], types[i] == 1 ? "Frame force/length" : "Frame moment/length", systems[i], directions[i], r1[i], r2[i], v1[i] * factor, v2[i] * factor, types[i] == 1 ? "kN/m" : "kN·m/m"));
             }
         }
-        private static void ReadAreaLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional)
+        internal static void ReadAreaLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional)
         {
             int n = 0; string[] names = Array.Empty<string>(), patterns = Array.Empty<string>(), systems = Array.Empty<string>();
             int[] directions = Array.Empty<int>(); double[] values = Array.Empty<double>();
