@@ -1,6 +1,6 @@
 # Hình minh họa giao diện QKS 2D — QKS Navy
 
-Hai hình dưới là **bản thiết kế đề xuất**, chưa phải giao diện phần mềm đã triển khai. Dữ liệu mô hình trong ảnh chỉ để minh họa.
+Hai hình dưới là **bản thiết kế đề xuất**, chưa phải giao diện phần mềm đã triển khai. Dữ liệu mô hình trong ảnh chỉ để minh họa. Ảnh hiện thể hiện Plan; Elevation ETABS đã được bổ sung vào kế hoạch, chưa có mockup hoặc chức năng chạy thực.
 
 ## Template đã điều chỉnh
 

@@ -1,8 +1,8 @@
 # Kế hoạch giao diện WPF 2D quản lý tải trọng — Extension QKS
 
-**Trạng thái:** bản thiết kế đề xuất, chưa triển khai giao diện hoặc chức năng gán tải mới. Tài liệu này thay kế hoạch phát triển 2D/3D trước đó; phạm vi đợt phát triển này là 2D. ETABS và SAFE dùng chung giao diện, dữ liệu nháp và quy tắc hiển thị, với adapter/capabilities riêng được kiểm chứng cho từng phiên bản.
+**Trạng thái:** bản thiết kế đề xuất, chưa triển khai giao diện hoặc chức năng gán tải mới. Tài liệu này thay kế hoạch phát triển 2D/3D trước đó; phạm vi đợt phát triển này là 2D, gồm **Plan và Elevation từ ETABS**. Mặt đứng là mặt phẳng nhìn 2D dựng từ dữ liệu mô hình; phạm vi này không yêu cầu engine 3D. ETABS và SAFE dùng chung giao diện, dữ liệu nháp và quy tắc hiển thị, với adapter/capabilities riêng được kiểm chứng cho từng phiên bản.
 
-Các ảnh dưới đây là mockup minh họa, không phải ảnh chụp phần mềm đang chạy. Số liệu mô hình trong ảnh là ví dụ. Bảng quy định trong tài liệu là đặc tả để triển khai, bao gồm cách ghi số theo locale người dùng.
+Các ảnh dưới đây là mockup minh họa, không phải ảnh chụp phần mềm đang chạy. Số liệu mô hình trong ảnh là ví dụ. Hai mockup hiện có minh họa Plan; các điều khiển và hình Elevation trong bản cập nhật này mới ở mức đặc tả, chưa có mockup riêng. Bảng quy định trong tài liệu là đặc tả để triển khai, bao gồm cách ghi số theo locale người dùng.
 
 ## 1. Bố cục Layout WPF
 
@@ -12,10 +12,10 @@ Các ảnh dưới đây là mockup minh họa, không phải ảnh chụp phầ
 
 | Vùng | Nội dung | Hành vi và trạng thái |
 |---|---|---|
-| A — Kết nối trên cùng | ETABS/SAFE, phiên bản, process/model, file, tầng/cao độ, đơn vị, Đọc lại | Hiển thị connected/reading/ready/stale/disconnected; đổi nguồn đánh dấu ngữ cảnh mới, không tự gán nháp cũ |
+| A — Kết nối trên cùng | ETABS/SAFE, phiên bản, process/model, file, Plan/Elevation, tầng hoặc trục/mặt đứng, đơn vị, Đọc lại | Hiển thị connected/reading/ready/stale/disconnected; đổi nguồn đánh dấu ngữ cảnh mới, không tự gán nháp cũ |
 | B — Chọn nghiệp vụ | Tải tường, Tải gió, Tải sàn | Chia sẻ viewport/selection; đổi tab thay editor, lớp tải và legend theo nghiệp vụ |
-| C — Cây/lọc bên trái | Tầng/cao độ, nhóm, loại đối tượng, tiết diện, vật liệu, pattern, tìm ID/label, danh sách layer | Lọc hiển thị không sửa tập assignment hoặc xóa nháp; có số đang hiện/tổng số |
-| D — Viewport 2D trung tâm | Mặt bằng, trục, cấu kiện, tải, nhãn, chọn, pan/zoom, isolate, Hiện có/Nháp/Chênh lệch | Chọn trên hình đồng bộ với bảng và inspector; không gọi API ghi |
+| C — Cây/lọc bên trái | Tầng/cao độ hoặc danh sách mặt đứng/trục, phạm vi tầng, nhóm, loại đối tượng, tiết diện, vật liệu, pattern, tìm ID/label, danh sách layer | Lọc hiển thị không sửa tập assignment hoặc xóa nháp; có số đang hiện/tổng số |
+| D — Viewport 2D trung tâm | Plan hoặc Elevation, trục/cao độ, cấu kiện, tải, nhãn, chọn, pan/zoom, isolate, Hiện có/Nháp/Chênh lệch | Chọn trên hình đồng bộ với bảng và inspector; không gọi API ghi |
 | E — Inspector bên phải | Thuộc tính nguồn chỉ đọc; editor tải nháp theo nghiệp vụ; thông tin vùng chọn | Chọn nhiều đối tượng khác giá trị hiển thị Nhiều giá trị; field chưa hỗ trợ có lý do, không để input giả hoạt động |
 | F — Bảng dưới và tác vụ | Assignment hiện có, thay đổi nháp, lỗi, kết quả; Undo/Redo, Lưu nháp, Kiểm tra, Gán phần đã duyệt | Ghi API chỉ sau kiểm tra và hành động Apply rõ ràng; báo riêng thành công, thất bại, bỏ qua |
 
@@ -43,6 +43,17 @@ Chuột trái chọn, Ctrl thêm/bớt, Esc hủy công cụ, chuột giữa pan
 - Nút hình chữ nhật, CornerRadius **3 DIP**, BorderThickness **1 DIP**, chiều cao chuẩn khoảng **38 DIP**. Input radius 3 DIP, panel tối đa 4 DIP; không dùng dạng pill hoặc bo lớn.
 - Nền nội dung vẫn sáng; vùng chọn điều hướng có tint **#E8EEF6**. Tông nhận diện không thay thế màu biểu diễn cấu kiện, tải trọng, selection hoặc cảnh báo.
 - Ảnh là mockup trực quan; mã màu/kích thước trong đặc tả và [design tokens](design-2d/qks-navy-tokens.json) là cơ sở triển khai chính xác. Chưa tích hợp theme này vào ứng dụng đang chạy.
+
+### 1.5. Điều khiển riêng cho Plan và Elevation
+
+Bộ chọn **Plan / Elevation** độc lập với ba tab Tải tường/Tải gió/Tải sàn. Chuyển góc nhìn giữ snapshot, ID, selection và draft; không sao chép assignment sang một bộ mới.
+
+- **Plan:** chọn tầng/cao độ, mặt phẳng XY và layer như đặc tả hiện có.
+- **Elevation ETABS:** chọn mặt đứng lưu sẵn nếu API thật sự cung cấp định nghĩa; hoặc chọn một trục thẳng/hai điểm trên Plan để xác định mặt phẳng đứng.
+- Thanh điều khiển Elevation có tên view/trục, tầng bắt đầu–kết thúc, khoảng cao độ, dung sai nằm trong mặt phẳng, dải chiều sâu khi chiếu và nút Đảo hướng nhìn.
+- Bật cao độ tầng, tên tầng, kích thước đứng/ngang, local axes, tải và đối tượng tham chiếu. Có Fit mặt đứng/Fit selection và lưu view riêng.
+- Một viewport chuyển Plan/Elevation ở bản đầu. Chế độ đặt hai viewport cạnh nhau chỉ bổ sung sau khi benchmark; selection có thể giữ dù đối tượng không nằm trong view, với số lượng ngoài view được thông báo.
+- SAFE tiếp tục dùng Plan/cao độ theo capability đã kiểm chứng. Elevation SAFE không nằm trong cam kết bản đầu; lựa chọn chưa hỗ trợ có lý do, không dựng hình giả để coi là đã đọc từ API.
 
 ## 2. Chức năng ba nhóm tải
 
@@ -80,7 +91,7 @@ Hai chế độ tách rõ: **Nhập tải đã xác định** và **Tính theo t
 
 ### 2.4. Quy tắc capability của hai nguồn
 
-Cả ETABS và SAFE được khảo sát/kiểm thử từ mốc đầu. Danh sách thao tác được cấp bởi adapter: CanReadGeometry, CanReadLineLoads, CanReadAreaLoads, CanWriteLineLoads, CanWriteAreaLoads, CanWritePointForces, CanWritePointMoments, CanReadBack, HasStories, HasGridSystems. Tên capability là thiết kế, chưa phải kết luận API của từng phiên bản.
+Cả ETABS và SAFE được khảo sát/kiểm thử từ mốc đầu. Danh sách thao tác được cấp bởi adapter: CanReadGeometry, CanReadLineLoads, CanReadAreaLoads, CanWriteLineLoads, CanWriteAreaLoads, CanWritePointForces, CanWritePointMoments, CanReadBack, HasStories, HasGridSystems, HasNativeElevationDefinitions và CanBuildElevationFromGeometry. Tên capability là thiết kế, chưa phải kết luận API của từng phiên bản.
 
 UI dùng tầng ETABS hoặc cao độ/mặt phẳng SAFE theo dữ liệu thực; không dựng tầng giả để che thiếu thông tin. Chọn SAFE vẫn thấy ba nhóm tải và trạng thái hỗ trợ; thao tác chưa có mapping được vô hiệu hóa kèm lý do.
 
@@ -114,7 +125,7 @@ Các field nguồn mặc định chỉ đọc. Việc thay tiết diện/vật l
 
 ### 4.1. Mặt phẳng và phạm vi
 
-- Mặt bằng mặc định là XY tại tầng/cao độ đã chọn. Khi cần, hỗ trợ mặt cắt 2D XZ/YZ ở mốc sau, dùng cùng cấu trúc view definition; không mở lại phạm vi 3D.
+- Plan mặc định là XY tại tầng/cao độ đã chọn. Elevation ETABS là yêu cầu chính của phiên bản này: mặt đứng XZ/YZ hoặc theo trục thẳng xoay trong XY, dùng hệ cơ sở của view. Xem mục 4.4–4.8; không cần engine 3D.
 - Chọn toàn tầng/cao độ, vùng chọn, group, loại đối tượng hoặc viewport hiện tại. Có thống kê visible/filtered/total.
 - Dùng transform world→screen và inverse có đảo Y theo WPF; tọa độ trục, nhãn và hit-test dùng cùng transform. Tọa độ model lớn được trừ display origin để ổn định hình vẽ, giữ nguyên tọa độ nguồn.
 - Dung sai chọn tầng theo Z là tham số có đơn vị, đề xuất ban đầu 1 mm rồi kiểm tra trên model thực. Dung sai này dùng cho view, không được gộp/đổi source ID hoặc sửa hình học.
@@ -133,6 +144,56 @@ Tránh area fill che tải hoặc selection. Lớp nhãn được xử lý va ch
 Grid; nodes; frames; columns/cuts; walls/cuts; slabs/foundations; openings; supports/springs khi API cung cấp; section labels; object labels; dimensions; existing loads; draft loads; local axes; diagnostics.
 
 Mỗi layer có Visible, Selectable, Opacity và khóa chỉnh hiển thị. Hidden/Filtered/Isolated chỉ ảnh hưởng view; không mang nghĩa Delete. Ghosted hiện mờ để tham chiếu nhưng mặc định không selectable.
+
+### 4.4. Truy xuất Elevation từ ETABS
+
+Khảo sát định nghĩa mặt đứng, grid system và khả năng API trong giai đoạn đầu. Không mặc định tồn tại một lệnh GetElevation trả đúng mọi nội dung đang vẽ trong cửa sổ ETABS.
+
+1. Nếu API cung cấp đầy đủ định nghĩa view, đọc và chuyển thành ViewDefinition của QKS, xác minh với ETABS thực.
+2. Nếu không có, đọc tọa độ node/frame/area, grid và story từ ETABS rồi dựng mặt đứng theo trục hoặc hai điểm do người dùng chọn. UI ghi rõ mặt đứng QKS được dựng từ mô hình ETABS.
+3. Reader phải lấy cả cột, vách, cấu kiện nghiêng, offsets và lỗ mở khi nguồn cung cấp; không dùng trực tiếp hàm chỉ lọc dầm ngang/sàn ngang để gọi đó là mô hình mặt đứng đầy đủ.
+4. Phân biệt object gốc với analysis mesh. Một object có thể tạo nhiều primitive hiển thị nhưng giữ cùng source ID; selection và Apply không được gán lặp.
+5. Tham số view thuộc QKS, không tự tạo hoặc sửa view, grid hay hình học trong ETABS.
+
+Bản đầu hỗ trợ trục thẳng và mặt phẳng đứng. Grid cong/gấp khúc yêu cầu người dùng chọn một đoạn/mặt phẳng cụ thể; mặt đứng trải phẳng theo đường cong nằm ngoài phạm vi ước lượng.
+
+### 4.5. Hệ tọa độ và chọn mặt phẳng đứng
+
+ViewDefinition lưu ViewId/Name, SourceModelBinding, Origin O, trục ngang đơn vị U trong XY, trục đứng V=(0,0,1), normal N=U×V, hướng nhìn, khoảng Z, planeTolerance và dải chiều sâu [dMin,dMax] nếu bật projection.
+
+Với điểm P, tọa độ view là `u=dot(P-O,U)`, `v=dot(P-O,V)` và chiều sâu `d=dot(P-O,N)`. Renderer tiếp tục áp dụng view→screen với Y đảo theo WPF. Đảo hướng nhìn đổi U và N, giữ Z hướng lên; nhãn/hướng tải phải đổi nhất quán. Tọa độ nguồn không bị sửa.
+
+Tách ba khái niệm:
+
+- **Trong mặt phẳng:** khoảng cách tới mặt phẳng thỏa planeTolerance. Dung sai có đơn vị m và giá trị hiển thị mm, kiểm chứng trên model thật.
+- **Cắt mặt phẳng:** frame/area chỉ giao mặt phẳng, không nằm hoàn toàn trong đó; vẽ giao tuyến/ký hiệu cắt, giữ source ID.
+- **Chiếu theo chiều sâu:** chỉ đối tượng trong dải dMin–dMax được chiếu. Mặc định tham chiếu mờ, không chỉnh đoạn bằng kéo chuột; có thể chọn ID để xem thuộc tính với chế độ chọn tham chiếu rõ ràng.
+
+Không gộp frame chỉ vì hình chiếu chồng nhau. Picking có danh sách ứng viên và chiều sâu, filter theo trục/group; tooltip cho biết nguồn, offset tới mặt phẳng và trạng thái chiếu/cắt. Suy biến do frame vuông góc view phải dùng marker, không biến nó thành một đoạn dầm có chiều dài bằng 0.
+
+### 4.6. Hình học và định dạng trên Elevation
+
+- Dầm/cột/frame hiện theo trục hoặc bề rộng đọc được; vách có polygon/biên/lỗ mở. Area ngang khi nhìn cạnh chỉ là giao tuyến/biên, không được tô như một diện tích đứng có thật.
+- Hiện đường cao độ tầng với Z nguồn, tên tầng, tên grid và kích thước; label không bị đảo ngược khi đổi hướng nhìn.
+- Dùng cùng bảng màu thuộc tính và QKS Navy như Plan. Đối tượng chiếu có nét/opacity riêng; selection/draft/error vẫn là overlay độc lập.
+- ID, nhóm và bảng thuộc tính liên kết với Plan. Đối tượng ngoài view có thể còn trong selection nhưng UI phải thông báo, không âm thầm chuyển sang đối tượng gần nhất.
+- Khi kéo điểm chia tải, quy đổi về tham số trên frame nguồn và chiều dài thực 3D I→J, không dùng chiều dài nét chiếu làm chiều dài gán. Bản đầu chỉ cho thao tác trực tiếp với frame đủ điều kiện trong mặt phẳng; đối tượng chiếu/cắt xem thuộc tính hoặc chỉnh bằng editor có validation riêng.
+
+### 4.7. Tải tường, gió và sàn trên Elevation
+
+| Nhóm | Giá trị hiển thị/soạn nháp | Điều kiện ghi |
+|---|---|---|
+| Tường | Chiều cao, cao độ, tuyến đỡ, vùng/lỗ mở do người dùng khai báo, q và phân đoạn trên dầm | Liên kết đúng source frame/assignment; không suy lỗ cửa kiến trúc từ một biên mô hình kết cấu không đủ dữ liệu |
+| Gió | p/q/F/M theo cao độ, vùng tác động, mũi tên đón/hút khi phía mặt ngoài đã xác định | Ghi đúng loại tải/hệ trục/capability; không tự suy tiêu chuẩn, bề rộng truyền tải hoặc dấu đón/hút chỉ từ hình vẽ |
+| Sàn | Biên nhìn cạnh, độ dày khi có, tải hiện có/nháp và nhận diện area nguồn | Gán đúng area và units tải mặt; không đổi kN/m² thành tải đường chỉ vì đang nhìn cạnh |
+
+Vector tải được đổi sang hệ view để vẽ: thành phần trong mặt phẳng bằng mũi tên; thành phần vuông góc có ký hiệu vào/ra mặt phẳng. Hướng vật lý trong host và giá trị nguồn giữ nguyên, kể cả khi đảo hướng nhìn. Độ dài glyph có scale hiển thị và legend, không dùng làm giá trị tính tải.
+
+### 4.8. Nghiệm thu Elevation
+
+Đối chiếu thủ công một số mặt đứng ETABS trên model có trục thẳng/xoay, nhiều tầng, tầng lệch, dầm/cột nghiêng, vách/lỗ mở và đối tượng sau mặt phẳng. Kiểm tra cao độ, source ID, chiều I/J, hướng local, chiều tải và giao tuyến.
+
+Các ca bắt buộc: đảo hướng nhìn hai lần trả về view tương đương; Plan↔Elevation giữ ID/selection/draft; hai frame chồng hình chiếu vẫn phân biệt; chọn vùng không gán lặp; kéo đoạn không dùng chiều dài chiếu; area nhìn cạnh không đổi đơn vị tải; đổi model không dùng view/draft cũ để ghi.
 
 ## 5. Hệ màu cấu kiện, màu thuộc tính và tải
 
@@ -255,35 +316,56 @@ Dòng nháp có badge tím; verified xanh; failed đỏ có icon; stale/xung đ�
 
 ### 8.1. ViewModel và renderer
 
-WorkspaceViewModel; ConnectionViewModel; ViewDefinitionViewModel; LayerManagerViewModel; SelectionViewModel; WallLoadEditorViewModel; WindLoadEditorViewModel; SlabLoadEditorViewModel; DisplayStyleViewModel; DraftTableViewModel.
+WorkspaceViewModel; ConnectionViewModel; ViewDefinitionViewModel (Plan/Elevation); ElevationSelectorViewModel; LayerManagerViewModel; SelectionViewModel; WallLoadEditorViewModel; WindLoadEditorViewModel; SlabLoadEditorViewModel; DisplayStyleViewModel; DraftTableViewModel.
 
 ModelSnapshot/DraftStore/StyleRegistry tách nhau. Canvas overlay xử lý công cụ/nhãn chọn; custom DrawingVisual host vẽ hình học theo batch. Renderer không gọi COM. Reader/writer đi qua scheduler STA có ownership và cancellation theo batch; dữ liệu thuần mới được chuyển sang worker để lập scene/spatial index.
 
 ### 8.2. Cấu hình hiển thị
 
-Profile có schemaVersion, profile ID/name, model binding tùy chọn, theme, background, layer styles, activeColorMode, property palette, label templates, units/precision, view definition, legend options và layout. JSON màu lưu #RRGGBB + opacity 0..1; khi tạo WPF Brush mới chuyển alpha sang dạng thích hợp. UI dùng Độ đục/Opacity %, phân biệt rõ opacity và transparency.
+Profile có schemaVersion, profile ID/name, model binding tùy chọn, theme, background, layer styles, activeColorMode, property palette, label templates, units/precision, view definition (Plan/Elevation, basis O/U/V/N, tầng/cao độ, planeTolerance, projection depth, hướng nhìn), legend options và layout. JSON màu lưu #RRGGBB + opacity 0..1; khi tạo WPF Brush mới chuyển alpha sang dạng thích hợp. UI dùng Độ đục/Opacity %, phân biệt rõ opacity và transparency.
 
 Lưu defaults người dùng trong LocalAppData; preset dự án và draft có thể export thành file riêng. Không lưu RCW/API object hoặc dùng file style làm nguồn tải. Mở profile model khác chỉ nhập style tương thích sau preview, không áp nháp sang model khác.
 
 Nguồn màu API phải được adapter chuẩn hóa đúng sRGB/encoding thực tế; không giả định mọi API đều trả cùng một kiểu RGB/OLE color. Freeze Brush/Pen phù hợp khi dùng đa luồng; cấu hình đổi chỉ invalidation lớp liên quan.
 
-## 9. Trình tự phát triển chỉ tập trung 2D
+## 9. Giai đoạn phát triển và dự toán thời gian
 
-| Mốc | Đầu ra | Điều kiện qua mốc |
-|---|---|---|
-| 0 | Chốt phiên bản ETABS/SAFE, thử đọc khả năng, model mẫu, layout và vocabulary units/loads | Cả hai host có capability matrix kiểm chứng; không giả định tính năng SAFE |
-| 1 | Shell WPF/MVVM, kết nối, viewport 2D và reader hình học | Hình đúng tỷ lệ, tầng/cao độ, cột/vách/lỗ và source ID |
-| 2 | Selection, lớp, nhãn, style manager và palette bền vững | Refresh không đổi màu; selection hình–bảng–inspector khớp |
-| 3 | Draft/validation chung; tải đều sàn và tải tường theo đoạn | Xem/sửa nháp không ghi host; so sánh Before/After đúng |
-| 4 | Luồng Apply/read-back cho từng capability ETABS và SAFE | Gán đúng target/units/hướng; model đổi, lỗi giữa batch được báo rõ |
-| 5 | Gió nhập liệu trực quan, quy đổi có giả thiết; engine tiêu chuẩn khi đủ đặc tả | Không có dữ liệu demo ghi thật; loại tải đích được xác minh |
-| 6 | Hiệu năng, preset, xuất hình/PDF nếu cần và kiểm thử Windows | Mô hình lớn không tràn UI; ảnh xuất có legend/units; host test đạt |
+Phạm vi ước lượng: Plan + Elevation ETABS, Plan SAFE với phiên bản/capability được chốt, ba tab tải và luồng nháp/apply. Tải gió trong phần cơ sở là nhập tải đã xác định, hiển thị và quy đổi theo giả thiết được duyệt; chưa bao gồm engine tính theo tiêu chuẩn chưa chọn, bản đồ gió, mọi phiên bản host hoặc mặt đứng cong trải phẳng.
 
-Không đưa 3D vào các mốc này. Không trì hoãn khảo sát SAFE đến cuối; phần ghi nào chưa chứng minh được thì đánh dấu capability chưa mở.
+Giả định một lập trình viên WPF/CSI làm việc tập trung, tuần 5 ngày, có máy Windows với ETABS/SAFE được cấp phép và một kỹ sư nghiệp vụ phản hồi đều. Đã có bản sửa QKS hiện tại để tái sử dụng, nhưng viewer/MVVM mới chưa được triển khai. Thời lượng dưới đây là ước lượng, không phải cam kết.
+
+| Giai đoạn | Công việc và đầu ra | Ngày làm việc | Điều kiện hoàn tất |
+|---|---|---:|---|
+| G0 — Chốt API và mẫu | Xác nhận ETABS/SAFE version, reader/capability, named elevation/grid API, model đối chứng, quy tắc tải và UI | 3–5 | Có bằng chứng đọc trên cả hai host; chốt phạm vi ghi, không giả định API view |
+| G1 — Dữ liệu lõi | Snapshot node/frame/area, units/identity, Plan/Elevation ViewDefinition, projection/picking foundations, scheduler STA | 5–8 | Dữ liệu tổng quát đủ cột/vách; phép biến đổi và filter có test |
+| G2 — Shell và Plan | WPF/MVVM QKS Navy, Plan renderer, zoom/pan, selection liên kết, style/nhãn/palette | 5–8 | Xem/lọc/chọn không ghi host; ID và màu bền vững |
+| G3 — Elevation ETABS | Chọn trục/hai điểm, tầng/cao độ, direction/depth, dựng mặt đứng, giao tuyến, nhãn và liên kết Plan | 6–10 | Đối chiếu mặt đứng thật, đối tượng chồng chiếu và hướng tải đúng |
+| G4 — Draft tường/sàn | Editor, segment theo chiều dài thật, load set, Before/After, validation, undo/redo, lưu nháp dùng chung hai view | 6–9 | Đổi view không nhân bản tải; sửa nháp không thay host |
+| G5 — Apply và SAFE | Writer các capability đã chốt của ETABS/SAFE, conflict/preflight, backup, return codes, read-back và partial failure | 7–12 | Test dữ liệu đối chứng trên Windows cho từng nguồn; unsupported có lý do |
+| G6 — Gió trực quan | Nhập tải theo phương/cao độ, biểu đồ Elevation, mapping loại đích và quy đổi đã duyệt, validation/read-back | 5–8 | Không có số demo gán thật; p/q/F/M và hướng không bị trộn |
+| G7 — Ổn định và bàn giao | Hiệu năng, DPI, model lớn, profile, hồi quy, gói XLL và hướng dẫn | 5–8 | Bộ test host đạt; không coi build pass là đã kiểm thử ứng dụng |
+| **Tổng phần việc cơ sở** | | **42–68** | Chưa cộng dự phòng |
+
+Dự phòng khoảng 20–25% cho khác biệt API, hình học, hiệu năng và vòng sửa sau test: kế hoạch tổng **khoảng 50–85 ngày làm việc, tương đương 10–17 tuần**. Thời gian chờ SDK/model/phản hồi ngoài các giả định làm trễ thêm lịch. Sau G0 và prototype Elevation phải cập nhật lại dự toán theo bằng chứng.
+
+### 9.1. Các mốc có thể dùng thử
+
+- **Plan chỉ đọc:** sau G0–G2, khoảng 3–4 tuần làm việc theo khối lượng cơ sở.
+- **Plan + Elevation ETABS chỉ đọc:** sau G0–G3, khoảng 4–6 tuần; chưa gán tải mới.
+- **ETABS có nháp tường/sàn và Apply đã kiểm chứng:** sau G4 và phần ETABS của G5, khoảng 6–9 tuần cơ sở; còn phụ thuộc kết quả read-back/host test. Bản này chưa thay toàn bộ nghiệm thu cuối.
+- **Bản V1 trong phạm vi cả ETABS/SAFE và ba tab, có dự phòng:** khoảng 10–17 tuần; SAFE chỉ mở những loại ghi đã được xác nhận ở G0/G5.
+
+Bổ sung Elevation làm tăng khoảng 6–10 ngày cho viewer riêng và khoảng 2–5 ngày kiểm thử tích hợp/hướng tải so với Plan-only; đây là phần đã nằm trong tổng trên, không cộng thêm lần nữa.
+
+### 9.2. Phần làm thay đổi dự toán
+
+Engine gió theo một tiêu chuẩn/phạm vi đã chọn cần dự toán riêng sau khi chốt đầu vào và bộ số đối chứng; có thể tạm dành thêm khoảng 2–4 tuần cho một phạm vi giới hạn, không coi đó là ước lượng cho mọi tiêu chuẩn. Các mục như SAFE nhiều phiên bản, mặt đứng cong/trải phẳng, load redistribution phức tạp hoặc tạo area mới không tự nằm trong thời lượng cơ sở.
+
+Tổ chức công việc theo G0→G1→G2→G3→G4→G5→G6→G7, có kiểm thử xuyên suốt. Adapter SAFE được khảo sát ở G0 và đọc dữ liệu từ G1/G2; không đợi cuối dự án mới phát hiện bất tương thích. 3D không thuộc các mốc này.
 
 ## 10. Nghiệm thu hiển thị và nghiệp vụ
 
-- Dùng model có trục lệch, tọa độ lớn, frame nghiêng, nhiều tầng trùng label, vách/cột, sàn có lỗ và nhiều tiết diện; đối chiếu với host thực.
+- Dùng model có trục lệch/xoay, tọa độ lớn, frame nghiêng, nhiều tầng trùng label, vách/cột, sàn có lỗ và nhiều tiết diện; đối chiếu Plan và Elevation với host thực. Bao gồm mặt phẳng chứa cấu kiện, cắt cấu kiện và dải chiếu sâu.
 - Giữ đúng world→screen→world, selection tolerance theo pixel, Windows DPI 100/125/150/200%, màn hình nhỏ và nhiều màn hình.
 - Kiểm tra palette trước/sau refresh, thứ tự đọc thay đổi, thêm property mới, đổi theme, mở lại profile và import preset model khác.
 - Kiểm tra đồng thời property color + hover + selection + draft + error; legend giải thích được và có ký hiệu ngoài màu.
@@ -297,6 +379,6 @@ Không đưa 3D vào các mốc này. Không trì hoãn khảo sát SAFE đến 
 
 1. Hai mockup PNG: layout chính và hộp màu/định dạng.
 2. Tài liệu mô tả nghiệp vụ ba nhóm tải, hợp đồng dữ liệu, định dạng và palette.
-3. Layout/VM/module map và mốc nghiệm thu để chuyển thành công việc phát triển.
+3. Layout/VM/module map, đặc tả Elevation ETABS, các mốc nghiệm thu và dự toán 50–85 ngày làm việc để chuyển thành công việc phát triển.
 
 Chưa có giao diện WPF chạy thực trong đợt lập kế hoạch này. Phiên bản SAFE, tiêu chuẩn gió và model đối chứng sẽ được xác minh/chốt ở mốc 0; không suy diễn từ ảnh tham khảo.
