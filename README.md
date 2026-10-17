@@ -5,6 +5,7 @@ Excel Add-in quản lý tải tường và tải sàn, trao đổi với ETABS v
 - [Build trên Windows, nạp XLL/plugin và checklist test](docs/BUILD-AND-TEST.md)
 - [Báo cáo thay đổi, kết quả kiểm tra và giới hạn](docs/CHANGE-REPORT.md)
 - [Viewer 2D Preview 1: thay đổi, cài Excel, kiểm thử và tiến độ Plan/Elevation/SAFE](docs/VIEWER-PREVIEW-1.md)
+- [Viewer 2D Preview 1.1: cập nhật giao diện Material Design và XLL mới](docs/VIEWER-PREVIEW-1.1.md)
 
 Đây là bản để kiểm thử: compile SDK không thay thế kiểm thử host. Tải gió và tạo sàn ảo từ vùng chữ nhật đang tạm khóa. Dùng model test; trước thao tác ghi QKS lưu model và tạo bản sao trong QKS_Backups.
 
