@@ -36,6 +36,14 @@ Chọn; quét Window/Crossing; pan; zoom; Fit all/Fit selection; Hiện tất c�
 
 Chuột trái chọn, Ctrl thêm/bớt, Esc hủy công cụ, chuột giữa pan, lăn chuột zoom quanh con trỏ. Quét trái→phải chọn đối tượng nằm hoàn toàn trong khung; phải→trái chọn giao cắt. Escape trong editor kết thúc nhập trước khi tác động tới viewport. Không bắt phím Delete/Undo của viewport khi người dùng đang sửa ô dữ liệu.
 
+### 1.4. Nhận diện QKS Navy — điều chỉnh theo yêu cầu
+
+- Headbar navy tối **#0B1F3A**; nút primary/tab active **#102A4C**, chữ/icon trắng.
+- Hover **#163D66**, pressed **#08172B**. Nút secondary nền trắng, chữ navy, viền mảnh; control checkbox/radio/slider dùng accent navy.
+- Nút hình chữ nhật, CornerRadius **3 DIP**, BorderThickness **1 DIP**, chiều cao chuẩn khoảng **38 DIP**. Input radius 3 DIP, panel tối đa 4 DIP; không dùng dạng pill hoặc bo lớn.
+- Nền nội dung vẫn sáng; vùng chọn điều hướng có tint **#E8EEF6**. Tông nhận diện không thay thế màu biểu diễn cấu kiện, tải trọng, selection hoặc cảnh báo.
+- Ảnh là mockup trực quan; mã màu/kích thước trong đặc tả và [design tokens](design-2d/qks-navy-tokens.json) là cơ sở triển khai chính xác. Chưa tích hợp theme này vào ứng dụng đang chạy.
+
 ## 2. Chức năng ba nhóm tải
 
 ### 2.1. Tải tường

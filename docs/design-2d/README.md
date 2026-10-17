@@ -1,6 +1,12 @@
-# Hình minh họa giao diện QKS 2D
+# Hình minh họa giao diện QKS 2D — QKS Navy
 
 Hai hình dưới là **bản thiết kế đề xuất**, chưa phải giao diện phần mềm đã triển khai. Dữ liệu mô hình trong ảnh chỉ để minh họa.
+
+## Template đã điều chỉnh
+
+Headbar navy tối #0B1F3A; nút chính/tab active #102A4C, chữ trắng; secondary trắng/viền navy. Nút giữ hình chữ nhật với CornerRadius 3 DIP. Màu mô hình và ký hiệu tải giữ ý nghĩa riêng. Đây là chỉnh sửa thiết kế minh họa, chưa áp theme vào add-in chạy thực.
+
+[Design tokens QKS Navy](qks-navy-tokens.json).
 
 ## 1. Bố cục cửa sổ WPF
 

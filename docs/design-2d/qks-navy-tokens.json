@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "name": "QKS Navy",
+  "status": "design-specification-only",
+  "colors": {
+    "headbar": "#0B1F3A",
+    "buttonPrimary": "#102A4C",
+    "buttonHover": "#163D66",
+    "buttonPressed": "#08172B",
+    "onPrimary": "#FFFFFF",
+    "buttonSecondaryBackground": "#FFFFFF",
+    "buttonSecondaryForeground": "#102A4C",
+    "buttonSecondaryBorder": "#102A4C",
+    "navigationSelection": "#E8EEF6",
+    "contentBackground": "#FFFFFF",
+    "panelBackground": "#F8FAFC",
+    "textPrimary": "#111827",
+    "inputBorder": "#B8C4D3"
+  },
+  "geometryDip": {
+    "buttonCornerRadius": 3,
+    "inputCornerRadius": 3,
+    "panelCornerRadius": 4,
+    "borderThickness": 1,
+    "buttonHeightDefault": 38
+  },
+  "rules": [
+    "Primary buttons and active tabs use navy.",
+    "Secondary buttons use white with navy text and outline.",
+    "Checkbox/radio/slider control accents use navy.",
+    "Property colors, load colors and interaction-state legends retain their semantic meaning.",
+    "No pill-shaped buttons; no oversized corner rounding."
+  ],
+  "implementationNote": "These tokens describe the proposed 2D UI. They are not wired into the current Excel add-in."
+}
