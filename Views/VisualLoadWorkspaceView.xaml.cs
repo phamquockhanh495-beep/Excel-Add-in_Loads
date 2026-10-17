@@ -23,10 +23,16 @@ namespace QksExcelAddIn.Views
         private CancellationTokenSource? cancellation;
         private bool closed;
         private Vec2? firstPlanePoint;
+        private bool displayVisible = true, editorVisible = true;
+        private int panelMode = -1, tableMode = -1;
         private static string ColorFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QKS", "Viewer", "property-colors.json");
         public VisualLoadWorkspaceView()
         {
             InitializeComponent(); DataContext = vm;
+            WorkspaceWindowPlacement.Attach(this);
+            SizeChanged += (_, __) => UpdateResponsiveLayout();
+            Loaded += (_, __) => UpdateResponsiveLayout();
+            StateChanged += (_, __) => MaximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
             Canvas.Picked += element => vm.SelectedElement = element;
             Canvas.PlanePointPicked += PlanePointPicked;
             vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(vm.Elevation) && vm.Elevation && Canvas.PickingPlanePoints) StopPlanePicking(); };
@@ -106,9 +112,7 @@ namespace QksExcelAddIn.Views
             try { operation(); }
             catch (Exception ex) { vm.Status = "Không cập nhật nháp: " + ex.GetBaseException().Message; }
         }
-        private void PutDraft_Click(object sender, RoutedEventArgs e) => TryDraft(() => { vm.SaveEditorToDraft(); WorkspaceTabs.SelectedItem = DraftTab; });
-        private void ResetDraftEditor_Click(object sender, RoutedEventArgs e) => vm.ResetDraftEditor();
-        private void DeleteDraft_Click(object sender, RoutedEventArgs e) => vm.DeleteDraft();
+        private void DraftCommitted(object sender, RoutedEventArgs e) { WorkspaceTabs.SelectedItem = DraftTab; e.Handled = true; }
         private void UndoDraft_Click(object sender, RoutedEventArgs e) => vm.UndoDraft();
         private void RedoDraft_Click(object sender, RoutedEventArgs e) => vm.RedoDraft();
         private void Draft_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -168,6 +172,39 @@ namespace QksExcelAddIn.Views
             if (Keyboard.FocusedElement is TextBoxBase || Keyboard.Modifiers != ModifierKeys.Control) return;
             if (e.Key == Key.Z) { vm.UndoDraft(); e.Handled = true; }
             if (e.Key == Key.Y) { vm.RedoDraft(); e.Handled = true; }
+        }
+        private void Minimize_Click(object sender,RoutedEventArgs e) => WindowState = WindowState.Minimized;
+        private void Maximize_Click(object sender,RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        private void Close_Click(object sender,RoutedEventArgs e) => Close();
+        private void UpdateResponsiveLayout()
+        {
+            if (ActualWidth <= 0 || ActualHeight <= 0) return;
+            int next = WorkspaceSize.PanelMode(ActualWidth);
+            if (next != panelMode) { panelMode = next; displayVisible = next == 2; editorVisible = next >= 1; }
+            int nextTable = ActualHeight < 500 ? 0 : ActualHeight < 680 ? 1 : 2;
+            if (nextTable != tableMode) { tableMode = nextTable; TableRow.Height = new GridLength(nextTable == 0 ? 100 : nextTable == 1 ? 140 : 180); }
+            ApplyPanels();
+        }
+        private void ApplyPanels()
+        {
+            DisplayPane.Visibility = displayVisible ? Visibility.Visible : Visibility.Collapsed;
+            EditorPane.Visibility = editorVisible ? Visibility.Visible : Visibility.Collapsed;
+            DisplayColumn.Width = new GridLength(displayVisible ? (panelMode == 2 ? 200 : 190) : 0);
+            DisplayGap.Width = new GridLength(displayVisible ? 6 : 0);
+            EditorColumn.Width = new GridLength(editorVisible ? (panelMode == 2 ? 285 : 270) : 0);
+            EditorGap.Width = new GridLength(editorVisible ? 6 : 0);
+        }
+        private void ToggleDisplay_Click(object sender,RoutedEventArgs e)
+        {
+            displayVisible = !displayVisible;
+            if (displayVisible && panelMode < 2) editorVisible = false;
+            ApplyPanels(); Dispatcher.BeginInvoke(new Action(Canvas.Fit));
+        }
+        private void ToggleEditor_Click(object sender,RoutedEventArgs e)
+        {
+            editorVisible = !editorVisible;
+            if (editorVisible && panelMode < 2) displayVisible = false;
+            ApplyPanels(); Dispatcher.BeginInvoke(new Action(Canvas.Fit));
         }
     }
 }

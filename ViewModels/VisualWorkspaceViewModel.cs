@@ -17,14 +17,16 @@ namespace QksExcelAddIn.ViewModels
         public IReadOnlyList<ProjectedElement> Scene { get; private set; } = Array.Empty<ProjectedElement>();
         public IReadOnlyList<ModelElement> VisibleElements { get; private set; } = Array.Empty<ModelElement>();
         public IReadOnlyList<ModelLevel> Levels { get; private set; } = Array.Empty<ModelLevel>();
-        public IEnumerable<ExistingLoad> VisibleLoads => Snapshot?.Loads.Where(l => SelectedElement == null || l.ElementId == SelectedElement.Id) ?? Enumerable.Empty<ExistingLoad>();
-        public string[] Kinds { get; } = new[] { "Tất cả" }.Concat(Enum.GetNames(typeof(ElementKind))).ToArray();
+        public IReadOnlyList<ModelElement> DisplayElements { get; private set; } = Array.Empty<ModelElement>();
+        private HashSet<string> displayIds = new HashSet<string>(StringComparer.Ordinal);
+        public IEnumerable<ExistingLoad> VisibleLoads => Snapshot?.Loads.Where(l => displayIds.Contains(l.ElementId) && (SelectedElement == null || l.ElementId == SelectedElement.Id)) ?? Enumerable.Empty<ExistingLoad>();
+        public string[] Kinds { get; } = new[] { "Tất cả" }.Concat(Enum.GetNames(typeof(ElementKind)).Where(k => k != nameof(ElementKind.Column))).ToArray();
         private string status = "Dùng Kết nối API chọn ETABS, sau đó Đọc mô hình. SAFE 18–22 đang chờ kiểm chứng API.";
         public string Status { get => status; set { status = value; Changed(); } }
         public string SourceText { get; private set; } = "Chưa có snapshot";
         public string Diagnostics => Snapshot == null ? "Chưa đọc dữ liệu." : string.Join(Environment.NewLine + Environment.NewLine, Snapshot.Diagnostics);
         public bool HasOpenings => Snapshot?.Elements.Any(e => e.Kind == ElementKind.Opening) == true;
-        public string Counts => Scene.Count + "/" + (Snapshot?.Elements.Count ?? 0) + " đối tượng · " + (Snapshot?.Loads.Count ?? 0) + " bản ghi tải đã đọc · m / kN";
+        public string Counts => Scene.Count + "/" + DisplayElements.Count + " đối tượng · " + (Snapshot?.Loads.Count(l => displayIds.Contains(l.ElementId)) ?? 0) + " tải · m/kN";
         private bool busy;
         public bool Busy { get => busy; set { busy = value; Changed(); Changed(nameof(CanRead)); Changed(nameof(CanEditDraft)); Changed(nameof(CanUndoDraft)); Changed(nameof(CanRedoDraft)); Changed(nameof(CanDeleteDraft)); } }
         public bool CanRead => !Busy;
@@ -39,7 +41,7 @@ namespace QksExcelAddIn.ViewModels
         public string Angle { get; set; } = "0";
         public string HalfDepth { get; set; } = "0.15";
         private string kind = "Tất cả", search = "";
-        public string Kind { get => kind; set { kind = value; Changed(); Refresh(); } }
+        public string Kind { get => kind; set { kind = Kinds.Contains(value) ? value : "Tất cả"; Changed(); Refresh(); } }
         public string Search { get => search; set { search = value; Changed(); Refresh(); } }
         public bool ShowLabels { get; set; } = true;
         public bool ShowDraftValues { get; set; } = true;
@@ -51,6 +53,7 @@ namespace QksExcelAddIn.ViewModels
         public ModelElement? SelectedElement {
             get => selected;
             set {
+                if (value?.Kind == ElementKind.Column) value = null;
                 if (ReferenceEquals(selected, value)) return;
                 selected = value; Changed(); Changed(nameof(VisibleLoads)); Changed(nameof(SelectedId)); Changed(nameof(PropertyKey)); Changed(nameof(Inspector));
                 PropertyColor = value == null ? "#2563EB" : ColorOverrides.TryGetValue(PropertyKey, out var c) ? c : PropertyColors.ForProperty(PropertyKey);
@@ -67,6 +70,8 @@ namespace QksExcelAddIn.ViewModels
         public void SetSnapshot(ModelSnapshot? snapshot, bool offline)
         {
             snapshot?.Validate(); Snapshot = snapshot;
+            DisplayElements = snapshot?.Elements.Where(e => e.Kind != ElementKind.Column).ToArray() ?? Array.Empty<ModelElement>();
+            displayIds = new HashSet<string>(DisplayElements.Select(e => e.Id), StringComparer.Ordinal);
             Levels = snapshot?.Levels ?? Array.Empty<ModelLevel>();
             level = Levels.LastOrDefault(); SelectedElement = null;
             OnSnapshotChanged(snapshot);
@@ -84,7 +89,7 @@ namespace QksExcelAddIn.ViewModels
                 double depth = Parse(HalfDepth);
                 var plane = Elevation ? ViewPlane.Elevation(Parse(OriginX), Parse(OriginY), Parse(Angle), depth, Reverse) : ViewPlane.Plan(Level?.Elevation ?? 0, depth);
                 var scene = new List<ProjectedElement>();
-                foreach (var element in Snapshot?.Elements ?? Array.Empty<ModelElement>()) {
+                foreach (var element in DisplayElements) {
                     if (Kind != "Tất cả" && element.Kind.ToString() != Kind) continue;
                     if (!string.IsNullOrWhiteSpace(Search) && (element.Id + " " + element.Label + " " + element.Property + " " + element.Story).IndexOf(Search, StringComparison.OrdinalIgnoreCase) < 0) continue;
                     var projected = Projection.Build(element, plane); if (projected != null) scene.Add(projected);

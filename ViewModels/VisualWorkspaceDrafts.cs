@@ -16,7 +16,7 @@ namespace QksExcelAddIn.ViewModels
         public IReadOnlyList<DraftLoad> DraftRows => Drafts?.Loads ?? Array.Empty<DraftLoad>();
         public IReadOnlyList<string> AvailablePatterns => Snapshot?.LoadPatterns ?? Array.Empty<string>();
         public IReadOnlyList<DraftOverlay> DraftOverlays { get; private set; } = Array.Empty<DraftOverlay>();
-        public IEnumerable<LoadComparison> ComparisonRows => DraftContextActive ? Drafts!.Compare().Where(r => SelectedElement == null || r.Load.ElementId == SelectedId) : Enumerable.Empty<LoadComparison>();
+        public IEnumerable<LoadComparison> ComparisonRows => DraftContextActive ? Drafts!.Compare().Where(r => displayIds.Contains(r.Load.ElementId) && (SelectedElement == null || r.Load.ElementId == SelectedId)) : Enumerable.Empty<LoadComparison>();
         public string DraftStatus => Drafts == null ? "Chưa có bộ nháp." : DraftRows.Count + " dòng · " + (Drafts.IsDirty ? "chưa lưu" : "đã lưu/không đổi") +
             (DraftContextActive ? " · gắn snapshot hiện tại" : " · TÁCH KHỎI SNAPSHOT (vẫn lưu được)");
         public bool CanUndoDraft => !Busy && DraftContextActive && Drafts!.CanUndo;
@@ -24,7 +24,7 @@ namespace QksExcelAddIn.ViewModels
         public bool CanDeleteDraft => !Busy && DraftContextActive && editingId != null;
         public bool CanEditDraft => !Busy && DraftContextActive && (draftModuleIndex == 0 ? SelectedElement?.Kind == ElementKind.Beam : draftModuleIndex == 1 && SelectedElement?.Kind == ElementKind.Slab);
         public bool WallInputsEnabled => draftModuleIndex == 0;
-        public string DraftValueLabel => draftModuleIndex == 0 ? "q1 / q2 (kN/m); bỏ trống q2 = q1" : "p (kN/m²); dùng ô đầu cho tải uniform";
+        public string DraftValueLabel => draftModuleIndex == 0 ? "q1 / q2 (kN/m); q2 trống = q1" : draftModuleIndex == 1 ? "p (kN/m²)" : "";
         public string EditorCaption => editingId == null ? "Thêm vào nháp" : "Cập nhật dòng nháp";
         public string EditorTarget => SelectedElement == null ? "Chọn dầm/sàn trên hình hoặc bảng." : "Đích: " + SelectedElement.Id + (VisibleElements.Any(e => e.Id == SelectedId) ? "" : " · ngoài vùng xem");
         public string[] DraftDirections { get; } = { "Gravity", "Global-X", "Global-Y", "Global-Z" };
@@ -40,7 +40,7 @@ namespace QksExcelAddIn.ViewModels
         private int draftModuleIndex;
         public int DraftModuleIndex {
             get => draftModuleIndex;
-            set { if (draftModuleIndex == value) return; draftModuleIndex = value; editingId = null; NotifyDraftEditor(); }
+            set { int next = value >= 0 && value <= 2 ? value : 0; if (draftModuleIndex == next) return; draftModuleIndex = next; editingId = null; NotifyDraftEditor(); }
         }
         private void OnSnapshotChanged(ModelSnapshot? snapshot)
         {
@@ -52,8 +52,10 @@ namespace QksExcelAddIn.ViewModels
         private void OnSelectionChanged()
         {
             editingId = null;
-            if (SelectedElement?.Kind == ElementKind.Slab) draftModuleIndex = 1;
-            else if (SelectedElement?.Kind == ElementKind.Beam) draftModuleIndex = 0;
+            if (draftModuleIndex < 2) {
+                if (SelectedElement?.Kind == ElementKind.Slab) draftModuleIndex = 1;
+                else if (SelectedElement?.Kind == ElementKind.Beam) draftModuleIndex = 0;
+            }
             DraftStartMetres = "0"; DraftEndMetres = (SelectedElement?.Length3D ?? 0).ToString("R", CultureInfo.InvariantCulture);
             NotifyDraftEditor(); Changed(nameof(ComparisonRows));
         }

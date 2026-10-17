@@ -52,7 +52,7 @@ internal static partial class Program
             vm.Elevation = true; Assert(vm.SelectedId == e.Id && vm.Scene.Single().Source.Id == e.Id);
             vm.Reverse = true; Assert(vm.SelectedId == e.Id); vm.Elevation = false; Assert(vm.Scene.Single().Source.Id == e.Id);
         });
-        Check("viewer: search and kind filters", () => { var vm = new VisualWorkspaceViewModel(); vm.SetSnapshot(Snapshot(Frame(new Vec3(0,0,3),new Vec3(4,0,3))),false); vm.Search = "b200"; Assert(vm.Scene.Count == 1); vm.Kind = "Column"; Assert(vm.Scene.Count == 0); vm.Kind = "Tất cả"; vm.Search = "missing"; Assert(vm.Scene.Count == 0); });
+        Check("viewer: search and kind filters", () => { var vm = new VisualWorkspaceViewModel(); vm.SetSnapshot(Snapshot(Frame(new Vec3(0,0,3),new Vec3(4,0,3))),false); vm.Search = "b200"; Assert(vm.Scene.Count == 1); vm.Kind = "Slab"; Assert(vm.Scene.Count == 0); vm.Kind = "Tất cả"; vm.Search = "missing"; Assert(vm.Scene.Count == 0); });
         Check("viewer: invalid view input reports error", () => { var vm = new VisualWorkspaceViewModel(); vm.HalfDepth = "NaN"; vm.Refresh(); Assert(vm.Status.StartsWith("Không cập nhật hình:")); });
         Check("viewer: explicit offline provenance", () => { var vm = new VisualWorkspaceViewModel(); vm.SetSnapshot(Snapshot(Frame(new Vec3(0,0,3),new Vec3(4,0,3))),true); Assert(vm.SourceText.StartsWith("OFFLINE ·")); });
         Check("viewer: source invalidation clears selection and geometry", () => { var e = Frame(new Vec3(0,0,3),new Vec3(4,0,3)); var vm = new VisualWorkspaceViewModel(); vm.SetSnapshot(Snapshot(e),false); vm.SelectedElement = e; vm.SetSnapshot(null,false); Assert(vm.Scene.Count == 0 && vm.SelectedId == "" && !vm.VisibleLoads.Any()); });

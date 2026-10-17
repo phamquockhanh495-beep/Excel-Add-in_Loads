@@ -5,6 +5,7 @@
         <!-- Use the same QKS Material Design resources as WallLoadView / ShellLoadView. -->
         <ResourceDictionary Source="pack://application:,,,/QksExcelAddIn;component/MaterialDesignResources.xaml"/>
     </ResourceDictionary.MergedDictionaries>
+    <BooleanToVisibilityConverter x:Key="BoolVisible"/>
 
     <!-- Scoped to this viewer so the existing load windows keep their own formatting. -->
     <SolidColorBrush x:Key="MaterialDesign.Brush.Primary" Color="#102A4C"/>
@@ -22,13 +23,13 @@
         <Setter Property="BorderBrush" Value="#163D66"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="FontFamily" Value="Segoe UI"/>
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Height" Value="38"/>
-        <Setter Property="Padding" Value="12,0"/>
-        <Setter Property="Margin" Value="3"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="Height" Value="30"/>
+        <Setter Property="Padding" Value="8,0"/>
+        <Setter Property="Margin" Value="2"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="3"/>
-        <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp2"/>
+        <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp1"/>
         <Setter Property="materialDesign:RippleAssist.ClipToBounds" Value="True"/>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#163D66"/></Trigger>
@@ -39,9 +40,9 @@
     <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBox}">
         <Setter Property="Foreground" Value="#0F2240"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="MinHeight" Value="30"/>
-        <Setter Property="Padding" Value="4,3"/>
-        <Setter Property="Margin" Value="0,3"/>
+        <Setter Property="MinHeight" Value="26"/>
+        <Setter Property="Padding" Value="4,1"/>
+        <Setter Property="Margin" Value="0,2"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
 
@@ -54,8 +55,8 @@
     <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignComboBox}">
         <Setter Property="Foreground" Value="#0F2240"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="MinHeight" Value="32"/>
-        <Setter Property="Margin" Value="0,4"/>
+        <Setter Property="MinHeight" Value="28"/>
+        <Setter Property="Margin" Value="0,3"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="ItemContainerStyle" Value="{StaticResource QksWorkspaceComboBoxItem}"/>
@@ -78,23 +79,22 @@
     <Style TargetType="RadioButton" BasedOn="{StaticResource MaterialDesignRadioButton}">
         <Setter Property="Foreground" Value="#0F2240"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Margin" Value="0,6,14,6"/>
+        <Setter Property="Margin" Value="0,4,10,4"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
     <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
         <Setter Property="Foreground" Value="#0F2240"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Margin" Value="0,6"/>
+        <Setter Property="Margin" Value="0,4"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
 
-    <Style x:Key="QksWorkspaceTabItem" TargetType="TabItem" BasedOn="{StaticResource MaterialDesignTabItem}">
-        <Setter Property="Height" Value="38"/>
-        <Setter Property="MinWidth" Value="0"/>
-        <Setter Property="Padding" Value="10,6"/>
-        <Setter Property="FontSize" Value="12"/>
+    <Style x:Key="QksWorkspaceTabItem" TargetType="TabItem" BasedOn="{StaticResource QksBeamTabItemStyle}">
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="FontSize" Value="11.5"/>
     </Style>
-    <Style TargetType="TabControl" BasedOn="{StaticResource MaterialDesignTabControl}">
+    <Style TargetType="TabControl" BasedOn="{StaticResource QksBeamTabControlStyle}">
+        <Setter Property="Background" Value="White"/>
         <Setter Property="Foreground" Value="#0F2240"/>
         <Setter Property="ItemContainerStyle" Value="{StaticResource QksWorkspaceTabItem}"/>
     </Style>
@@ -106,7 +106,7 @@
         <Setter Property="EnableRowVirtualization" Value="True"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Foreground" Value="#0F2240"/>
-        <Setter Property="RowHeight" Value="30"/>
+        <Setter Property="RowHeight" Value="26"/>
         <Setter Property="HeadersVisibility" Value="Column"/>
         <Setter Property="BorderBrush" Value="#CBD5E1"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -118,6 +118,16 @@
         <Setter Property="BorderBrush" Value="#CBD5E1"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="4"/>
-        <Setter Property="Padding" Value="12"/>
+        <Setter Property="Padding" Value="9"/>
+    </Style>
+    <Style x:Key="QksTitleBarButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
+        <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/><Setter Property="Width" Value="34"/><Setter Property="Height" Value="36"/>
+        <Setter Property="MinWidth" Value="0"/><Setter Property="Margin" Value="0"/><Setter Property="Padding" Value="0"/>
+        <Setter Property="FontSize" Value="16"/><Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="0"/>
+        <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#163D66"/></Trigger></Style.Triggers>
+    </Style>
+    <Style x:Key="QksTitleBarCloseButton" TargetType="Button" BasedOn="{StaticResource QksTitleBarButton}">
+        <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#DC3232"/></Trigger></Style.Triggers>
     </Style>
 </ResourceDictionary>
