@@ -1,6 +1,18 @@
 # Hình minh họa giao diện QKS 2D — QKS Navy
 
-Hai hình dưới là **bản thiết kế đề xuất**, chưa phải giao diện phần mềm đã triển khai. Dữ liệu mô hình trong ảnh chỉ để minh họa. Ảnh hiện thể hiện Plan; Elevation ETABS đã được bổ sung vào kế hoạch, chưa có mockup hoặc chức năng chạy thực.
+## Bố cục sau cập nhật Preview 2.1
+
+Ảnh dưới là **ảnh minh họa được tạo bằng AI theo bố cục XAML Preview 2.1**, không phải ảnh chụp WPF đang chạy. Mô hình Roof và tải trong ảnh là dữ liệu minh họa; hình học, chữ và khoảng cách có thể khác khi chạy trên Windows.
+
+![Minh họa bố cục QKS 2D Preview 2.1](03-preview-2.1-layout-illustration.png)
+
+[Mở hoặc tải PNG gốc](03-preview-2.1-layout-illustration.png).
+
+Ảnh thể hiện headbar navy gọn chỉ giữ nút cửa sổ; tác vụ kết nối chuyển sang panel trái; tab Dầm/Tường, Sàn, Gió dùng kiểu QKS; bảng không hiển thị cột; bố cục ba vùng và bảng dưới được thu gọn. Gió và adapter SAFE vẫn đang phát triển. [Chi tiết thay đổi, kết quả build/test và giới hạn kiểm tra Windows](../VIEWER-PREVIEW-2.1.md).
+
+## Bản thiết kế ban đầu
+
+Hai ảnh 01/02 bên dưới là **bản thiết kế đề xuất ở giai đoạn lập kế hoạch**. Mô tả ở phần này ghi lại thiết kế tại thời điểm đó, không thay thế trạng thái triển khai trong báo cáo Preview 2.1. Dữ liệu mô hình chỉ để minh họa; hai ảnh thể hiện Plan.
 
 ## Template đã điều chỉnh
 
