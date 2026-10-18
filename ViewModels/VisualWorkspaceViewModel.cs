@@ -19,16 +19,16 @@ namespace QksExcelAddIn.ViewModels
         public IReadOnlyList<ModelLevel> Levels { get; private set; } = Array.Empty<ModelLevel>();
         public IReadOnlyList<ModelElement> DisplayElements { get; private set; } = Array.Empty<ModelElement>();
         private HashSet<string> displayIds = new HashSet<string>(StringComparer.Ordinal);
-        public IEnumerable<ExistingLoad> VisibleLoads => Snapshot?.Loads.Where(l => displayIds.Contains(l.ElementId) && (SelectedIds.Count == 0 || selectedIdSet.Contains(l.ElementId))) ?? Enumerable.Empty<ExistingLoad>();
+        public IEnumerable<ExistingLoad> VisibleLoads => Snapshot?.Loads.Where(l => displayIds.Contains(l.ElementId) && !workspaceRemovedIds.Contains(l.ElementId) && (SelectedIds.Count == 0 || selectedIdSet.Contains(l.ElementId))) ?? Enumerable.Empty<ExistingLoad>();
         public string[] Kinds { get; } = new[] { "Tất cả" }.Concat(Enum.GetNames(typeof(ElementKind)).Where(k => k != nameof(ElementKind.Column))).ToArray();
-        private string status = "Dùng Kết nối API chọn ETABS, sau đó Đọc mô hình. SAFE 18–22 đang chờ kiểm chứng API.";
+        private string status = "Kết nối API rồi mở workspace để tự đọc ETABS. SAFE 18–22 đang chờ kiểm chứng API.";
         public string Status { get => status; set { status = value; Changed(); } }
         public string SourceText { get; private set; } = "Chưa có snapshot";
         public string Diagnostics => Snapshot == null ? "Chưa đọc dữ liệu." : string.Join(Environment.NewLine + Environment.NewLine, Snapshot.Diagnostics);
         public bool HasOpenings => Snapshot?.Elements.Any(e => e.Kind == ElementKind.Opening) == true;
         public string Counts => Scene.Count + "/" + DisplayElements.Count + " đối tượng · chọn " + SelectedIds.Count + " · " + (Snapshot?.Loads.Count(l => displayIds.Contains(l.ElementId)) ?? 0) + " tải · m/kN";
         private bool busy;
-        public bool Busy { get => busy; set { busy = value; Changed(); Changed(nameof(CanRead)); Changed(nameof(CanEditDraft)); Changed(nameof(CanUndoDraft)); Changed(nameof(CanRedoDraft)); Changed(nameof(CanDeleteDraft)); NotifyApply(); NotifyWind(); } }
+        public bool Busy { get => busy; set { busy = value; Changed(); Changed(nameof(CanRead)); Changed(nameof(CanEditDraft)); Changed(nameof(CanUndoDraft)); Changed(nameof(CanRedoDraft)); Changed(nameof(CanDeleteDraft)); NotifyWorkspaceVisibility(); NotifyApply(); NotifyWind(); } }
         public bool CanRead => !Busy;
         private ModelLevel? level;
         public ModelLevel? Level { get => level; set { level = value; Changed(); Refresh(); } }
@@ -59,7 +59,7 @@ namespace QksExcelAddIn.ViewModels
             }
         }
         public string SelectedId => SelectedElement?.Id ?? "";
-        public string Inspector => SelectedElements.Count>1?"Đã chọn "+SelectedElements.Count+" cấu kiện.\n"+string.Join("\n",SelectedElements.Take(12).Select(e=>e.Name+" · "+e.Label+" · "+e.Story))+"\nChọn một cấu kiện để soạn tải riêng.":SelectedElement == null ? "Quét trái → phải: chọn trọn. Phải → trái: chọn giao.\nCtrl + click: thêm/bỏ. Delete: hủy chọn. Alt + click: đổi đối tượng chồng nhau." :
+        public string Inspector => SelectedElements.Count>1?"Đã chọn "+SelectedElements.Count+" cấu kiện.\n"+string.Join("\n",SelectedElements.Take(12).Select(e=>e.Name+" · "+e.Label+" · "+e.Story))+"\nChọn một cấu kiện để soạn tải riêng.":SelectedElement == null ? "Quét trái → phải: chọn trọn. Phải → trái: chọn giao.\nCtrl + click: thêm/bỏ. Delete: bỏ khỏi workspace; Khôi phục để hiện lại. Alt + click: đổi đối tượng chồng nhau." :
             "Unique ID: " + SelectedElement.Name + "\nLabel: " + SelectedElement.Label + "\nStory: " + SelectedElement.Story + "\nType: " + SelectedElement.Kind +
             "\nProperty: " + SelectedElement.Property + "\nL 3D: " + (SelectedElement.Length3D?.ToString("0.###") ?? "N/A") + " m" +
             "\nLocal angle: " + (SelectedElement.LocalAxisDegrees?.ToString("0.###") ?? "N/A") + "°" + (SelectedElement.AdvancedLocalAxes ? " (advanced)" : "") +
@@ -67,6 +67,7 @@ namespace QksExcelAddIn.ViewModels
         public void SetSnapshot(ModelSnapshot? snapshot, bool offline)
         {
             snapshot?.Validate(); Snapshot = snapshot; Offline = offline; applyNeedsRead = false;
+            workspaceRemovedIds.Clear();NotifyWorkspaceVisibility();
             DisplayElements = snapshot?.Elements.Where(e => e.Kind != ElementKind.Column).ToArray() ?? Array.Empty<ModelElement>();
             displayIds = new HashSet<string>(DisplayElements.Select(e => e.Id), StringComparer.Ordinal);
             displayById=DisplayElements.ToDictionary(e=>e.Id,StringComparer.Ordinal);
@@ -89,6 +90,7 @@ namespace QksExcelAddIn.ViewModels
                 var plane = Elevation ? ViewPlane.Elevation(Parse(OriginX), Parse(OriginY), Parse(Angle), depth, Reverse) : ViewPlane.Plan(Level?.Elevation ?? 0, depth);
                 var scene = new List<ProjectedElement>();
                 foreach (var element in DisplayElements) {
+                    if (workspaceRemovedIds.Contains(element.Id)) continue;
                     if (Kind != "Tất cả" && element.Kind.ToString() != Kind) continue;
                     if (!string.IsNullOrWhiteSpace(Search) && (element.Id + " " + element.Label + " " + element.Property + " " + element.Story).IndexOf(Search, StringComparison.OrdinalIgnoreCase) < 0) continue;
                     var projected = Projection.Build(element, plane); if (projected != null) scene.Add(projected);

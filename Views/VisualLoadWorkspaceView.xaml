@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:viewer="clr-namespace:QksExcelAddIn.Views.Controls"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        Title="QKS · Không gian tải trọng 2D · Preview 4" Width="1180" Height="740" MinWidth="640" MinHeight="360"
+        Title="QKS · Không gian tải trọng 2D · Preview 5" Width="1180" Height="740" MinWidth="640" MinHeight="360"
         WindowStyle="None" ResizeMode="CanResize" Background="#F8FAFC" Foreground="#0F2240"
         FontFamily="Segoe UI" FontSize="11.5" FontWeight="Normal" WindowStartupLocation="CenterScreen"
         Icon="pack://application:,,,/QksExcelAddIn;component/Resources/excel.ico">
@@ -28,7 +28,7 @@
                 <TextBlock Text="QKS" Foreground="#38BDF8" FontWeight="Bold"/>
                 <TextBlock Text="  |  " Foreground="#64748B"/>
             </StackPanel>
-            <TextBlock Grid.Column="1" Text="KHÔNG GIAN TẢI TRỌNG 2D · PREVIEW 4" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Grid.Column="1" Text="KHÔNG GIAN TẢI TRỌNG 2D · PREVIEW 5" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             <StackPanel Grid.Column="2" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
                 <Button Content="—" Style="{StaticResource QksTitleBarButton}" ToolTip="Thu nhỏ" Click="Minimize_Click"/>
                 <Button x:Name="MaximizeButton" Content="□" Style="{StaticResource QksTitleBarButton}" ToolTip="Phóng to / Khôi phục" Click="Maximize_Click"/>
@@ -39,7 +39,7 @@
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid IsEnabled="{Binding CanRead}"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="230"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <TextBlock Text="File tính:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                <TextBlock x:Name="ConnectedFileText" Grid.Column="1" Text="Chưa chọn mô hình" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
+                <TextBlock x:Name="ConnectedFileText" Grid.Column="1" Text="Chưa chọn file Excel" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
                 <TextBlock Grid.Column="2" Text="Mô hình kết nối:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <ComboBox x:Name="ConnectedModelBox" Grid.Column="3" DisplayMemberPath="WorkspaceDisplay" DropDownOpened="ModelList_Opened" SelectionChanged="ModelList_Changed" ToolTip="Mở danh sách để quét ETABS đang chạy; chọn mô hình rồi Đọc lại."/>
             </Grid>
@@ -65,10 +65,10 @@
                 <TextBlock Text="LỚP &amp; HIỂN THỊ" FontWeight="SemiBold"/>
                 <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}"/>
                 <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tìm ID, label, story hoặc property"/>
-                <CheckBox Content="Label cấu kiện" IsChecked="{Binding ShowLabels}" Click="Style_Click" ToolTip="Tối đa 500 label trong vùng nhìn"/>
+                <CheckBox Content="Label cấu kiện" IsChecked="{Binding ShowLabels}" Click="Style_Click" ToolTip="Hiện nhãn cấu kiện trong vùng nhìn; dầm xoay chữ theo hướng trục, giữ cỡ chữ khi zoom."/>
                 <CheckBox Content="Section / Property" IsChecked="{Binding ShowSections}" Click="Style_Click"/>
                 <CheckBox Content="UniqueName" IsChecked="{Binding ShowUniqueNames}" Click="Style_Click"/>
-                <CheckBox Content="Giá trị tải nháp" IsChecked="{Binding ShowDraftValues}" Click="Style_Click" ToolTip="Tối đa 200 label tải nháp"/>
+                <CheckBox Content="Giá trị tải nháp" IsChecked="{Binding ShowDraftValues}" Click="Style_Click" ToolTip="Hiện giá trị tải nháp trong vùng nhìn, giữ cỡ chữ khi zoom."/>
                 <CheckBox Content="Màu theo property" IsChecked="{Binding ColorByProperty}" Click="Style_Click"/>
                 <TextBlock Text="Dầm: xanh · Sàn: teal · Vách: tím · Chọn: cam" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
                 <Expander Header="File snapshot" Margin="0,6"><StackPanel IsEnabled="{Binding CanRead}">
@@ -82,6 +82,8 @@
                     <Button Content="Hiển thị" Click="ToggleDisplay_Click" ToolTip="Ẩn / hiện panel hiển thị"/>
                     <Button Content="Tải / thuộc tính" Click="ToggleEditor_Click" ToolTip="Ẩn / hiện panel tải và thuộc tính"/>
                     <Button Content="Vừa khung" Click="Fit_Click"/>
+                    <Button Content="Delete" Click="RemoveSelection_Click" IsEnabled="{Binding CanRemoveFromWorkspace}" ToolTip="Bỏ cấu kiện đang chọn khỏi workspace 2D. Không xóa trong ETABS và không xóa tải/nháp."/>
+                    <Button Content="Khôi phục" Click="RestoreWorkspace_Click" IsEnabled="{Binding CanRestoreWorkspace}" ToolTip="Hiện lại toàn bộ cấu kiện đã bỏ khỏi workspace."/>
                     <TextBlock Text="{Binding Counts}" Margin="6,7,0,3" MaxWidth="240" TextTrimming="CharacterEllipsis" ToolTip="{Binding Counts}"/>
                 </WrapPanel>
                 <Border Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"><viewer:StructuralCanvas x:Name="Canvas" Items="{Binding Scene}" SelectedId="{Binding SelectedId}" SelectedIds="{Binding SelectedIds}" ShowLabels="{Binding ShowLabels}" ShowSections="{Binding ShowSections}" ShowUniqueNames="{Binding ShowUniqueNames}" Elevation="{Binding Elevation}" Levels="{Binding Levels}" HasOpenings="{Binding HasOpenings}" ColorByProperty="{Binding ColorByProperty}" ColorOverrides="{Binding ColorOverrides}" DraftOverlays="{Binding DraftOverlays}" ShowDraftValues="{Binding ShowDraftValues}"/></Border>
@@ -153,10 +155,13 @@
                 <Button Content="Kiểm tra và Apply ETABS" Click="Apply_Click" IsEnabled="{Binding CanApply}"/>
                 <TextBlock Text="{Binding ApplySummary}" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
                 <Button Content="Lưu báo cáo Apply" Click="SaveApplyReport_Click" IsEnabled="{Binding CanRead}"/>
-                <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Quét trái/phải: chọn trọn/giao · Ctrl + click: thêm/bỏ · Delete: hủy chọn · Alt + click: đổi đối tượng chồng nhau" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
+                <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Quét trái/phải: chọn trọn/giao · Ctrl + click: thêm/bỏ · Delete: bỏ khỏi workspace · Khôi phục: hiện lại · Alt + click: đổi đối tượng chồng nhau" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
             </StackPanel></ScrollViewer></Border>
         </Grid>
-        <Border Grid.Row="3" Background="#0F2240" Padding="8,4"><TextBlock Text="{Binding Status}" Foreground="White" FontSize="10.5" TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}"/></Border>
+        <Border Grid.Row="3" Background="#0F2240" Padding="8,4"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding SelectionSummary}" Foreground="#7DD3FC" FontSize="10.5" TextTrimming="CharacterEllipsis" ToolTip="{Binding Inspector}" Margin="0,0,12,0"/>
+            <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="White" FontSize="10.5" TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}"/>
+        </Grid></Border>
     </Grid>
     </Border>
 </Window>

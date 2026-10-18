@@ -33,7 +33,7 @@ namespace QksExcelAddIn.Views
             InitializeComponent(); DataContext = vm;
             WorkspaceWindowPlacement.Attach(this);
             SizeChanged += (_, __) => UpdateResponsiveLayout();
-            Loaded += (_, __) => { UpdateResponsiveLayout(); RefreshModelList(false); };
+            Loaded += (_, __) => { UpdateResponsiveLayout(); SynchronizeConnection(); };
             StateChanged += (_, __) => MaximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
             Canvas.SelectionRequested += (ids, change) => vm.SelectElements(ids, change);
             Canvas.PlanePointPicked += PlanePointPicked;
@@ -41,6 +41,7 @@ namespace QksExcelAddIn.Views
                 if (e.PropertyName == nameof(vm.Elevation) && vm.Elevation && Canvas.PickingPlanePoints) StopPlanePicking();
                 if (e.PropertyName == nameof(vm.Scene)) { syncingSelection = true; ScheduleSelectionSync(); }
                 if (e.PropertyName == nameof(vm.SelectedIds) || e.PropertyName == nameof(vm.VisibleElements)) ScheduleSelectionSync();
+                if (e.PropertyName == nameof(vm.Busy) && !vm.Busy) ScheduleConnectedRead();
             };
             PreviewKeyDown += Window_KeyDown;
             Closing += (_, e) => { if (vm.Busy) { e.Cancel = true; vm.Status = "Chờ tác vụ kết thúc hoặc Hủy đọc trước khi đóng."; } else if (!CommitWindGrid() || !SavePendingDrafts()) e.Cancel = true; };
@@ -54,26 +55,15 @@ namespace QksExcelAddIn.Views
                 }
             } catch (Exception ex) { vm.Status = "Không đọc được profile màu: " + ex.Message; }
         }
-        private void ConnectionChanged() => Dispatcher.BeginInvoke(new Action(() => {
-            if (closed) return;
-            StopPlanePicking();
-            cancellation?.Cancel(); vm.SetSnapshot(null, false); vm.Status = "Kết nối đã đổi. Hãy Đọc mô hình để lấy dữ liệu mới.";
-            RefreshModelList(false);
-        }));
         private void Connect_Click(object sender, RoutedEventArgs e) => new GetApiView().Show();
         private async void Read_Click(object sender, RoutedEventArgs e)
         {
             if (vm.Busy) return;
-            StopPlanePicking();
-            vm.SetSnapshot(null, false); vm.Busy = true; cancellation = new CancellationTokenSource();
-            try {
-                var snapshot = await new EtabsSnapshotReader().ReadAsync(message => vm.Status = message, cancellation.Token);
-                if (!closed) { vm.SetSnapshot(snapshot, false); Canvas.Fit(); }
-            } catch (OperationCanceledException) { vm.Status = "Đã hủy đọc; chưa tạo snapshot mới."; }
-            catch (Exception ex) { vm.Status = "Đọc không thành công: " + ex.GetBaseException().Message; }
-            finally { cancellation.Dispose(); cancellation = null; vm.Busy = false; }
+            SynchronizeConnection(false);readLifecycle.Request();
+            if (!readLifecycle.Pending) { vm.Status="Chọn ETABS trong Kết nối API trước khi đọc.";return; }
+            await ReadConnectedModelAsync();
         }
-        private void Cancel_Click(object sender, RoutedEventArgs e) => cancellation?.Cancel();
+        private void Cancel_Click(object sender, RoutedEventArgs e) { readLifecycle.CancelPending();cancellation?.Cancel(); }
         private async void Apply_Click(object sender, RoutedEventArgs e)
         {
             if (!vm.CanApply || !await ApplyGate.WaitAsync(0)) return;
@@ -130,11 +120,14 @@ namespace QksExcelAddIn.Views
             }));
         }
         private void ClearSelection_Click(object sender, RoutedEventArgs e) { Canvas.CancelInteraction(); vm.ClearSelection(); }
+        private void RemoveSelection_Click(object sender, RoutedEventArgs e) { StopPlanePicking();vm.RemoveSelectedFromWorkspace(); }
+        private void RestoreWorkspace_Click(object sender, RoutedEventArgs e) { Canvas.CancelInteraction();vm.RestoreWorkspace(); }
         private void Open_Click(object sender, RoutedEventArgs e)
         {
+            if(vm.Busy)return;readLifecycle.CancelPending();
             var dialog = new OpenFileDialog { Filter = "QKS model snapshot (*.json)|*.json" };
             if (dialog.ShowDialog(this) != true) return;
-            try { StopPlanePicking(); vm.SetSnapshot(JsonCodec.Deserialize<ModelSnapshot>(JsonCodec.Read(dialog.FileName)), true); Canvas.Fit(); }
+            try { readLifecycle.CancelPending();StopPlanePicking(); vm.SetSnapshot(JsonCodec.Deserialize<ModelSnapshot>(JsonCodec.Read(dialog.FileName)), true); Canvas.Fit(); }
             catch (Exception ex) { vm.Status = "Không mở được snapshot: " + ex.GetBaseException().Message; }
         }
         private void Save_Click(object sender, RoutedEventArgs e)
@@ -216,7 +209,7 @@ namespace QksExcelAddIn.Views
         {
             if (e.Key == Key.Escape && Canvas.PickingPlanePoints) { StopPlanePicking(); vm.Status = "Đã hủy chọn mặt đứng."; e.Handled = true; }
             if (Keyboard.FocusedElement is TextBoxBase || Keyboard.FocusedElement is PasswordBox) return;
-            if (e.Key == Key.Delete) { Canvas.CancelInteraction(); vm.ClearSelection(); vm.Status = "Đã hủy chọn; không xóa cấu kiện hoặc tải."; e.Handled = true; return; }
+            if (e.Key == Key.Delete) { if(!e.IsRepeat) { StopPlanePicking();vm.RemoveSelectedFromWorkspace(); }e.Handled = true; return; }
             if (e.Key == Key.Escape) Canvas.CancelInteraction();
             if (Keyboard.Modifiers != ModifierKeys.Control) return;
             if (e.Key == Key.Z) { vm.UndoDraft(); e.Handled = true; }

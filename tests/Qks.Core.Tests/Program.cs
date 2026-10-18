@@ -72,6 +72,7 @@ internal static partial class Program
         WindTests();
         InteractionTests();
         StoryWindTests();
+        WorkspaceUpdateTests();
         Console.WriteLine($"Completed: {passed} passed, {failed} failed; host integration tests are separate.");
         return failed == 0 ? 0 : 1;
     }

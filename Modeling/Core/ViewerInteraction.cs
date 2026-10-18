@@ -36,11 +36,13 @@ namespace QksExcelAddIn.Modeling.Core
         }
         public static bool Hit(ProjectedElement element, Vec2 point, double tolerance) =>
             element.Segments.Any(s => Projection.Distance(point,s)<=tolerance) || element.Polygon.Count>2 && Contains(element.Polygon,point);
-        public static bool Intersects(Segment2 segment, Box2 box)
+        public static bool Intersects(Segment2 segment, Box2 box)=>Clip(segment,box).HasValue;
+        public static Segment2? Clip(Segment2 segment, Box2 box)
         {
             double lo=0,hi=1,dx=segment.B.X-segment.A.X,dy=segment.B.Y-segment.A.Y;
             bool Clip(double p,double q) { if(Math.Abs(p)<1e-14)return q>=-1e-9; double r=q/p;if(p<0)lo=Math.Max(lo,r);else hi=Math.Min(hi,r);return lo<=hi+1e-9; }
-            return Clip(-dx,segment.A.X-box.Left)&&Clip(dx,box.Right-segment.A.X)&&Clip(-dy,segment.A.Y-box.Bottom)&&Clip(dy,box.Top-segment.A.Y);
+            if(!Clip(-dx,segment.A.X-box.Left)||!Clip(dx,box.Right-segment.A.X)||!Clip(-dy,segment.A.Y-box.Bottom)||!Clip(dy,box.Top-segment.A.Y))return null;
+            return new Segment2(new Vec2(segment.A.X+lo*dx,segment.A.Y+lo*dy),new Vec2(segment.A.X+hi*dx,segment.A.Y+hi*dy));
         }
         public static bool Contains(IReadOnlyList<Vec2> polygon,Vec2 point)
         {
@@ -97,26 +99,6 @@ namespace QksExcelAddIn.Modeling.Core
             }
             var line=element.Segments.OrderByDescending(s=>Math.Pow(s.B.X-s.A.X,2)+Math.Pow(s.B.Y-s.A.Y,2)).First();
             return new Vec2((line.A.X+line.B.X)/2,(line.A.Y+line.B.Y)/2);
-        }
-        public static Vec2? Place(Vec2 anchor,double width,double height,bool area,IReadOnlyList<Segment2> beamLines,Box2 viewport,IReadOnlyList<Box2> occupied,Func<Box2,bool>? blocked=null)
-        {
-            Vec2 direction=beamLines.Count>0?new Vec2(beamLines[0].B.X-beamLines[0].A.X,beamLines[0].B.Y-beamLines[0].A.Y):new Vec2(1,0);
-            double length=Math.Sqrt(direction.X*direction.X+direction.Y*direction.Y);
-            double nx=length>1e-8?-direction.Y/length:0,ny=length>1e-8?direction.X/length:1;
-            var offsets=new List<Vec2>();if(area)offsets.Add(new Vec2(0,0));
-            foreach(double gap in new[]{6.0,14,24,38}) foreach(int sign in new[]{1,-1}) {
-                double clearance=Math.Abs(nx)*width/2+Math.Abs(ny)*height/2+gap;
-                offsets.Add(new Vec2(sign*nx*clearance,sign*ny*clearance));
-                offsets.Add(new Vec2(sign*nx*clearance+ny*18,sign*ny*clearance-nx*18));
-                offsets.Add(new Vec2(sign*nx*clearance-ny*18,sign*ny*clearance+nx*18));
-            }
-            foreach(var offset in offsets) {
-                var topLeft=new Vec2(anchor.X+offset.X-width/2,anchor.Y+offset.Y-height/2);
-                var rect=new Box2(topLeft,new Vec2(topLeft.X+width,topLeft.Y+height));
-                if(!viewport.Contains(topLeft)||!viewport.Contains(new Vec2(rect.Right,rect.Top))||occupied.Any(b=>b.Intersects(rect.Inflate(2)))||beamLines.Any(s=>ViewerSelection.Intersects(s,rect.Inflate(2)))||blocked?.Invoke(rect.Inflate(2))==true)continue;
-                return topLeft;
-            }
-            return null;
         }
     }
 }

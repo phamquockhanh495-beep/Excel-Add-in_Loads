@@ -16,7 +16,8 @@ namespace QksExcelAddIn.Services.Modeling
         public async Task<ModelSnapshot> ReadAsync(Action<string> progress, CancellationToken token, bool requireCompleteLoads = false)
         {
             if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA) throw new InvalidOperationException("Reader cần luồng STA.");
-            if (!await Gate.WaitAsync(0, token)) throw new InvalidOperationException("Một cửa sổ khác đang đọc mô hình. Hãy chờ đọc xong.");
+            progress("Đang chờ lượt đọc ETABS…");
+            await Gate.WaitAsync(token);
             try { return await ReadCoreAsync(progress, token, requireCompleteLoads); }
             finally { Gate.Release(); }
         }

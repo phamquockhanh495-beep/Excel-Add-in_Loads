@@ -10,7 +10,8 @@ Excel Add-in quản lý tải tường và tải sàn, trao đổi với ETABS v
 - [Viewer 2D Preview 2.1: headbar/tab QKS, ẩn cột và bố cục vừa màn hình/DPI](docs/VIEWER-PREVIEW-2.1.md)
 - [Viewer 2D Preview 3: Apply ETABS, gió dầm biên/User Loads và trạng thái G5–G7](docs/VIEWER-PREVIEW-3.md)
 - [Viewer 2D Preview 4: quét/chọn nhiều, nhãn, ComboBox kết nối và nhập gió Excel/Story](docs/VIEWER-PREVIEW-4.md)
+- [Viewer 2D Preview 5: Delete/Khôi phục workspace, nhãn xoay, badge và tự đọc kết nối API](docs/VIEWER-PREVIEW-5.md)
 
-Đây là bản để kiểm thử: compile SDK không thay thế kiểm thử host. Viewer Preview 4 có luồng gán tải thử và **nhập gió trực tiếp từ Excel/popup theo Story, không quy đổi áp lực**. Chưa tự lấy tâm cứng hoặc có adapter live SAFE. Cửa sổ tải gió cũ và tạo sàn ảo từ vùng chữ nhật vẫn tạm khóa. Dùng model test; trước thao tác ghi QKS lưu model và tạo bản sao trong QKS_Backups.
+Đây là bản để kiểm thử: compile SDK không thay thế kiểm thử host. Viewer Preview 5 có luồng gán tải thử và **nhập gió trực tiếp từ Excel/popup theo Story, không quy đổi áp lực**; Delete chỉ bỏ khỏi workspace, không xóa model hoặc tải/nháp. Chưa tự lấy tâm cứng hoặc có adapter live SAFE. Cửa sổ tải gió cũ và tạo sàn ảo từ vùng chữ nhật vẫn tạm khóa. Dùng model test; trước thao tác ghi QKS lưu model và tạo bản sao trong QKS_Backups.
 
 Build từ các project nguồn ở gốc; không lấy DLL/XLL cũ trong Loads làm bản phát hành mới.

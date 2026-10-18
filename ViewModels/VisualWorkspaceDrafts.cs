@@ -16,7 +16,7 @@ namespace QksExcelAddIn.ViewModels
         public IReadOnlyList<DraftLoad> DraftRows => Drafts?.Loads ?? Array.Empty<DraftLoad>();
         public IReadOnlyList<string> AvailablePatterns => Snapshot?.LoadPatterns ?? Array.Empty<string>();
         public IReadOnlyList<DraftOverlay> DraftOverlays { get; private set; } = Array.Empty<DraftOverlay>();
-        public IEnumerable<LoadComparison> ComparisonRows => DraftContextActive ? Drafts!.Compare().Where(r => displayIds.Contains(r.Load.ElementId) && (SelectedIds.Count==0 || selectedIdSet.Contains(r.Load.ElementId))) : Enumerable.Empty<LoadComparison>();
+        public IEnumerable<LoadComparison> ComparisonRows => DraftContextActive ? Drafts!.Compare().Where(r => displayIds.Contains(r.Load.ElementId) && !workspaceRemovedIds.Contains(r.Load.ElementId) && (SelectedIds.Count==0 || selectedIdSet.Contains(r.Load.ElementId))) : Enumerable.Empty<LoadComparison>();
         public string DraftStatus => Drafts == null ? "Chưa có bộ nháp." : DraftRows.Count + " dòng · " + (Drafts.IsDirty ? "chưa lưu" : "đã lưu/không đổi") +
             (DraftContextActive ? " · gắn snapshot hiện tại" : " · TÁCH KHỎI SNAPSHOT (vẫn lưu được)");
         public bool CanUndoDraft => !Busy && DraftContextActive && Drafts!.CanUndo;
@@ -89,6 +89,7 @@ namespace QksExcelAddIn.ViewModels
         public void EditDraft(DraftLoad load)
         {
             if (!DraftContextActive || !DraftRows.Any(l => l.Id == load.Id)) throw new InvalidOperationException("Bộ nháp đang tách snapshot hoặc dòng không còn tồn tại.");
+            if (workspaceRemovedIds.Contains(load.ElementId)) throw new InvalidOperationException("Cấu kiện đã bỏ khỏi workspace. Bấm Khôi phục trước khi sửa nháp.");
             SelectedElement = Snapshot!.Elements.Single(e => e.Id == load.ElementId);
             draftModuleIndex = load.Kind == DraftKind.WindLine ? 2 : load.Kind == DraftKind.WallLine ? 0 : 1; editingId = load.Id;
             DraftPattern = load.Pattern; DraftDirection = load.DirectionName; DraftActionName = load.Action == DraftAction.Add ? DraftActions[0] : DraftActions[1];
