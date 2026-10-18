@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:viewer="clr-namespace:QksExcelAddIn.Views.Controls"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        Title="QKS · Không gian tải trọng 2D · Preview 5" Width="1180" Height="740" MinWidth="640" MinHeight="360"
+        Title="QKS · Không gian tải trọng 2D · Preview 5.1" Width="1180" Height="740" MinWidth="640" MinHeight="360"
         WindowStyle="None" ResizeMode="CanResize" Background="#F8FAFC" Foreground="#0F2240"
         FontFamily="Segoe UI" FontSize="11.5" FontWeight="Normal" WindowStartupLocation="CenterScreen"
         Icon="pack://application:,,,/QksExcelAddIn;component/Resources/excel.ico">
@@ -28,7 +28,7 @@
                 <TextBlock Text="QKS" Foreground="#38BDF8" FontWeight="Bold"/>
                 <TextBlock Text="  |  " Foreground="#64748B"/>
             </StackPanel>
-            <TextBlock Grid.Column="1" Text="KHÔNG GIAN TẢI TRỌNG 2D · PREVIEW 5" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Grid.Column="1" Text="KHÔNG GIAN TẢI TRỌNG 2D · PREVIEW 5.1" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             <StackPanel Grid.Column="2" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
                 <Button Content="—" Style="{StaticResource QksTitleBarButton}" ToolTip="Thu nhỏ" Click="Minimize_Click"/>
                 <Button x:Name="MaximizeButton" Content="□" Style="{StaticResource QksTitleBarButton}" ToolTip="Phóng to / Khôi phục" Click="Maximize_Click"/>
@@ -155,7 +155,7 @@
                 <Button Content="Kiểm tra và Apply ETABS" Click="Apply_Click" IsEnabled="{Binding CanApply}"/>
                 <TextBlock Text="{Binding ApplySummary}" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
                 <Button Content="Lưu báo cáo Apply" Click="SaveApplyReport_Click" IsEnabled="{Binding CanRead}"/>
-                <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Quét trái/phải: chọn trọn/giao · Ctrl + click: thêm/bỏ · Delete: bỏ khỏi workspace · Khôi phục: hiện lại · Alt + click: đổi đối tượng chồng nhau" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
+                <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Quét trái/phải: chọn trọn/giao · Ctrl + click: thêm/bỏ · Esc: bỏ chọn / hủy thao tác · Delete: bỏ khỏi workspace · Khôi phục: hiện lại · Alt + click: đổi đối tượng chồng nhau" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
             </StackPanel></ScrollViewer></Border>
         </Grid>
         <Border Grid.Row="3" Background="#0F2240" Padding="8,4"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>

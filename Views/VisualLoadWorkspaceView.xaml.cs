@@ -207,10 +207,13 @@ namespace QksExcelAddIn.Views
         }
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Escape && Canvas.PickingPlanePoints) { StopPlanePicking(); vm.Status = "Đã hủy chọn mặt đứng."; e.Handled = true; }
             if (Keyboard.FocusedElement is TextBoxBase || Keyboard.FocusedElement is PasswordBox) return;
+            if (e.Key == Key.Escape) {
+                if (Keyboard.FocusedElement is ComboBox combo && combo.IsDropDownOpen || Keyboard.FocusedElement is ComboBoxItem) return;
+                StopPlanePicking(); vm.ClearSelection(); vm.Status = "Đã hủy thao tác và bỏ chọn cấu kiện.";
+                e.Handled = true; return;
+            }
             if (e.Key == Key.Delete) { if(!e.IsRepeat) { StopPlanePicking();vm.RemoveSelectedFromWorkspace(); }e.Handled = true; return; }
-            if (e.Key == Key.Escape) Canvas.CancelInteraction();
             if (Keyboard.Modifiers != ModifierKeys.Control) return;
             if (e.Key == Key.Z) { vm.UndoDraft(); e.Handled = true; }
             if (e.Key == Key.Y) { vm.RedoDraft(); e.Handled = true; }
