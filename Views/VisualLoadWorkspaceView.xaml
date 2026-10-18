@@ -3,9 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:viewer="clr-namespace:QksExcelAddIn.Views.Controls"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        Title="QKS · Không gian tải trọng 2D · Preview 3" Width="1180" Height="740" MinWidth="640" MinHeight="360"
+        Title="QKS · Không gian tải trọng 2D · Preview 4" Width="1180" Height="740" MinWidth="640" MinHeight="360"
         WindowStyle="None" ResizeMode="CanResize" Background="#F8FAFC" Foreground="#0F2240"
-        FontFamily="Segoe UI" FontSize="11.5" WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI" FontSize="11.5" FontWeight="Normal" WindowStartupLocation="CenterScreen"
         Icon="pack://application:,,,/QksExcelAddIn;component/Resources/excel.ico">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="36" ResizeBorderThickness="5" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
@@ -28,14 +28,23 @@
                 <TextBlock Text="QKS" Foreground="#38BDF8" FontWeight="Bold"/>
                 <TextBlock Text="  |  " Foreground="#64748B"/>
             </StackPanel>
-            <TextBlock Grid.Column="1" Text="KHÔNG GIAN TẢI TRỌNG 2D · PREVIEW 3" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Grid.Column="1" Text="KHÔNG GIAN TẢI TRỌNG 2D · PREVIEW 4" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             <StackPanel Grid.Column="2" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
                 <Button Content="—" Style="{StaticResource QksTitleBarButton}" ToolTip="Thu nhỏ" Click="Minimize_Click"/>
                 <Button x:Name="MaximizeButton" Content="□" Style="{StaticResource QksTitleBarButton}" ToolTip="Phóng to / Khôi phục" Click="Maximize_Click"/>
                 <Button Content="✕" Style="{StaticResource QksTitleBarCloseButton}" ToolTip="Đóng" Click="Close_Click"/>
             </StackPanel>
         </Grid>
-        <Border Grid.Row="1" Background="#E2E8F0" Padding="10,5"><TextBlock Text="{Binding SourceText}" FontSize="10.5" TextTrimming="CharacterEllipsis" ToolTip="{Binding SourceText}"/></Border>
+        <Border Grid.Row="1" Background="White" Padding="10,3"><Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid IsEnabled="{Binding CanRead}"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="230"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="File tính:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock x:Name="ConnectedFileText" Grid.Column="1" Text="Chưa chọn mô hình" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
+                <TextBlock Grid.Column="2" Text="Mô hình kết nối:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox x:Name="ConnectedModelBox" Grid.Column="3" DisplayMemberPath="WorkspaceDisplay" DropDownOpened="ModelList_Opened" SelectionChanged="ModelList_Changed" ToolTip="Mở danh sách để quét ETABS đang chạy; chọn mô hình rồi Đọc lại."/>
+            </Grid>
+            <TextBlock Grid.Row="1" Text="{Binding SourceText}" FontSize="10" Foreground="#64748B" TextTrimming="CharacterEllipsis" ToolTip="{Binding SourceText}"/>
+        </Grid></Border>
         <Grid Grid.Row="2" Margin="6">
             <Grid.ColumnDefinitions><ColumnDefinition x:Name="DisplayColumn" Width="200"/><ColumnDefinition x:Name="DisplayGap" Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition x:Name="EditorGap" Width="6"/><ColumnDefinition x:Name="EditorColumn" Width="285"/></Grid.ColumnDefinitions>
             <Border x:Name="DisplayPane" Style="{StaticResource Panel}"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel>
@@ -48,9 +57,6 @@
                 <TextBlock Text="VÙNG HIỂN THỊ" FontWeight="SemiBold"/>
                 <StackPanel Orientation="Horizontal"><RadioButton x:Name="PlanRadio" Content="Plan" IsChecked="True" Checked="Plan_Checked"/><RadioButton Content="Elevation" IsChecked="{Binding Elevation}"/></StackPanel>
                 <TextBlock Text="Tầng / cao độ Plan"/><ComboBox ItemsSource="{Binding Levels}" SelectedItem="{Binding Level}"/>
-                <TextBlock Text="Gốc mặt đứng X / Y (m)" Margin="0,5,0,0"/>
-                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="6"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding OriginX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X gốc mặt đứng"/><TextBox Grid.Column="2" Text="{Binding OriginY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y gốc mặt đứng"/></Grid>
-                <TextBlock Text="Góc U với Global X (độ)"/><TextBox Text="{Binding Angle, UpdateSourceTrigger=PropertyChanged}"/>
                 <CheckBox Content="Đảo hướng nhìn" IsChecked="{Binding Reverse}"/>
                 <TextBlock Text="Nửa dải xem ±d (m)"/><TextBox Text="{Binding HalfDepth, UpdateSourceTrigger=PropertyChanged}"/>
                 <Button Content="Cập nhật vùng xem" Click="Project_Click"/>
@@ -60,10 +66,10 @@
                 <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}"/>
                 <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tìm ID, label, story hoặc property"/>
                 <CheckBox Content="Label cấu kiện" IsChecked="{Binding ShowLabels}" Click="Style_Click" ToolTip="Tối đa 500 label trong vùng nhìn"/>
+                <CheckBox Content="Section / Property" IsChecked="{Binding ShowSections}" Click="Style_Click"/>
+                <CheckBox Content="UniqueName" IsChecked="{Binding ShowUniqueNames}" Click="Style_Click"/>
                 <CheckBox Content="Giá trị tải nháp" IsChecked="{Binding ShowDraftValues}" Click="Style_Click" ToolTip="Tối đa 200 label tải nháp"/>
                 <CheckBox Content="Màu theo property" IsChecked="{Binding ColorByProperty}" Click="Style_Click"/>
-                <TextBlock Text="Màu property (#RRGGBB)" Margin="0,5,0,0"/>
-                <TextBox Text="{Binding PropertyColor, UpdateSourceTrigger=PropertyChanged}"/><Button Content="Lưu màu property" Click="Color_Click"/>
                 <TextBlock Text="Dầm: xanh · Sàn: teal · Vách: tím · Chọn: cam" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
                 <Expander Header="File snapshot" Margin="0,6"><StackPanel IsEnabled="{Binding CanRead}">
                     <Button Content="Mở snapshot" Click="Open_Click"/><Button Content="Lưu snapshot" Click="Save_Click"/>
@@ -71,18 +77,23 @@
                 <TextBlock Text="SAFE 18–22: đang phát triển adapter" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
             </StackPanel></ScrollViewer></Border>
             <Grid Grid.Column="2">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="5"/><RowDefinition x:Name="TableRow" Height="180" MinHeight="92"/></Grid.RowDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="5"/><RowDefinition x:Name="TableRow" Height="225" MinHeight="115"/></Grid.RowDefinitions>
                 <WrapPanel Margin="0,0,0,4">
                     <Button Content="Hiển thị" Click="ToggleDisplay_Click" ToolTip="Ẩn / hiện panel hiển thị"/>
                     <Button Content="Tải / thuộc tính" Click="ToggleEditor_Click" ToolTip="Ẩn / hiện panel tải và thuộc tính"/>
                     <Button Content="Vừa khung" Click="Fit_Click"/>
                     <TextBlock Text="{Binding Counts}" Margin="6,7,0,3" MaxWidth="240" TextTrimming="CharacterEllipsis" ToolTip="{Binding Counts}"/>
                 </WrapPanel>
-                <Border Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"><viewer:StructuralCanvas x:Name="Canvas" Items="{Binding Scene}" SelectedId="{Binding SelectedId}" ShowLabels="{Binding ShowLabels}" HasOpenings="{Binding HasOpenings}" ColorByProperty="{Binding ColorByProperty}" ColorOverrides="{Binding ColorOverrides}" DraftOverlays="{Binding DraftOverlays}" ShowDraftValues="{Binding ShowDraftValues}"/></Border>
+                <Border Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"><viewer:StructuralCanvas x:Name="Canvas" Items="{Binding Scene}" SelectedId="{Binding SelectedId}" SelectedIds="{Binding SelectedIds}" ShowLabels="{Binding ShowLabels}" ShowSections="{Binding ShowSections}" ShowUniqueNames="{Binding ShowUniqueNames}" Elevation="{Binding Elevation}" Levels="{Binding Levels}" HasOpenings="{Binding HasOpenings}" ColorByProperty="{Binding ColorByProperty}" ColorOverrides="{Binding ColorOverrides}" DraftOverlays="{Binding DraftOverlays}" ShowDraftValues="{Binding ShowDraftValues}"/></Border>
                 <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"/>
                 <TabControl x:Name="WorkspaceTabs" Grid.Row="3">
-                    <TabItem Header="Đối tượng nguồn"><DataGrid x:Name="ObjectsTable" ItemsSource="{Binding VisibleElements}" SelectedItem="{Binding SelectedElement, Mode=OneWay}" SelectionMode="Single" SelectionChanged="Objects_SelectionChanged"><DataGrid.Columns>
-                        <DataGridTextColumn Header="Unique ID" Binding="{Binding Id}" Width="100"/><DataGridTextColumn Header="Label" Binding="{Binding Label}" Width="70"/><DataGridTextColumn Header="Story" Binding="{Binding Story}" Width="85"/><DataGridTextColumn Header="Loại" Binding="{Binding Kind}" Width="65"/><DataGridTextColumn Header="Property" Binding="{Binding Property}" Width="*"/><DataGridTextColumn Header="L 3D (m)" Binding="{Binding Length3D, StringFormat=0.###}" Width="85"/>
+                    <TabItem Header="Đối tượng nguồn"><DataGrid x:Name="ObjectsTable" ItemsSource="{Binding VisibleElements}" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="Objects_SelectionChanged"><DataGrid.Columns>
+                        <DataGridTextColumn Header="Unique ID" Binding="{Binding Name}" Width="110" ElementStyle="{StaticResource WorkspaceCellText}" HeaderStyle="{StaticResource WorkspaceHeaderLeft}"/>
+                        <DataGridTextColumn Header="Label" Binding="{Binding Label}" Width="70" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
+                        <DataGridTextColumn Header="Story" Binding="{Binding Story}" Width="85" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
+                        <DataGridTextColumn Header="Type" Binding="{Binding Kind}" Width="65" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
+                        <DataGridTextColumn Header="Property" Binding="{Binding Property}" Width="*" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
+                        <DataGridTextColumn Header="Length (m)" Binding="{Binding Length3D, StringFormat=0.###}" Width="90" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
                     </DataGrid.Columns></DataGrid></TabItem>
                     <TabItem x:Name="DraftTab" Header="Nháp / So sánh"><TabControl>
                         <TabItem Header="Dòng nháp"><DataGrid x:Name="DraftTable" ItemsSource="{Binding DraftRows}" SelectionMode="Single" SelectionChanged="Draft_SelectionChanged"><DataGrid.Columns>
@@ -96,7 +107,7 @@
                         <DataGridTextColumn Header="ID" Binding="{Binding ElementId}"/><DataGridTextColumn Header="Pattern" Binding="{Binding Pattern}"/><DataGridTextColumn Header="Loại" Binding="{Binding Kind}"/><DataGridTextColumn Header="CSys" Binding="{Binding CoordinateSystem}"/><DataGridTextColumn Header="Dir API" Binding="{Binding Direction}"/><DataGridTextColumn Header="r1" Binding="{Binding Start, StringFormat=0.###}"/><DataGridTextColumn Header="r2" Binding="{Binding End, StringFormat=0.###}"/><DataGridTextColumn Header="V1" Binding="{Binding Value1, StringFormat=0.###}"/><DataGridTextColumn Header="V2" Binding="{Binding Value2, StringFormat=0.###}"/><DataGridTextColumn Header="Đơn vị" Binding="{Binding Unit}"/>
                     </DataGrid.Columns></DataGrid></TabItem>
                     <TabItem x:Name="UserWindTab" Header="User Loads gió"><DataGrid x:Name="WindUserTable" ItemsSource="{Binding WindUserRows}" SelectedItem="{Binding SelectedWindUserRow}" IsReadOnly="False" IsEnabled="{Binding CanRead}" CanUserAddRows="False" CanUserDeleteRows="False"><DataGrid.Columns>
-                        <DataGridTextColumn Header="Khóa diaphragm (API)" Binding="{Binding DiaphragmKey}" IsReadOnly="True" Width="170"/>
+                        <DataGridTextColumn Header="Story (đối chiếu)" Binding="{Binding Story}" IsReadOnly="True"/><DataGridTextColumn Header="Khóa diaphragm (API)" Binding="{Binding DiaphragmKey}" IsReadOnly="True" Width="170"/>
                         <DataGridTextColumn Header="Fx (kN)" Binding="{Binding Fx, ValidatesOnExceptions=True}"/>
                         <DataGridTextColumn Header="Fy (kN)" Binding="{Binding Fy, ValidatesOnExceptions=True}"/>
                         <DataGridTextColumn Header="Mz (kN·m)" Binding="{Binding Mz, ValidatesOnExceptions=True}"/>
@@ -119,36 +130,22 @@
                     <TabItem Header="Dầm/Tường"><viewer:LoadDraftEditor DraftCommitted="DraftCommitted"/></TabItem>
                     <TabItem Header="Sàn"><viewer:LoadDraftEditor DraftCommitted="DraftCommitted"/></TabItem>
                     <TabItem Header="Gió"><StackPanel Margin="0,8">
-                        <TextBlock Text="GIÓ · DẦM BIÊN / USER LOADS" FontWeight="SemiBold"/>
-                        <TextBlock Margin="0,6" TextWrapping="Wrap" Foreground="#9A3412" Text="TCVN 2737:2023: engine hệ số theo T chưa mở. Các ô dưới chỉ quy đổi áp lực đã tính/kiểm chứng; không phải kết quả tự tính theo tiêu chuẩn."/>
+                        <TextBlock Text="TẢI GIÓ THEO STORY" FontWeight="SemiBold"/>
+                        <TextBlock Text="Lấy giá trị từ Excel hoặc nhập theo tầng. Dầm: q1/q2 (kN/m); User Loads: Fx/Fy/Mz/X/Y. Không quy đổi áp lực." TextWrapping="Wrap" Margin="0,6"/>
                         <StackPanel IsEnabled="{Binding CanRead}">
-                            <TextBlock Text="Nguồn/bảng tính đã kiểm chứng"/><TextBox Text="{Binding WindReference, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBlock Text="T1 (s) · tham chiếu, chưa tự tính Gf"/><TextBox Text="{Binding WindPeriod, UpdateSourceTrigger=PropertyChanged}"/>
-                            <TextBlock Text="Load Pattern"/><ComboBox ItemsSource="{Binding AvailablePatterns}" SelectedItem="{Binding DraftPattern}"/>
-                            <ComboBox ItemsSource="{Binding WindDirections}" SelectedItem="{Binding WindDirection}"/>
-                            <TextBlock Text="Dải áp lực: Z dưới / Z trên (m)"/>
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding WindBottom}"/><TextBox Grid.Column="1" Text="{Binding WindTop}"/></Grid>
-                            <TextBlock Text="p dưới / p trên có dấu (kN/m²)"/>
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding WindPressureBottom}"/><TextBox Grid.Column="1" Text="{Binding WindPressureTop}"/></Grid>
-                            <Expander Header="1. Gió vào dầm biên" IsExpanded="True"><StackPanel>
-                                <TextBlock Text="Tự chọn dầm biên trên hình/bảng. Không tự nhận diện biên." TextWrapping="Wrap" Foreground="#64748B"/>
-                                <TextBlock Text="Chiều cao đón gió (m) · q = p × h"/><TextBox Text="{Binding WindTributaryHeight}"/>
-                                <ComboBox ItemsSource="{Binding DraftActions}" SelectedItem="{Binding DraftActionName}"/>
-                                <Button Content="Thêm / cập nhật nháp gió" Click="WindBeam_Click" IsEnabled="{Binding CanBuildWind}"/>
-                                <Button Content="Xóa dòng nháp đang chọn" Click="DeleteWindDraft_Click" IsEnabled="{Binding CanDeleteDraft}"/>
-                            </StackPanel></Expander>
-                            <Expander Header="2. User Loads / diaphragm"><StackPanel>
-                                <Button Content="Đọc User Loads của pattern" Click="ReadUserWind_Click"/>
-                                <TextBlock Text="{Binding WindUserStatus}" TextWrapping="Wrap" Foreground="#64748B"/>
-                                <TextBlock Text="Sửa Fx/Fy/Mz/X/Y ở bảng User Loads gió. Chỉ sửa khóa API đã có; chưa tự tạo khóa tầng hoặc tự lấy tâm cứng." TextWrapping="Wrap"/>
-                                <TextBlock Text="Quy đổi F: Z đáy / Z đỉnh tầng (m)"/>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding WindStoryBottom}"/><TextBox Grid.Column="1" Text="{Binding WindStoryTop}"/></Grid>
-                                <TextBlock Text="Bề rộng đón gió (m)"/><TextBox Text="{Binding WindFacadeWidth}"/>
-                                <Button Content="Quy đổi p → F hàng đang chọn" Click="WindForce_Click"/>
-                                <WrapPanel><Button Content="Lưu gió" Click="SaveUserWind_Click"/><Button Content="Mở gió" Click="OpenUserWind_Click"/></WrapPanel>
-                                <Button Content="Kiểm tra và Apply User Loads" Click="ApplyUserWind_Click" IsEnabled="{Binding CanApplyUserWind}"/>
-                            </StackPanel></Expander>
+                            <TextBlock Text="Load pattern"/><ComboBox ItemsSource="{Binding AvailablePatterns}" SelectedItem="{Binding DraftPattern}"/>
+                            <Button Content="Nhập từ file Excel / CSV" Click="WindExcel_Click" IsEnabled="{Binding CanInputStoryWind}"/>
+                            <Button Content="Nhập giá trị theo Story…" Click="WindInput_Click" IsEnabled="{Binding CanInputStoryWind}"/>
+                            <TextBlock Text="Trong popup có mẫu Excel, đọc vùng chọn và kiểm tra từng dòng trước khi đưa vào nháp. UniqueName trống chỉ dùng các dầm đang chọn thuộc Story." TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
+                            <Separator Margin="0,6"/>
+                            <TextBlock Text="USER LOADS / DIAPHRAGM" FontWeight="SemiBold"/>
+                            <Button Content="Đọc User Loads của pattern" Click="ReadUserWind_Click"/>
+                            <TextBlock Text="{Binding WindUserStatus}" TextWrapping="Wrap" Foreground="#64748B"/>
+                            <TextBlock Text="Đọc khóa API trước khi nhập lực tầng; tự đối chiếu Story–diaphragm. Không tự tạo khóa hoặc lấy tâm cứng." TextWrapping="Wrap" Margin="0,6"/>
+                            <WrapPanel><Button Content="Lưu gió" Click="SaveUserWind_Click"/><Button Content="Mở gió" Click="OpenUserWind_Click"/></WrapPanel>
+                            <Button Content="Kiểm tra và Apply User Loads" Click="ApplyUserWind_Click" IsEnabled="{Binding CanApplyUserWind}"/>
                         </StackPanel>
+                        <Button Content="Xóa dòng nháp đang chọn" Click="DeleteWindDraft_Click" IsEnabled="{Binding CanDeleteDraft}"/>
                     </StackPanel></TabItem>
                 </TabControl>
                 <WrapPanel><Button Content="Undo" IsEnabled="{Binding CanUndoDraft}" Click="UndoDraft_Click"/><Button Content="Redo" IsEnabled="{Binding CanRedoDraft}" Click="RedoDraft_Click"/></WrapPanel>
@@ -156,7 +153,7 @@
                 <Button Content="Kiểm tra và Apply ETABS" Click="Apply_Click" IsEnabled="{Binding CanApply}"/>
                 <TextBlock Text="{Binding ApplySummary}" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
                 <Button Content="Lưu báo cáo Apply" Click="SaveApplyReport_Click" IsEnabled="{Binding CanRead}"/>
-                <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Click cạnh: chọn · Ctrl + click: đổi đối tượng chồng nhau" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
+                <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Quét trái/phải: chọn trọn/giao · Ctrl + click: thêm/bỏ · Delete: hủy chọn · Alt + click: đổi đối tượng chồng nhau" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
             </StackPanel></ScrollViewer></Border>
         </Grid>
         <Border Grid.Row="3" Background="#0F2240" Padding="8,4"><TextBlock Text="{Binding Status}" Foreground="White" FontSize="10.5" TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}"/></Border>

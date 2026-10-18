@@ -9,7 +9,7 @@ try {
     & dotnet run --project tests/Qks.Core.Tests/Qks.Core.Tests.csproj -c Release -p:RestoreLockedMode=true -- $repo
     if ($LASTEXITCODE -ne 0) { throw 'Core tests failed.' }
     if ($RunBenchmark) {
-        $benchmarkPath = Join-Path $repo 'artifacts/test-results/Preview-3/benchmark.json'
+        $benchmarkPath = Join-Path $repo 'artifacts/test-results/Preview-4/benchmark.json'
         & dotnet run --project tests/Qks.Core.Tests/Qks.Core.Tests.csproj -c Release --no-build -- $repo --benchmark $benchmarkPath
         if ($LASTEXITCODE -ne 0) { throw 'Core/VM benchmark failed.' }
     }

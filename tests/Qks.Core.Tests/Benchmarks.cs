@@ -29,8 +29,9 @@ internal static partial class Program
                 clock.Restart();vm.Elevation=true;clock.Stop();if(sample>0)elevationTimes.Add(clock.Elapsed.TotalMilliseconds);
                 Assert(vm.Scene.All(e=>e.Source.Kind!=ElementKind.Column));vm.Elevation=false;
             }
+            var selectionClock=Stopwatch.StartNew();vm.SelectElements(vm.VisibleElements.Select(e=>e.Id));selectionClock.Stop();Assert(vm.SelectedIds.Count==vm.VisibleElements.Count);vm.ClearSelection();
             long memory=GC.GetTotalMemory(true);GC.KeepAlive(vm);GC.KeepAlive(snapshot);
-            rows.Add(new { objects=count, sourceLoads=loads.Count, shownInPlan=vm.Scene.Count, snapshotAndPlanMedianMs=times.OrderBy(t=>t).ElementAt(1), elevationMedianMs=elevationTimes.OrderBy(t=>t).ElementAt(1), managedMemoryBytes=memory });
+            rows.Add(new { objects=count, sourceLoads=loads.Count, shownInPlan=vm.Scene.Count, snapshotAndPlanMedianMs=times.OrderBy(t=>t).ElementAt(1), elevationMedianMs=elevationTimes.OrderBy(t=>t).ElementAt(1), selectAllMs=selectionClock.Elapsed.TotalMilliseconds, managedMemoryBytes=memory });
         }
         var report=new {capturedUtc=DateTime.UtcNow, framework=System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription, os=System.Runtime.InteropServices.RuntimeInformation.OSDescription,
             scope="Synthetic core/VM timings only, 1 warm-up + 3 samples, median. NOT WPF rendering, COM, FPS, host benchmarks or peak memory. Memory is GC live heap observation.",results=rows};

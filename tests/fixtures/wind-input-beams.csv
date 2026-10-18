@@ -1,0 +1,3 @@
+Target;Story;Pattern;UniqueName;Direction;q1_kN_m;q2_kN_m;Action
+Beam;Roof;WX;B2;Global-X;-4;-4;ReplaceMatching
+Beam;Roof;WX;B3;Global-X;-3;-5;ReplaceMatching

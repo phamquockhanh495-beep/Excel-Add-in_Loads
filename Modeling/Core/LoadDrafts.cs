@@ -153,6 +153,7 @@ namespace QksExcelAddIn.Modeling.Core
         {
             var candidate = current.Where(l => l.Id != id).ToArray(); if (candidate.Length != current.Length) Commit(candidate);
         }
+        public void ReplaceLoads(IEnumerable<DraftLoad> loads) { var candidate=loads.ToArray(); Validate(candidate); Commit(candidate); }
         private void Commit(DraftLoad[] candidate)
         {
             if (State(candidate) == State(current)) return;

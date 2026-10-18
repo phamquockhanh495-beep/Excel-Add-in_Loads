@@ -13,6 +13,7 @@ namespace QksExcelAddIn.Services
         public string Version { get; set; } = string.Empty;
         public cOAPI? EtabsObject { get; set; }
         public cSapModel? SapModel { get; set; }
+        public string WorkspaceDisplay => "[ETABS " + Version + "] " + (string.IsNullOrWhiteSpace(ModelPath) ? ModelFileName : System.IO.Path.GetFileName(ModelPath)) + " (PID: " + ProcessId + ")";
     }
 
     public class AcadDocInfo

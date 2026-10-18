@@ -12,9 +12,19 @@ namespace QksExcelAddIn.Views
 {
     public partial class VisualLoadWorkspaceView
     {
-        private void WindBeam_Click(object sender, RoutedEventArgs e) => TryDraft(() => { vm.BuildWindOnBeam(); WorkspaceTabs.SelectedItem = DraftTab; });
         private void DeleteWindDraft_Click(object sender, RoutedEventArgs e) => TryDraft(vm.DeleteDraft);
-        private void WindForce_Click(object sender, RoutedEventArgs e) => TryDraft(vm.BuildWindOnUserRow);
+        private StoryWindInputView WindInputDialog()=>new StoryWindInputView(vm.Levels,vm.AvailablePatterns,vm.WindUserBaseline?.Rows.Select(r=>r.DiaphragmKey)??Array.Empty<string>(),vm.DraftPattern,(rows,basis)=>vm.ImportStoryWind(rows,basis)){Owner=this};
+        private void WindInput_Click(object sender,RoutedEventArgs e)
+        {
+            if(!vm.CanInputStoryWind||!CommitWindGrid())return;
+            var dialog=WindInputDialog();if(dialog.ShowDialog()==true)WorkspaceTabs.SelectedItem=vm.WindUserDirty?UserWindTab:DraftTab;
+        }
+        private void WindExcel_Click(object sender,RoutedEventArgs e)
+        {
+            if(!vm.CanInputStoryWind||!CommitWindGrid())return;
+            var file=new OpenFileDialog{Filter="Excel / CSV (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv"};if(file.ShowDialog(this)!=true)return;
+            var dialog=WindInputDialog();dialog.LoadFile(file.FileName);if(dialog.ShowDialog()==true)WorkspaceTabs.SelectedItem=vm.WindUserDirty?UserWindTab:DraftTab;
+        }
         private bool CommitWindGrid()
         {
             bool valid = WindUserTable.CommitEdit(DataGridEditingUnit.Cell, true) && WindUserTable.CommitEdit(DataGridEditingUnit.Row, true);
@@ -57,7 +67,7 @@ namespace QksExcelAddIn.Views
                 var document = vm.UserWindDocument(); document.Expected();
                 string review = "Model: " + document.Identity + "\nPattern: " + document.Before.Pattern + "\n" + document.Changes.Count + " khóa diaphragm thay đổi.\n" +
                     string.Join("\n", document.Changes.Take(12).Select(r => $"{r.DiaphragmKey}: Fx={r.Fx:0.###}, Fy={r.Fy:0.###} kN; Mz={r.Mz:0.###} kN·m; ({r.X:0.###},{r.Y:0.###}) m")) +
-                    "\n\nĐây là giá trị đã nhập/quy đổi, chưa tự tính theo TCVN 2737:2023. X/Y phải được anh kiểm chứng là vị trí đặt lực mong muốn; chương trình chưa tự xác định tâm cứng.\nModel sẽ được backup, giữ các khóa khác và đọc lại toàn bảng sau từng lệnh. Bản thử cần nghiệm thu trên model thử. Tiến hành ghi?";
+                    "\n\nĐây là giá trị nhập theo Story từ Excel/popup, không thực hiện quy đổi. Kiểm tra ánh xạ Story–diaphragm, đơn vị và X/Y; chương trình chưa tự xác định tâm cứng.\nModel sẽ được backup, giữ các khóa khác và đọc lại toàn bảng sau từng lệnh. Bản thử cần nghiệm thu trên model thử. Tiến hành ghi?";
                 if (System.Windows.MessageBox.Show(this, review, "QKS · Apply User Loads gió", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) { vm.Status = "Đã hủy, chưa ghi User Loads."; return; }
                 var host = new EtabsLoadApplyHost(message => vm.Status = "Preflight gió · " + message);
                 var report = await UserWindApply.ExecuteAsync(document, host, cancellation.Token);

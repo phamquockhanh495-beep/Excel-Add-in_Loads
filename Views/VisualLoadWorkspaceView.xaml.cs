@@ -26,17 +26,22 @@ namespace QksExcelAddIn.Views
         private Vec2? firstPlanePoint;
         private bool displayVisible = true, editorVisible = true;
         private int panelMode = -1, tableMode = -1;
+        private bool syncingSelection, selectionSyncPending;
         private static string ColorFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QKS", "Viewer", "property-colors.json");
         public VisualLoadWorkspaceView()
         {
             InitializeComponent(); DataContext = vm;
             WorkspaceWindowPlacement.Attach(this);
             SizeChanged += (_, __) => UpdateResponsiveLayout();
-            Loaded += (_, __) => UpdateResponsiveLayout();
+            Loaded += (_, __) => { UpdateResponsiveLayout(); RefreshModelList(false); };
             StateChanged += (_, __) => MaximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
-            Canvas.Picked += element => vm.SelectedElement = element;
+            Canvas.SelectionRequested += (ids, change) => vm.SelectElements(ids, change);
             Canvas.PlanePointPicked += PlanePointPicked;
-            vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(vm.Elevation) && vm.Elevation && Canvas.PickingPlanePoints) StopPlanePicking(); };
+            vm.PropertyChanged += (_, e) => {
+                if (e.PropertyName == nameof(vm.Elevation) && vm.Elevation && Canvas.PickingPlanePoints) StopPlanePicking();
+                if (e.PropertyName == nameof(vm.Scene)) { syncingSelection = true; ScheduleSelectionSync(); }
+                if (e.PropertyName == nameof(vm.SelectedIds) || e.PropertyName == nameof(vm.VisibleElements)) ScheduleSelectionSync();
+            };
             PreviewKeyDown += Window_KeyDown;
             Closing += (_, e) => { if (vm.Busy) { e.Cancel = true; vm.Status = "Chờ tác vụ kết thúc hoặc Hủy đọc trước khi đóng."; } else if (!CommitWindGrid() || !SavePendingDrafts()) e.Cancel = true; };
             AppConnectionManager.ConnectionChanged += ConnectionChanged;
@@ -53,6 +58,7 @@ namespace QksExcelAddIn.Views
             if (closed) return;
             StopPlanePicking();
             cancellation?.Cancel(); vm.SetSnapshot(null, false); vm.Status = "Kết nối đã đổi. Hãy Đọc mô hình để lấy dữ liệu mới.";
+            RefreshModelList(false);
         }));
         private void Connect_Click(object sender, RoutedEventArgs e) => new GetApiView().Show();
         private async void Read_Click(object sender, RoutedEventArgs e)
@@ -100,9 +106,30 @@ namespace QksExcelAddIn.Views
         private void Style_Click(object sender, RoutedEventArgs e) { vm.NotifyStyle(); Canvas.InvalidateVisual(); }
         private void Objects_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ObjectsTable.SelectedItem is ModelElement element) vm.SelectedElement = element;
+            if (syncingSelection) return;
+            var ids = ObjectsTable.SelectedItems.OfType<ModelElement>().Select(x => x.Id).ToList();
+            if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != 0) {
+                var visible = new HashSet<string>(vm.VisibleElements.Select(x => x.Id), StringComparer.Ordinal);
+                ids.InsertRange(0, vm.SelectedIds.Where(id => !visible.Contains(id)));
+            }
+            vm.SelectElements(ids);
         }
-        private void ClearSelection_Click(object sender, RoutedEventArgs e) { ObjectsTable.UnselectAll(); vm.SelectedElement = null; }
+        private void ScheduleSelectionSync()
+        {
+            if (selectionSyncPending) return; selectionSyncPending = true;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.DataBind, new Action(() => {
+                selectionSyncPending = false; if (closed) return; syncingSelection = true;
+                try {
+                    var visible = new HashSet<string>(vm.VisibleElements.Select(x => x.Id), StringComparer.Ordinal);
+                    var desired = new HashSet<string>(vm.SelectedIds, StringComparer.Ordinal);
+                    if(visible.Count>0&&visible.All(desired.Contains)) { ObjectsTable.SelectAll(); return; }
+                    foreach (var item in ObjectsTable.SelectedItems.OfType<ModelElement>().ToArray()) if (!desired.Contains(item.Id)) ObjectsTable.SelectedItems.Remove(item);
+                    var current = new HashSet<string>(ObjectsTable.SelectedItems.OfType<ModelElement>().Select(x => x.Id), StringComparer.Ordinal);
+                    foreach (var item in vm.SelectedElements) if (visible.Contains(item.Id) && !current.Contains(item.Id)) ObjectsTable.SelectedItems.Add(item);
+                } finally { syncingSelection = false; }
+            }));
+        }
+        private void ClearSelection_Click(object sender, RoutedEventArgs e) { Canvas.CancelInteraction(); vm.ClearSelection(); }
         private void Open_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog { Filter = "QKS model snapshot (*.json)|*.json" };
@@ -124,15 +151,6 @@ namespace QksExcelAddIn.Views
             string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try { JsonCodec.WriteAtomic(temporary, json); if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path); }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
-        }
-        private void Color_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrEmpty(vm.PropertyKey)) { vm.Status = "Chọn đối tượng trước khi lưu màu property."; return; }
-            if (!Regex.IsMatch(vm.PropertyColor ?? "", "^#[0-9a-fA-F]{6}$")) { vm.Status = "Màu phải có dạng #RRGGBB."; return; }
-            try {
-                var colors = new Dictionary<string, string>(vm.ColorOverrides, StringComparer.Ordinal) { [vm.PropertyKey] = vm.PropertyColor! };
-                SaveAtomic(ColorFile, JsonCodec.Serialize(colors)); vm.ColorOverrides = colors; vm.NotifyStyle(); Canvas.InvalidateVisual(); vm.Status = "Đã lưu màu property vào profile QKS trên máy này.";
-            } catch (Exception ex) { vm.Status = "Không lưu được màu: " + ex.Message; }
         }
         private void TryDraft(Action operation)
         {
@@ -177,7 +195,7 @@ namespace QksExcelAddIn.Views
         }
         private void StopPlanePicking()
         {
-            Canvas.PickingPlanePoints = false; Canvas.FirstPlanePoint = null; firstPlanePoint = null; Canvas.Cursor = Cursors.Arrow; Canvas.InvalidateVisual();
+            Canvas.PickingPlanePoints = false; Canvas.CancelInteraction(); Canvas.FirstPlanePoint = null; firstPlanePoint = null; Canvas.Cursor = Cursors.Arrow; Canvas.InvalidateVisual();
         }
         private void PickElevation_Click(object sender, RoutedEventArgs e)
         {
@@ -186,7 +204,7 @@ namespace QksExcelAddIn.Views
             try { vm.PreparePlanPointPicking(); }
             catch (Exception ex) { vm.Status = ex.Message; return; }
             PlanRadio.IsChecked = true; Canvas.Fit(); Canvas.PickingPlanePoints = true; Canvas.Cursor = Cursors.Cross;
-            vm.Status = "Chọn điểm thứ nhất trên Plan; snap đỉnh trong 8 DIP. Esc để hủy.";
+            vm.Status = "Chọn điểm đầu trên Plan; snap đầu cấu kiện, trung điểm hoặc cạnh trong 8 DIP. Esc để hủy.";
         }
         private void PlanePointPicked(Vec2 point)
         {
@@ -197,7 +215,10 @@ namespace QksExcelAddIn.Views
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Escape && Canvas.PickingPlanePoints) { StopPlanePicking(); vm.Status = "Đã hủy chọn mặt đứng."; e.Handled = true; }
-            if (Keyboard.FocusedElement is TextBoxBase || Keyboard.Modifiers != ModifierKeys.Control) return;
+            if (Keyboard.FocusedElement is TextBoxBase || Keyboard.FocusedElement is PasswordBox) return;
+            if (e.Key == Key.Delete) { Canvas.CancelInteraction(); vm.ClearSelection(); vm.Status = "Đã hủy chọn; không xóa cấu kiện hoặc tải."; e.Handled = true; return; }
+            if (e.Key == Key.Escape) Canvas.CancelInteraction();
+            if (Keyboard.Modifiers != ModifierKeys.Control) return;
             if (e.Key == Key.Z) { vm.UndoDraft(); e.Handled = true; }
             if (e.Key == Key.Y) { vm.RedoDraft(); e.Handled = true; }
         }
@@ -210,7 +231,7 @@ namespace QksExcelAddIn.Views
             int next = WorkspaceSize.PanelMode(ActualWidth);
             if (next != panelMode) { panelMode = next; displayVisible = next == 2; editorVisible = next >= 1; }
             int nextTable = ActualHeight < 500 ? 0 : ActualHeight < 680 ? 1 : 2;
-            if (nextTable != tableMode) { tableMode = nextTable; TableRow.Height = new GridLength(nextTable == 0 ? 100 : nextTable == 1 ? 140 : 180); }
+            if (nextTable != tableMode) { tableMode = nextTable; TableRow.Height = new GridLength(nextTable == 0 ? 125 : nextTable == 1 ? 175 : 225); }
             ApplyPanels();
         }
         private void ApplyPanels()

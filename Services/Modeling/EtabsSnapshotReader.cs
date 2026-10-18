@@ -54,7 +54,7 @@ namespace QksExcelAddIn.Services.Modeling
             var diagnostics = new List<string> {
                 "Phạm vi tải đã đọc: frame distributed và area uniform. Chưa gồm joint/point load, frame point, temperature, surface pressure hoặc tải sinh tự động.",
                 "Ảnh chụp dữ liệu chỉ đọc; không chỉnh mô hình/đơn vị trong khi đọc. API không cung cấp revision để phát hiện mọi thay đổi hình học cùng file.",
-                "Trục lưới/named elevation chưa nhập; mặt đứng hiện dùng tọa độ gốc và góc phương. Hình học hiển thị đường trục/biên, chưa extrusion tiết diện."
+                "Mặt đứng dựng từ hai điểm có snap, hiển thị mốc Story/cao độ đã đọc; lưới XY/named elevation chưa nhập. Hình học là đường trục/biên, chưa extrusion tiết diện."
             };
             int optionalErrorCount = 0;
             void Optional(int code, string message) {

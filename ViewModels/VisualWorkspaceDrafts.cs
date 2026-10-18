@@ -16,17 +16,17 @@ namespace QksExcelAddIn.ViewModels
         public IReadOnlyList<DraftLoad> DraftRows => Drafts?.Loads ?? Array.Empty<DraftLoad>();
         public IReadOnlyList<string> AvailablePatterns => Snapshot?.LoadPatterns ?? Array.Empty<string>();
         public IReadOnlyList<DraftOverlay> DraftOverlays { get; private set; } = Array.Empty<DraftOverlay>();
-        public IEnumerable<LoadComparison> ComparisonRows => DraftContextActive ? Drafts!.Compare().Where(r => displayIds.Contains(r.Load.ElementId) && (SelectedElement == null || r.Load.ElementId == SelectedId)) : Enumerable.Empty<LoadComparison>();
+        public IEnumerable<LoadComparison> ComparisonRows => DraftContextActive ? Drafts!.Compare().Where(r => displayIds.Contains(r.Load.ElementId) && (SelectedIds.Count==0 || selectedIdSet.Contains(r.Load.ElementId))) : Enumerable.Empty<LoadComparison>();
         public string DraftStatus => Drafts == null ? "Chưa có bộ nháp." : DraftRows.Count + " dòng · " + (Drafts.IsDirty ? "chưa lưu" : "đã lưu/không đổi") +
             (DraftContextActive ? " · gắn snapshot hiện tại" : " · TÁCH KHỎI SNAPSHOT (vẫn lưu được)");
         public bool CanUndoDraft => !Busy && DraftContextActive && Drafts!.CanUndo;
         public bool CanRedoDraft => !Busy && DraftContextActive && Drafts!.CanRedo;
         public bool CanDeleteDraft => !Busy && DraftContextActive && editingId != null;
-        public bool CanEditDraft => !Busy && DraftContextActive && (draftModuleIndex == 0 ? SelectedElement?.Kind == ElementKind.Beam : draftModuleIndex == 1 && SelectedElement?.Kind == ElementKind.Slab);
+        public bool CanEditDraft => !Busy && SingleSelection && DraftContextActive && (draftModuleIndex == 0 ? SelectedElement?.Kind == ElementKind.Beam : draftModuleIndex == 1 && SelectedElement?.Kind == ElementKind.Slab);
         public bool WallInputsEnabled => draftModuleIndex == 0;
         public string DraftValueLabel => draftModuleIndex == 0 ? "q1 / q2 (kN/m); q2 trống = q1" : draftModuleIndex == 1 ? "p (kN/m²)" : "";
         public string EditorCaption => editingId == null ? "Thêm vào nháp" : "Cập nhật dòng nháp";
-        public string EditorTarget => SelectedElement == null ? "Chọn dầm/sàn trên hình hoặc bảng." : "Đích: " + SelectedElement.Id + (VisibleElements.Any(e => e.Id == SelectedId) ? "" : " · ngoài vùng xem");
+        public string EditorTarget => SelectedElements.Count>1?"Đã chọn "+SelectedElements.Count+" cấu kiện; chọn một cấu kiện để soạn tải riêng.":SelectedElement == null ? "Chọn dầm/sàn trên hình hoặc bảng." : "Đích: " + SelectedElement.Name + " · " + SelectedElement.Story + (VisibleElements.Any(e => e.Id == SelectedId) ? "" : " · ngoài vùng xem");
         public string[] DraftDirections { get; } = { "Gravity", "Global-X", "Global-Y", "Global-Z" };
         public string[] DraftActions { get; } = { "Thêm tải", "Thay cùng phạm vi" };
         public string DraftPattern { get; set; } = "";
@@ -68,6 +68,7 @@ namespace QksExcelAddIn.ViewModels
             foreach (string name in new[] { nameof(DraftContextActive), nameof(DraftRows), nameof(DraftStatus), nameof(CanUndoDraft), nameof(CanRedoDraft), nameof(ComparisonRows) }) Changed(name);
             NotifyDraftEditor(); Refresh();
             NotifyApply();
+            NotifyWind();
         }
         public void ResetDraftEditor() { editingId = null; NotifyDraftEditor(); }
         public void NewDraftSet()

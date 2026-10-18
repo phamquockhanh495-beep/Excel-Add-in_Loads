@@ -6,6 +6,7 @@
         <ResourceDictionary Source="pack://application:,,,/QksExcelAddIn;component/MaterialDesignResources.xaml"/>
     </ResourceDictionary.MergedDictionaries>
     <BooleanToVisibilityConverter x:Key="BoolVisible"/>
+    <Style TargetType="TextBlock"><Setter Property="FontWeight" Value="Normal"/></Style>
 
     <!-- Scoped to this viewer so the existing load windows keep their own formatting. -->
     <SolidColorBrush x:Key="MaterialDesign.Brush.Primary" Color="#102A4C"/>
@@ -38,6 +39,7 @@
     </Style>
 
     <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBox}">
+        <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Foreground" Value="#0F2240"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="MinHeight" Value="26"/>
@@ -47,12 +49,14 @@
     </Style>
 
     <Style x:Key="QksWorkspaceComboBoxItem" TargetType="ComboBoxItem" BasedOn="{StaticResource MaterialDesignComboBoxItemStyle}">
+        <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Foreground" Value="#0F2240"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Padding" Value="8,6"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
     </Style>
     <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignComboBox}">
+        <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Foreground" Value="#0F2240"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="MinHeight" Value="28"/>
@@ -90,6 +94,8 @@
     </Style>
 
     <Style x:Key="QksWorkspaceTabItem" TargetType="TabItem" BasedOn="{StaticResource QksBeamTabItemStyle}">
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="HeaderTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" FontWeight="SemiBold"/></DataTemplate></Setter.Value></Setter>
         <Setter Property="Padding" Value="8,6"/>
         <Setter Property="FontSize" Value="11.5"/>
     </Style>
@@ -99,6 +105,7 @@
         <Setter Property="ItemContainerStyle" Value="{StaticResource QksWorkspaceTabItem}"/>
     </Style>
     <Style TargetType="DataGrid" BasedOn="{StaticResource MaterialDesignDataGrid}">
+        <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="AutoGenerateColumns" Value="False"/>
         <Setter Property="IsReadOnly" Value="True"/>
         <Setter Property="CanUserAddRows" Value="False"/>
@@ -112,6 +119,20 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="HorizontalGridLinesBrush" Value="#E2E8F0"/>
     </Style>
+    <Style TargetType="DataGridRow">
+        <Setter Property="FontWeight" Value="Normal"/><Setter Property="Background" Value="White"/><Setter Property="Foreground" Value="#0F2240"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F1F5F9"/></Trigger>
+            <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#E5EBF3"/><Setter Property="Foreground" Value="#1565C0"/></Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style TargetType="DataGridCell" BasedOn="{StaticResource QksDataGridCellStyle}">
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="FontWeight" Value="Normal"/></Trigger></Style.Triggers>
+    </Style>
+    <Style x:Key="WorkspaceCellText" TargetType="TextBlock"><Setter Property="FontWeight" Value="Normal"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Padding" Value="4,2"/></Style>
+    <Style x:Key="WorkspaceCellCenter" TargetType="TextBlock" BasedOn="{StaticResource WorkspaceCellText}"><Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="TextAlignment" Value="Center"/></Style>
+    <Style x:Key="WorkspaceHeaderLeft" TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}"><Setter Property="FontWeight" Value="Bold"/><Setter Property="Foreground" Value="#0072BC"/><Setter Property="HorizontalContentAlignment" Value="Left"/><Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" FontWeight="Bold" TextAlignment="Left"/></DataTemplate></Setter.Value></Setter></Style>
 
     <Style x:Key="Panel" TargetType="Border">
         <Setter Property="Background" Value="White"/>

@@ -9,43 +9,6 @@ using Newtonsoft.Json;
 
 namespace QksExcelAddIn.Modeling.Core
 {
-    /// <summary>Physical mapping of reviewed pressures; this is NOT an implementation of TCVN gust factors.</summary>
-    public sealed class WindPressureBand
-    {
-        public double Bottom { get; }
-        public double Top { get; }
-        public double PressureBottom { get; }
-        public double PressureTop { get; }
-        public WindPressureBand(double bottom, double top, double pressureBottom, double pressureTop)
-        {
-            if (!Number.Finite(bottom) || !Number.Finite(top) || !Number.Finite(pressureBottom) || !Number.Finite(pressureTop) || top <= bottom)
-                throw new ArgumentException("Dải cao độ và áp lực gió phải hữu hạn, Z trên > Z dưới.");
-            Bottom = bottom; Top = top; PressureBottom = pressureBottom; PressureTop = pressureTop;
-        }
-        public double At(double z)
-        {
-            if (!Number.Finite(z) || z < Bottom - 1e-8 || z > Top + 1e-8) throw new ArgumentOutOfRangeException(nameof(z), "Cao độ đích ngoài dải áp lực; không ngoại suy.");
-            return PressureBottom + (PressureTop - PressureBottom) * (Math.Max(Bottom, Math.Min(Top, z)) - Bottom) / (Top - Bottom);
-        }
-        public double StoryForce(double bottom, double top, double facadeWidth)
-        {
-            if (!Number.Finite(facadeWidth) || facadeWidth <= 0 || !Number.Finite(bottom) || !Number.Finite(top) || top <= bottom) throw new ArgumentException("Bề rộng đón gió/dải tầng không hợp lệ.");
-            double force = (At(bottom) + At(top)) * .5 * (top - bottom) * facadeWidth;
-            if (!Number.Finite(force)) throw new ArgumentException("Lực gió vượt miền số.");
-            return force;
-        }
-        public DraftLoad OnBeam(ModelElement beam, string pattern, int direction, double tributaryHeight, DraftAction action)
-        {
-            if (beam.Kind != ElementKind.Beam || beam.Vertices.Count != 2 || !(beam.Length3D > 1e-9) ||
-                !Number.Finite(tributaryHeight) || tributaryHeight <= 0 || direction != 4 && direction != 5)
-                throw new ArgumentException("Chọn dầm biên, Global X/Y và chiều cao đón gió > 0.");
-            // p [kN/m²] × tributary height [m] = q [kN/m]; never put p into a line-load API.
-            double q1 = At(beam.Vertices[0].Z) * tributaryHeight, q2 = At(beam.Vertices[1].Z) * tributaryHeight;
-            if (!Number.Finite(q1) || !Number.Finite(q2)) throw new ArgumentException("Tải đường gió vượt miền số.");
-            return new DraftLoad(Guid.NewGuid().ToString("N"), beam.Id, DraftKind.WindLine, pattern, direction, 0, 1, q1, q2, action);
-        }
-    }
-
     public sealed class UserWindRow
     {
         [JsonProperty(Required = Required.Always)]
@@ -97,8 +60,9 @@ namespace QksExcelAddIn.Modeling.Core
         [JsonProperty(Required = Required.Always)]
         public IReadOnlyList<UserWindRow> Changes { get; }
         public string Basis { get; }
-        public UserWindDocument(string identity, string modelFingerprint, UserWindState before, IEnumerable<UserWindRow> changes, string basis = "", int schemaVersion = 1)
-        { SchemaVersion = schemaVersion; Identity = identity; ModelFingerprint = modelFingerprint; Before = before; Changes = changes.ToArray(); Basis = basis ?? ""; }
+        public IReadOnlyDictionary<string,string> StoryAssignments { get; }
+        public UserWindDocument(string identity, string modelFingerprint, UserWindState before, IEnumerable<UserWindRow> changes, string basis = "", int schemaVersion = 1, IReadOnlyDictionary<string,string>? storyAssignments = null)
+        { SchemaVersion = schemaVersion; Identity = identity; ModelFingerprint = modelFingerprint; Before = before; Changes = changes.ToArray(); Basis = basis ?? ""; StoryAssignments=new System.Collections.ObjectModel.ReadOnlyDictionary<string,string>((storyAssignments??new Dictionary<string,string>()).ToDictionary(p=>p.Key,p=>p.Value,StringComparer.Ordinal)); }
         public UserWindState Expected()
         {
             if (SchemaVersion != 1) throw new ArgumentException("Schema nháp User Loads chưa hỗ trợ.");
@@ -107,6 +71,7 @@ namespace QksExcelAddIn.Modeling.Core
                 throw new ArgumentException("Chưa có thay đổi User Loads hoặc khóa bị trùng.");
             var known = new HashSet<string>(Before.Rows.Select(r => r.DiaphragmKey), StringComparer.Ordinal);
             if (Changes.Any(r => !known.Contains(r.DiaphragmKey))) throw new InvalidOperationException("Chỉ sửa khóa diaphragm đã đọc từ ETABS; chưa tự tạo khóa theo tên tầng.");
+            if(StoryAssignments.Any(p=>!known.Contains(p.Key)||string.IsNullOrWhiteSpace(p.Value)))throw new ArgumentException("Ánh xạ Story–diaphragm không hợp lệ.");
             var updates = Changes.ToDictionary(r => r.DiaphragmKey, StringComparer.Ordinal);
             return new UserWindState(Before.Pattern, Before.Code, Before.Rows.Select(r => updates.TryGetValue(r.DiaphragmKey, out var row) ? row : r));
         }
@@ -143,6 +108,7 @@ namespace QksExcelAddIn.Modeling.Core
                 var fresh = await model.ReadSnapshotAsync(token);
                 if (fresh.Identity != document.Identity || SnapshotFingerprint.Of(fresh) != document.ModelFingerprint) throw new InvalidOperationException("Nguồn hình học/tải đã đổi. Đọc lại User Loads.");
                 if (!fresh.LoadPatterns.Contains(document.Before.Pattern, StringComparer.Ordinal)) throw new InvalidOperationException("Pattern User Loads chưa có trong nguồn.");
+                if(document.StoryAssignments.Values.Any(story=>!fresh.Levels.Any(l=>l.Name==story)))throw new InvalidOperationException("Story của dữ liệu gió không có trong mô hình hiện tại.");
                 if (fresh.Loads.Any(l => l.Pattern == document.Before.Pattern && (l.Value1 != 0 || l.Value2 != 0)))
                     throw new InvalidOperationException("Pattern đang có tải trực tiếp lên cấu kiện; dùng pattern riêng cho User Loads để tránh cộng hai cách gán gió.");
                 token.ThrowIfCancellationRequested(); model.Guard();

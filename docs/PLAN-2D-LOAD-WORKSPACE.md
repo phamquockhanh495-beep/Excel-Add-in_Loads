@@ -330,6 +330,8 @@ Nguồn màu API phải được adapter chuẩn hóa đúng sRGB/encoding thự
 
 ## 9. Giai đoạn phát triển và dự toán thời gian
 
+Cập nhật 18/10/2026: [Preview 4](VIEWER-PREVIEW-4.md) bổ sung quét/chọn nhiều, snap, mốc Story và nhãn; [gió nhập trực tiếp qua Excel/popup theo Story](WIND-STORY-INPUT.md), không quy đổi. Yêu cầu mới này thay phạm vi engine tính/quy đổi gió ở các mô tả trước.
+
 Cập nhật Preview 3 ngày 17/10/2026: [báo cáo G5–G7](VIEWER-PREVIEW-3.md). Đã có mã thử Apply ETABS và hai nhánh gió (dầm biên/User Loads đã có), kiểm thử core/VM và benchmark nhân tạo; chưa hoàn tất nghiệm thu host, adapter SAFE, engine TCVN 2737:2023 hoặc tự lấy tâm cứng. [Phạm vi gió mới theo yêu cầu](WIND-TCVN2737-2023.md) thay cho giả định chỉ nhập p/q ở các bản kế hoạch trước.
 
 Phạm vi ước lượng: Plan + Elevation ETABS, Plan SAFE với phiên bản/capability được chốt, ba tab tải và luồng nháp/apply. Tải gió trong phần cơ sở là nhập tải đã xác định, hiển thị và quy đổi theo giả thiết được duyệt; chưa bao gồm engine tính theo tiêu chuẩn chưa chọn, bản đồ gió, mọi phiên bản host hoặc mặt đứng cong trải phẳng.

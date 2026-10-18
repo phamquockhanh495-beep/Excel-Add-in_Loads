@@ -19,14 +19,14 @@ namespace QksExcelAddIn.ViewModels
         public IReadOnlyList<ModelLevel> Levels { get; private set; } = Array.Empty<ModelLevel>();
         public IReadOnlyList<ModelElement> DisplayElements { get; private set; } = Array.Empty<ModelElement>();
         private HashSet<string> displayIds = new HashSet<string>(StringComparer.Ordinal);
-        public IEnumerable<ExistingLoad> VisibleLoads => Snapshot?.Loads.Where(l => displayIds.Contains(l.ElementId) && (SelectedElement == null || l.ElementId == SelectedElement.Id)) ?? Enumerable.Empty<ExistingLoad>();
+        public IEnumerable<ExistingLoad> VisibleLoads => Snapshot?.Loads.Where(l => displayIds.Contains(l.ElementId) && (SelectedIds.Count == 0 || selectedIdSet.Contains(l.ElementId))) ?? Enumerable.Empty<ExistingLoad>();
         public string[] Kinds { get; } = new[] { "Tất cả" }.Concat(Enum.GetNames(typeof(ElementKind)).Where(k => k != nameof(ElementKind.Column))).ToArray();
         private string status = "Dùng Kết nối API chọn ETABS, sau đó Đọc mô hình. SAFE 18–22 đang chờ kiểm chứng API.";
         public string Status { get => status; set { status = value; Changed(); } }
         public string SourceText { get; private set; } = "Chưa có snapshot";
         public string Diagnostics => Snapshot == null ? "Chưa đọc dữ liệu." : string.Join(Environment.NewLine + Environment.NewLine, Snapshot.Diagnostics);
         public bool HasOpenings => Snapshot?.Elements.Any(e => e.Kind == ElementKind.Opening) == true;
-        public string Counts => Scene.Count + "/" + DisplayElements.Count + " đối tượng · " + (Snapshot?.Loads.Count(l => displayIds.Contains(l.ElementId)) ?? 0) + " tải · m/kN";
+        public string Counts => Scene.Count + "/" + DisplayElements.Count + " đối tượng · chọn " + SelectedIds.Count + " · " + (Snapshot?.Loads.Count(l => displayIds.Contains(l.ElementId)) ?? 0) + " tải · m/kN";
         private bool busy;
         public bool Busy { get => busy; set { busy = value; Changed(); Changed(nameof(CanRead)); Changed(nameof(CanEditDraft)); Changed(nameof(CanUndoDraft)); Changed(nameof(CanRedoDraft)); Changed(nameof(CanDeleteDraft)); NotifyApply(); NotifyWind(); } }
         public bool CanRead => !Busy;
@@ -44,6 +44,8 @@ namespace QksExcelAddIn.ViewModels
         public string Kind { get => kind; set { kind = Kinds.Contains(value) ? value : "Tất cả"; Changed(); Refresh(); } }
         public string Search { get => search; set { search = value; Changed(); Refresh(); } }
         public bool ShowLabels { get; set; } = true;
+        public bool ShowSections { get; set; }
+        public bool ShowUniqueNames { get; set; }
         public bool ShowDraftValues { get; set; } = true;
         public bool ColorByProperty { get; set; }
         public Dictionary<string, string> ColorOverrides { get; set; } = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -53,17 +55,12 @@ namespace QksExcelAddIn.ViewModels
         public ModelElement? SelectedElement {
             get => selected;
             set {
-                if (value?.Kind == ElementKind.Column) value = null;
-                if (ReferenceEquals(selected, value)) return;
-                selected = value; Changed(); Changed(nameof(VisibleLoads)); Changed(nameof(SelectedId)); Changed(nameof(PropertyKey)); Changed(nameof(Inspector));
-                PropertyColor = value == null ? "#2563EB" : ColorOverrides.TryGetValue(PropertyKey, out var c) ? c : PropertyColors.ForProperty(PropertyKey);
-                Changed(nameof(PropertyColor));
-                OnSelectionChanged();
+                SelectElements(value==null?Array.Empty<string>():new[]{value.Id});
             }
         }
         public string SelectedId => SelectedElement?.Id ?? "";
-        public string Inspector => SelectedElement == null ? "Chọn đối tượng trên hình hoặc bảng.\n\nCtrl + click: chuyển lần lượt các đối tượng chồng nhau." :
-            "ID: " + SelectedElement.Id + "\nLabel: " + SelectedElement.Label + "\nStory: " + SelectedElement.Story + "\nLoại: " + SelectedElement.Kind +
+        public string Inspector => SelectedElements.Count>1?"Đã chọn "+SelectedElements.Count+" cấu kiện.\n"+string.Join("\n",SelectedElements.Take(12).Select(e=>e.Name+" · "+e.Label+" · "+e.Story))+"\nChọn một cấu kiện để soạn tải riêng.":SelectedElement == null ? "Quét trái → phải: chọn trọn. Phải → trái: chọn giao.\nCtrl + click: thêm/bỏ. Delete: hủy chọn. Alt + click: đổi đối tượng chồng nhau." :
+            "Unique ID: " + SelectedElement.Name + "\nLabel: " + SelectedElement.Label + "\nStory: " + SelectedElement.Story + "\nType: " + SelectedElement.Kind +
             "\nProperty: " + SelectedElement.Property + "\nL 3D: " + (SelectedElement.Length3D?.ToString("0.###") ?? "N/A") + " m" +
             "\nLocal angle: " + (SelectedElement.LocalAxisDegrees?.ToString("0.###") ?? "N/A") + "°" + (SelectedElement.AdvancedLocalAxes ? " (advanced)" : "") +
             "\n\n" + string.Join("\n", SelectedElement.Vertices.Select((p, i) => $"P{i + 1}: {p.X:0.###}, {p.Y:0.###}, {p.Z:0.###} m"));
@@ -72,6 +69,7 @@ namespace QksExcelAddIn.ViewModels
             snapshot?.Validate(); Snapshot = snapshot; Offline = offline; applyNeedsRead = false;
             DisplayElements = snapshot?.Elements.Where(e => e.Kind != ElementKind.Column).ToArray() ?? Array.Empty<ModelElement>();
             displayIds = new HashSet<string>(DisplayElements.Select(e => e.Id), StringComparer.Ordinal);
+            displayById=DisplayElements.ToDictionary(e=>e.Id,StringComparer.Ordinal);
             Levels = snapshot?.Levels ?? Array.Empty<ModelLevel>();
             level = Levels.LastOrDefault(); SelectedElement = null;
             OnSnapshotChanged(snapshot);
@@ -102,6 +100,6 @@ namespace QksExcelAddIn.ViewModels
             }
             catch (Exception ex) { Status = "Không cập nhật hình: " + ex.Message; }
         }
-        public void NotifyStyle() { Changed(nameof(ColorByProperty)); Changed(nameof(ShowLabels)); Changed(nameof(ShowDraftValues)); Changed(nameof(ColorOverrides)); }
+        public void NotifyStyle() { Changed(nameof(ColorByProperty)); Changed(nameof(ShowLabels)); Changed(nameof(ShowSections)); Changed(nameof(ShowUniqueNames)); Changed(nameof(ShowDraftValues)); Changed(nameof(ColorOverrides)); }
     }
 }
