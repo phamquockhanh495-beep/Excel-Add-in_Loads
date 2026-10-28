@@ -55,7 +55,7 @@ namespace QksExcelAddIn.Services.Modeling
             var diagnostics = new List<string> {
                 "Phạm vi tải đã đọc: frame distributed và area uniform. Chưa gồm joint/point load, frame point, temperature, surface pressure hoặc tải sinh tự động.",
                 "Ảnh chụp dữ liệu chỉ đọc; không chỉnh mô hình/đơn vị trong khi đọc. API không cung cấp revision để phát hiện mọi thay đổi hình học cùng file.",
-                "Mặt đứng dựng từ hai điểm có snap, hiển thị mốc Story/cao độ đã đọc; lưới XY/named elevation chưa nhập. Hình học là đường trục/biên, chưa extrusion tiết diện."
+                "Mặt đứng dựng từ hai điểm có snap, hiển thị mốc Story/cao độ đã đọc; lưới XY/named elevation chưa nhập. Extrude: tiết diện chữ nhật/tròn và chiều dày sàn/vách phẳng; kích thước thật đặt giữa trục/mặt phân tích, chưa xét insertion/end offsets. Sàn/vách nghiêng so với vùng xem giữ đường biên."
             };
             int optionalErrorCount = 0;
             void Optional(int code, string message) {
@@ -76,6 +76,7 @@ namespace QksExcelAddIn.Services.Modeling
                 if (!p.IsFinite) throw new InvalidOperationException("Tọa độ không hữu hạn: " + name);
                 points.Add(name, p); return p;
             }
+            var sections = new EtabsSectionReader(sap, scale.LengthToMetres, Optional);
             var elements = new List<ModelElement>(); var loads = new List<ExistingLoad>(); var levels = new List<ModelLevel>();
             int count = 0; string[] names = Array.Empty<string>();
             int patternCode = sap.LoadPatterns.GetNameList(ref count, ref names);
@@ -100,7 +101,8 @@ namespace QksExcelAddIn.Services.Modeling
                 Optional(orientationResult, "Không đọc được design orientation frame " + name);
                 ElementKind kind = orientationResult != 0 ? ElementKind.Other : orientation == eFrameDesignOrientation.Beam ? ElementKind.Beam :
                     orientation == eFrameDesignOrientation.Column ? ElementKind.Column : orientation == eFrameDesignOrientation.Brace ? ElementKind.Brace : ElementKind.Other;
-                var element = new ModelElement("Frame:" + name, name, label, story, property, kind, new[] { pa, pb }, axisResult == 0 ? (double?)angle : null, advanced);
+                var element = new ModelElement("Frame:" + name, name, label, story, property, kind, new[] { pa, pb }, axisResult == 0 ? (double?)angle : null, advanced, sections.Read(property, kind, true));
+                if (advanced) Optional(-1, "Extrude frame " + name + ": advanced local axes chưa hỗ trợ; giữ đường trục.");
                 elements.Add(element);
                 ReadFrameLoads(sap, element, scale, loads, LoadError);
                 if (i % 25 == 0) await Yield("Đọc frame " + (i + 1) + "/" + frames.Length);
@@ -121,7 +123,7 @@ namespace QksExcelAddIn.Services.Modeling
                 Optional(orientationResult, "Không đọc được design orientation area " + name);
                 ElementKind kind = opening ? ElementKind.Opening : orientationResult != 0 ? ElementKind.Other :
                     orientation == eAreaDesignOrientation.Floor ? ElementKind.Slab : orientation == eAreaDesignOrientation.Wall ? ElementKind.Wall : ElementKind.Other;
-                var element = new ModelElement("Area:" + name, name, label, story, property, kind, vertices);
+                var element = new ModelElement("Area:" + name, name, label, story, property, kind, vertices, section: sections.Read(property, kind, false));
                 elements.Add(element); ReadAreaLoads(sap, element, scale, loads, LoadError);
                 if (i % 25 == 0) await Yield("Đọc area " + (i + 1) + "/" + areas.Length);
             }

@@ -37,13 +37,14 @@ namespace QksExcelAddIn.Modeling.Core
         public IReadOnlyList<Vec3> Vertices { get; }
         public double? LocalAxisDegrees { get; }
         public bool AdvancedLocalAxes { get; }
+        public SectionGeometry? Section { get; }
         public double? Length3D => Vertices.Count == 2 ? (double?)(Vertices[1] - Vertices[0]).Length : null;
         public ModelElement(string id, string name, string label, string story, string property,
-            ElementKind kind, IEnumerable<Vec3> vertices, double? localAxisDegrees = null, bool advancedLocalAxes = false)
+            ElementKind kind, IEnumerable<Vec3> vertices, double? localAxisDegrees = null, bool advancedLocalAxes = false, SectionGeometry? section = null)
         {
             Id = id; Name = name; Label = label; Story = story; Property = property; Kind = kind;
             Vertices = new ReadOnlyCollection<Vec3>(vertices.ToArray());
-            LocalAxisDegrees = localAxisDegrees; AdvancedLocalAxes = advancedLocalAxes;
+            LocalAxisDegrees = localAxisDegrees; AdvancedLocalAxes = advancedLocalAxes; Section = section;
         }
     }
     public sealed class ModelLevel

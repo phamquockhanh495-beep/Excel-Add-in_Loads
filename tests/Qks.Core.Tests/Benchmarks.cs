@@ -25,9 +25,9 @@ internal static partial class Program
             var vm=new VisualWorkspaceViewModel(); var times=new List<double>(); var elevationTimes=new List<double>();
             for(int sample=0;sample<4;sample++) {
                 var clock=Stopwatch.StartNew();vm.SetSnapshot(snapshot,true);clock.Stop();if(sample>0)times.Add(clock.Elapsed.TotalMilliseconds);
-                Assert(vm.Scene.Count==count-count/10&&vm.Scene.All(e=>e.Source.Kind!=ElementKind.Column));
+                Assert(vm.Scene.Count==count&&vm.Scene.Any(e=>e.Source.Kind==ElementKind.Column));
                 clock.Restart();vm.Elevation=true;clock.Stop();if(sample>0)elevationTimes.Add(clock.Elapsed.TotalMilliseconds);
-                Assert(vm.Scene.All(e=>e.Source.Kind!=ElementKind.Column));vm.Elevation=false;
+                Assert(vm.Scene.Any(e=>e.Source.Kind==ElementKind.Column));vm.Elevation=false;
             }
             var selectionClock=Stopwatch.StartNew();vm.SelectElements(vm.VisibleElements.Select(e=>e.Id));selectionClock.Stop();Assert(vm.SelectedIds.Count==vm.VisibleElements.Count);vm.ClearSelection();
             long memory=GC.GetTotalMemory(true);GC.KeepAlive(vm);GC.KeepAlive(snapshot);

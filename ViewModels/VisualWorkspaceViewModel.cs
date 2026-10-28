@@ -20,7 +20,7 @@ namespace QksExcelAddIn.ViewModels
         public IReadOnlyList<ModelElement> DisplayElements { get; private set; } = Array.Empty<ModelElement>();
         private HashSet<string> displayIds = new HashSet<string>(StringComparer.Ordinal);
         public IEnumerable<ExistingLoad> VisibleLoads => Snapshot?.Loads.Where(l => displayIds.Contains(l.ElementId) && !workspaceRemovedIds.Contains(l.ElementId) && (SelectedIds.Count == 0 || selectedIdSet.Contains(l.ElementId))) ?? Enumerable.Empty<ExistingLoad>();
-        public string[] Kinds { get; } = new[] { "Tất cả" }.Concat(Enum.GetNames(typeof(ElementKind)).Where(k => k != nameof(ElementKind.Column))).ToArray();
+        public string[] Kinds { get; } = new[] { "Tất cả" }.Concat(Enum.GetNames(typeof(ElementKind))).ToArray();
         private string status = "Kết nối API rồi mở workspace để tự đọc ETABS. SAFE 18–22 đang chờ kiểm chứng API.";
         public string Status { get => status; set { status = value; Changed(); } }
         public string SourceText { get; private set; } = "Chưa đọc mô hình";
@@ -47,9 +47,11 @@ namespace QksExcelAddIn.ViewModels
         public bool ShowSections { get; set; }
         public bool ShowUniqueNames { get; set; }
         public IReadOnlyList<LabelDisplaySetting> LabelSettings { get; } = new[] {
-            new LabelDisplaySetting(ElementKind.Beam, "Dầm"), new LabelDisplaySetting(ElementKind.Slab, "Sàn"),
+            new LabelDisplaySetting(ElementKind.Beam, "Dầm"), new LabelDisplaySetting(ElementKind.Column, "Cột"), new LabelDisplaySetting(ElementKind.Slab, "Sàn"),
             new LabelDisplaySetting(ElementKind.Wall, "Vách"), new LabelDisplaySetting(ElementKind.Brace, "Giằng"),
             new LabelDisplaySetting(ElementKind.Opening, "Opening"), new LabelDisplaySetting(ElementKind.Other, "Khác") };
+        private bool extrude = true;
+        public bool Extrude { get => extrude; set { extrude=value;Changed();Refresh(); } }
         public bool ShowDraftValues { get; set; } = true;
         public bool ColorByProperty { get; set; }
         public Dictionary<string, string> ColorOverrides { get; set; } = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -66,13 +68,14 @@ namespace QksExcelAddIn.ViewModels
         public string Inspector => SelectedElements.Count>1?"Đã chọn "+SelectedElements.Count+" cấu kiện.\n"+string.Join("\n",SelectedElements.Take(12).Select(e=>e.Name+" · "+e.Label+" · "+e.Story))+"\nChọn một cấu kiện để xem thuộc tính chi tiết.":SelectedElement == null ? "Quét trái → phải: chọn trọn. Phải → trái: chọn giao.\nCtrl + click: thêm/bỏ. Esc: bỏ chọn / hủy thao tác. Delete: bỏ khỏi workspace; Khôi phục để hiện lại. Alt + click: đổi đối tượng chồng nhau." :
             "Unique ID: " + SelectedElement.Name + "\nLabel: " + SelectedElement.Label + "\nStory: " + SelectedElement.Story + "\nType: " + SelectedElement.Kind +
             "\nProperty: " + SelectedElement.Property + "\nL 3D: " + (SelectedElement.Length3D?.ToString("0.###") ?? "N/A") + " m" +
+            "\nTiết diện: " + (SelectedElement.Section?.ToString() ?? "Chưa có kích thước Extrude") +
             "\nLocal angle: " + (SelectedElement.LocalAxisDegrees?.ToString("0.###") ?? "N/A") + "°" + (SelectedElement.AdvancedLocalAxes ? " (advanced)" : "") +
             "\n\n" + string.Join("\n", SelectedElement.Vertices.Select((p, i) => $"P{i + 1}: {p.X:0.###}, {p.Y:0.###}, {p.Z:0.###} m"));
         public void SetSnapshot(ModelSnapshot? snapshot, bool offline)
         {
             snapshot?.Validate(); Snapshot = snapshot; Offline = offline; applyNeedsRead = false;
             workspaceRemovedIds.Clear();NotifyWorkspaceVisibility();
-            DisplayElements = snapshot?.Elements.Where(e => e.Kind != ElementKind.Column).ToArray() ?? Array.Empty<ModelElement>();
+            DisplayElements = snapshot?.Elements.ToArray() ?? Array.Empty<ModelElement>();
             displayIds = new HashSet<string>(DisplayElements.Select(e => e.Id), StringComparer.Ordinal);
             displayById=DisplayElements.ToDictionary(e=>e.Id,StringComparer.Ordinal);
             Levels = snapshot?.Levels ?? Array.Empty<ModelLevel>();
@@ -95,10 +98,14 @@ namespace QksExcelAddIn.ViewModels
                 var scene = new List<ProjectedElement>();
                 foreach (var element in DisplayElements) {
                     if (workspaceRemovedIds.Contains(element.Id)) continue;
+                    var settings = LabelSettings.FirstOrDefault(s => s.Kind == element.Kind);
+                    if (settings?.Visible == false) continue;
                     if (Kind != "Tất cả" && element.Kind.ToString() != Kind) continue;
                     if (!string.IsNullOrWhiteSpace(Search) && (element.Id + " " + element.Label + " " + element.Property + " " + element.Story).IndexOf(Search, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                    var projected = Projection.Build(element, plane); if (projected != null) scene.Add(projected);
+                    var projected = Extrude && settings?.Extrude != false ? SectionExtrusion.Build(element, plane) : Projection.Build(element, plane); if (projected != null) scene.Add(projected);
                 }
+                var openings = DisplayElements.Where(e => e.Kind == ElementKind.Opening).Select(e => Projection.Build(e, plane)).Where(e => e != null).Cast<ProjectedElement>().ToArray();
+                if (openings.Length > 0) scene = scene.Select(e => SectionExtrusion.WithOpenings(e, openings)).ToList();
                 Scene = scene.AsReadOnly(); VisibleElements = scene.Select(e => e.Source).ToArray();
                 UpdateDraftOverlays(plane);
                 Changed(nameof(Scene)); Changed(nameof(VisibleElements)); Changed(nameof(Counts));
@@ -106,6 +113,6 @@ namespace QksExcelAddIn.ViewModels
             }
             catch (Exception ex) { Status = "Không cập nhật hình: " + ex.Message; }
         }
-        public void NotifyStyle() { Changed(nameof(ColorByProperty)); Changed(nameof(ShowLabels)); Changed(nameof(ShowSections)); Changed(nameof(ShowUniqueNames)); Changed(nameof(ShowDraftValues)); Changed(nameof(ColorOverrides)); }
+        public void NotifyStyle() { Refresh(); Changed(nameof(ColorByProperty)); Changed(nameof(ShowLabels)); Changed(nameof(ShowSections)); Changed(nameof(ShowUniqueNames)); Changed(nameof(ShowDraftValues)); Changed(nameof(ColorOverrides)); }
     }
 }

@@ -67,26 +67,39 @@ namespace QksExcelAddIn.Views.Controls
         private FormattedText Text(string text,Brush brush,double size=10.5)=>new FormattedText(text,CultureInfo.CurrentUICulture,FlowDirection.LeftToRight,new Typeface(new FontFamily("Segoe UI"),FontStyles.Normal,FontWeights.Normal,FontStretches.Normal),size,brush,VisualTreeHelper.GetDpi(this).PixelsPerDip);
         protected override void OnRender(DrawingContext dc)
         {
-            dc.DrawRectangle(Brushes.White,null,new Rect(RenderSize));if(!fitted&&Items?.Count>0)Fit();
+            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(237,244,248)),null,new Rect(RenderSize));if(!fitted&&Items?.Count>0)Fit();
             var items=Items??Array.Empty<ProjectedElement>();var selected=new HashSet<string>(SelectedIds??Array.Empty<string>(),StringComparer.Ordinal);
             if(Elevation)DrawStories(dc);
             bool openings=HasOpenings||items.Any(i=>i.Source.Kind==ElementKind.Opening);
             var viewport=new Box2(new Vec2(4,4),new Vec2(Math.Max(4,ActualWidth-4),Math.Max(4,ActualHeight-34)));
             var lineIndex=new LineIndex(ActualWidth,ActualHeight);var labels=new List<(ProjectedElement Item,Brush Brush,Segment2[] Lines,Vec2[] Polygon)>();
-            foreach(var item in items.OrderBy(i=>i.Source.Vertices.Count==2?1:0).ThenBy(i=>selected.Contains(i.Source.Id)?1:0)) {
+            foreach(var item in items.OrderBy(i=>i.Source.Kind==ElementKind.Slab?0:i.Source.Kind==ElementKind.Wall?2:i.Source.Kind==ElementKind.Column?3:1).ThenBy(i=>selected.Contains(i.Source.Id)?1:0)) {
                 var screenLines=item.Segments.Select(s=>new Segment2(V(Screen(s.A)),V(Screen(s.B)))).ToArray();
                 var screenPolygon=item.Polygon.Select(p=>V(Screen(p))).ToArray();
-                if(!screenLines.Any(s=>ViewerSelection.Intersects(s,viewport))&&!(screenPolygon.Length>2&&ViewerSelection.Contains(screenPolygon,new Vec2(ActualWidth/2,ActualHeight/2))))continue;
+                if(!screenLines.Any(s=>ViewerSelection.Intersects(s,viewport))&&!(screenPolygon.Length>2&&ViewerSelection.Contains(screenPolygon,new Vec2(ActualWidth/2,ActualHeight/2)))&&!item.Faces.Any(f=>ViewerSelection.Contains(f,World(new Point(ActualWidth/2,ActualHeight/2)))))continue;
                 string key=item.Source.Kind+"|"+item.Source.Property;
                 string hex=ColorByProperty?ColorOverrides!=null&&ColorOverrides.TryGetValue(key,out var custom)?custom:PropertyColors.ForProperty(key):PropertyColors.ForKind(item.Source.Kind);
                 var color=(Color)ColorConverter.ConvertFromString(hex);Brush brush=new SolidColorBrush(color);bool active=selected.Contains(item.Source.Id);
-                var pen=new Pen(active?Brushes.DarkOrange:brush,active?3.5:item.Source.Vertices.Count==2?2:1.2);if(item.IsCut||item.Source.Kind==ElementKind.Opening)pen.DashStyle=DashStyles.Dash;
-                if(!openings&&item.Polygon.Count>2) { var path=new StreamGeometry();using(var g=path.Open()) { g.BeginFigure(Screen(item.Polygon[0]),true,true);g.PolyLineTo(item.Polygon.Skip(1).Select(Screen).ToArray(),true,false); }dc.DrawGeometry(new SolidColorBrush(Color.FromArgb(24,color.R,color.G,color.B)),null,path); }
-                foreach(var s in screenLines) { dc.DrawLine(pen,new Point(s.A.X,s.A.Y),new Point(s.B.X,s.B.Y));if(item.Source.Vertices.Count==2) { var clipped=ViewerSelection.Clip(s,viewport);if(clipped.HasValue)lineIndex.Add(clipped.Value); } }
-                labels.Add((item,active?Brushes.DarkOrange:brush,screenLines,screenPolygon));
+                var pen=new Pen(active?Brushes.DarkOrange:brush,active?2.8:item.Faces.Count>0?1:1.2);if((item.IsCut&&item.Faces.Count==0)||item.Source.Kind==ElementKind.Opening)pen.DashStyle=DashStyles.Dash;
+                var fill=new SolidColorBrush(Color.FromArgb(item.Source.Kind==ElementKind.Slab?(byte)48:(byte)110,color.R,color.G,color.B));
+                if(item.Faces.Count>0) foreach(var face in item.Faces)dc.DrawGeometry(fill,null,Path(face));
+                else if(item.Polygon.Count>2) {
+                    Geometry geometry=Path(item.Polygon);
+                    foreach(var hole in item.Voids)geometry=new CombinedGeometry(GeometryCombineMode.Exclude,geometry,Path(hole));
+                    dc.DrawGeometry(fill,null,geometry);
+                }
+                foreach(var line in screenLines) {
+                    dc.DrawLine(pen,new Point(line.A.X,line.A.Y),new Point(line.B.X,line.B.Y));
+                    if(item.Source.Vertices.Count==2) { var clipped=ViewerSelection.Clip(line,viewport);if(clipped.HasValue)lineIndex.Add(clipped.Value); }
+                }
+                if(item.Source.Vertices.Count==2&&screenLines.All(l=>Math.Abs(l.A.X-l.B.X)+Math.Abs(l.A.Y-l.B.Y)<.1)&&screenLines.Length>0)
+                    dc.DrawEllipse(brush,pen,new Point(screenLines[0].A.X,screenLines[0].A.Y),3,3);
+                var labelLines=item.AxisSegments.Select(line=>new Segment2(V(Screen(line.A)),V(Screen(line.B)))).ToArray();
+                bool endOn=labelLines.All(l=>Math.Abs(l.A.X-l.B.X)+Math.Abs(l.A.Y-l.B.Y)<1);
+                labels.Add((item,active?Brushes.DarkOrange:new SolidColorBrush(Color.FromRgb(15,34,64)),endOn?screenLines:labelLines,screenPolygon));
             }
             var settings=LabelSettings?.ToDictionary(s=>s.Kind);
-            foreach(var entry in labels.OrderBy(e=>selected.Contains(e.Item.Source.Id)?0:1)) { string value=settings!=null&&settings.TryGetValue(entry.Item.Source.Kind,out var setting)?setting.Text(entry.Item.Source):ElementLabels.Text(entry.Item.Source,ShowLabels,ShowSections,ShowUniqueNames);if(value.Length>0)DrawLabel(dc,entry.Lines,entry.Polygon,entry.Item.Source.Vertices.Count>2,value,entry.Brush,viewport,lineIndex); }
+            foreach(var entry in labels.OrderBy(e=>selected.Contains(e.Item.Source.Id)?0:1)) { string value=settings!=null&&settings.TryGetValue(entry.Item.Source.Kind,out var setting)?setting.Text(entry.Item.Source):ElementLabels.Text(entry.Item.Source,ShowLabels,ShowSections,ShowUniqueNames);if(value.Length>0)DrawLabel(dc,entry.Lines,entry.Polygon,(entry.Item.Source.Vertices.Count>2||entry.Item.Source.Kind==ElementKind.Column&&!Elevation),value,entry.Brush,viewport,lineIndex); }
             foreach(var overlay in DraftOverlays??Array.Empty<DraftOverlay>()) {
                 var pen=new Pen(Brushes.MediumPurple,3){DashStyle=DashStyles.Dash};foreach(var s in overlay.Geometry.Segments) { if(selected.Contains(overlay.ElementId))dc.DrawLine(new Pen(Brushes.DarkOrange,6),Screen(s.A),Screen(s.B));dc.DrawLine(pen,Screen(s.A),Screen(s.B)); }
                 if(ShowDraftValues)DrawLabel(dc,overlay.Geometry.Segments.Select(s=>new Segment2(V(Screen(s.A)),V(Screen(s.B)))).ToArray(),overlay.Geometry.Polygon.Select(p=>V(Screen(p))).ToArray(),overlay.Geometry.Source.Vertices.Count>2,overlay.Text,pen.Brush,viewport,lineIndex);
@@ -94,7 +107,11 @@ namespace QksExcelAddIn.Views.Controls
             if(selectionStart.HasValue&&selectionEnd.HasValue&&dragged) { var rect=new Rect(selectionStart.Value,selectionEnd.Value);bool crossing=selectionEnd.Value.X<selectionStart.Value.X;var color=crossing?Colors.SeaGreen:Colors.RoyalBlue;var pen=new Pen(new SolidColorBrush(color),1){DashStyle=crossing?DashStyles.Dash:DashStyles.Solid};dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(25,color.R,color.G,color.B)),pen,rect); }
             if(FirstPlanePoint.HasValue)dc.DrawEllipse(Brushes.White,new Pen(Brushes.Teal,2),Screen(FirstPlanePoint.Value),5,5);
             if(PickingPlanePoints&&snap!=null) { var p=Screen(snap.Point);dc.DrawRectangle(Brushes.White,new Pen(Brushes.Teal,2),new Rect(p.X-4,p.Y-4,8,8));string name=items.FirstOrDefault(i=>i.Source.Id==snap.ElementId)?.Source.Name??"";dc.DrawText(Text(snap.Kind+" · "+name,Brushes.Teal),new Point(Math.Min(Math.Max(4,p.X+9),Math.Max(4,ActualWidth-180)),Math.Max(4,p.Y-22))); }
-            dc.DrawText(Text(items.Count==0?"Chưa có hình học trong vùng xem":"U →   V ↑ · Chọn "+selected.Count+(openings?" · Có opening: chỉ vẽ biên":""),Brushes.SlateGray,11),new Point(12,Math.Max(5,ActualHeight-26)));
+            dc.DrawText(Text(items.Count==0?"Chưa có hình học trong vùng xem":"U →   V ↑ · Chọn "+selected.Count+(openings?" · Opening: khoét lỗ trên mặt đồng phẳng":""),Brushes.SlateGray,11),new Point(12,Math.Max(5,ActualHeight-26)));
+        }
+        private StreamGeometry Path(IReadOnlyList<Vec2> points)
+        {
+            var path=new StreamGeometry();using(var g=path.Open()) { g.BeginFigure(Screen(points[0]),true,true);g.PolyLineTo(points.Skip(1).Select(Screen).ToArray(),true,false); }path.Freeze();return path;
         }
         private void DrawLabel(DrawingContext dc,IReadOnlyList<Segment2> lines,IReadOnlyList<Vec2> polygon,bool area,string value,Brush brush,Box2 viewport,LineIndex index)
         {

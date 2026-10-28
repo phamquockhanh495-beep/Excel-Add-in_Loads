@@ -1,6 +1,7 @@
 <Window x:Class="QksExcelAddIn.Views.VisualLoadWorkspaceView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:viewer="clr-namespace:QksExcelAddIn.Views.Controls"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="QKS · Quản lý tải trọng 2D · Chỉ đọc" Width="1180" Height="740" MinWidth="640" MinHeight="360"
@@ -68,23 +69,40 @@
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="5"/><RowDefinition x:Name="TableRow" Height="225" MinHeight="115"/></Grid.RowDefinitions>
                 <WrapPanel Margin="0,0,0,4">
                     <Button Content="Hiển thị" Click="ToggleDisplay_Click" ToolTip="Ẩn / hiện panel hiển thị"/>
-                    <Button Content="Thuộc tính" Click="ToggleEditor_Click" ToolTip="Ẩn / hiện panel tải và thuộc tính"/>
-                    <ToggleButton x:Name="DisplaySettingsButton" Content="⚙" ToolTip="Lớp và hiển thị" Width="38" Height="30" Margin="2"/>
-                    <Popup PlacementTarget="{Binding ElementName=DisplaySettingsButton}" Placement="Bottom" IsOpen="{Binding IsChecked, ElementName=DisplaySettingsButton}" StaysOpen="False" AllowsTransparency="True"><Border Style="{StaticResource Panel}" Width="235"><StackPanel>
-                <TextBlock Text="LỚP &amp; HIỂN THỊ" FontWeight="SemiBold"/>
-                <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}"/>
-                <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tìm ID, label, story hoặc property"/>
-                <TextBlock Text="NHÃN THEO CẤU KIỆN" FontWeight="SemiBold" Margin="0,8,0,3"/>
-                <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding LabelSettings}"><ItemsControl.ItemTemplate><DataTemplate>
-                    <StackPanel Margin="0,3"><TextBlock Text="{Binding Caption}" FontWeight="SemiBold"/><WrapPanel>
-                        <CheckBox Content="Label" IsChecked="{Binding Label}" Click="Style_Click" Margin="0,2,8,2"/>
-                        <CheckBox Content="UniqueName" IsChecked="{Binding UniqueName}" Click="Style_Click" Margin="0,2,8,2"/>
-                        <CheckBox Content="Section / Property" IsChecked="{Binding Section}" Click="Style_Click" Margin="0,2"/>
-                    </WrapPanel></StackPanel>
-                </DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
-                <CheckBox Content="Màu theo property" IsChecked="{Binding ColorByProperty}" Click="Style_Click"/>
-                <TextBlock Text="Dầm: xanh · Sàn: teal · Vách: tím · Chọn: cam" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
-                    </StackPanel></Border></Popup>
+                    <Button Content="Thuộc tính" Click="ToggleEditor_Click" ToolTip="Ẩn / hiện thuộc tính cấu kiện"/>
+                    <ToggleButton x:Name="DisplaySettingsButton" Style="{StaticResource WorkspaceSettingsButton}" ToolTip="Thiết lập hiển thị cấu kiện">
+                        <materialDesign:PackIcon Kind="CogOutline" Width="19" Height="19"/>
+                    </ToggleButton>
+                    <Popup PlacementTarget="{Binding ElementName=DisplaySettingsButton}" Placement="Bottom" IsOpen="{Binding IsChecked, ElementName=DisplaySettingsButton}" StaysOpen="False" AllowsTransparency="True">
+                        <Border Style="{StaticResource Panel}" Width="480" MaxHeight="490" Padding="14"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+                            <DockPanel Margin="0,0,0,8"><materialDesign:PackIcon Kind="Tune" Width="20" Height="20" Margin="0,0,8,0"/><TextBlock Text="THIẾT LẬP HIỂN THỊ 2D" FontWeight="SemiBold"/></DockPanel>
+                            <TextBlock Text="Lọc cấu kiện"/>
+                            <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}"/>
+                            <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" materialDesign:HintAssist.Hint="Tìm ID, Label, Story, Property"/>
+                            <CheckBox Content="Extrude · kích thước tiết diện thực (m)" IsChecked="{Binding Extrude}" Margin="0,8"/>
+                            <Grid Background="#EEF3F8" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="90"/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="85"/><ColumnDefinition Width="65"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Cấu kiện" VerticalAlignment="Center" Margin="4,0" FontWeight="SemiBold"/>
+                                <TextBlock Grid.Column="1" Text="Hiện" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="Extrude" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="Label" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="UniqueName" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="5" Text="Section" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="Section / Property"/>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding LabelSettings}"><ItemsControl.ItemTemplate><DataTemplate>
+                                <Border BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="0,5"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="90"/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="85"/><ColumnDefinition Width="65"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Caption}" VerticalAlignment="Center" Margin="4,0"/>
+                                    <CheckBox Grid.Column="1" IsChecked="{Binding Visible}" Click="Style_Click" HorizontalAlignment="Center" ToolTip="Hiện cấu kiện"/>
+                                    <CheckBox Grid.Column="2" IsChecked="{Binding Extrude}" Click="Style_Click" HorizontalAlignment="Center" ToolTip="Extrude loại cấu kiện này"/>
+                                    <CheckBox Grid.Column="3" IsChecked="{Binding Label}" Click="Style_Click" HorizontalAlignment="Center" ToolTip="Label"/>
+                                    <CheckBox Grid.Column="4" IsChecked="{Binding UniqueName}" Click="Style_Click" HorizontalAlignment="Center" ToolTip="UniqueName"/>
+                                    <CheckBox Grid.Column="5" IsChecked="{Binding Section}" Click="Style_Click" HorizontalAlignment="Center" ToolTip="Section / Property"/>
+                                </Grid></Border>
+                            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                            <CheckBox Content="Màu theo Property (bỏ chọn: màu theo loại cấu kiện)" IsChecked="{Binding ColorByProperty}" Click="Style_Click" Margin="0,10,0,4"/>
+                            <TextBlock Text="Dầm: cyan · Cột/vách: xám · Sàn: tím nhạt · Chọn: cam" TextWrapping="Wrap" Foreground="#64748B"/>
+                            <TextBlock Text="Extrude đặt giữa trục/mặt phân tích; chưa xét lệch tâm và end offsets. Tiết diện chưa hỗ trợ giữ đường trục/biên. Chi tiết tại Chẩn đoán." TextWrapping="Wrap" Foreground="#64748B" Margin="0,6,0,0"/>
+                        </StackPanel></ScrollViewer></Border>
+                    </Popup>
                     <Button Content="Vừa khung" Click="Fit_Click"/>
                     <Button Content="Delete" Click="RemoveSelection_Click" IsEnabled="{Binding CanRemoveFromWorkspace}" ToolTip="Bỏ cấu kiện đang chọn khỏi workspace 2D. Không xóa trong ETABS."/>
                     <Button Content="Khôi phục" Click="RestoreWorkspace_Click" IsEnabled="{Binding CanRestoreWorkspace}" ToolTip="Hiện lại toàn bộ cấu kiện đã bỏ khỏi workspace."/>
@@ -108,8 +126,8 @@
                 </TabControl>
             </Grid>
             <Border x:Name="EditorPane" Grid.Column="4" Style="{StaticResource Panel}"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel>
-                <Expander Header="THUỘC TÍNH ĐỐI TƯỢNG">
-                    <TextBox Text="{Binding Inspector, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent" MaxHeight="130" VerticalScrollBarVisibility="Auto"/>
+                <Expander Header="THUỘC TÍNH ĐỐI TƯỢNG" IsExpanded="True">
+                    <TextBox Text="{Binding Inspector, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent" MaxHeight="360" VerticalScrollBarVisibility="Auto"/>
                 </Expander>
                 <Button Content="Bỏ chọn / xem tất cả tải" Click="ClearSelection_Click"/>
                 <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Quét trái/phải: chọn trọn/giao · Ctrl + click: thêm/bỏ · Esc: bỏ chọn / hủy thao tác · Delete: bỏ khỏi workspace · Khôi phục: hiện lại · Alt + click: đổi đối tượng chồng nhau" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>

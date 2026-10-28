@@ -32,10 +32,11 @@ namespace QksExcelAddIn.Modeling.Core
         public static bool InBox(ProjectedElement element, Box2 box, bool crossing)
         {
             if (!crossing) return element.Segments.Count > 0 && element.Segments.All(s => box.Contains(s.A) && box.Contains(s.B));
-            return element.Segments.Any(s => Intersects(s,box)) || element.Polygon.Count > 2 && Contains(element.Polygon,new Vec2(box.Left,box.Bottom));
+            if (element.Voids.Any(h => new[]{new Vec2(box.Left,box.Bottom),new Vec2(box.Right,box.Bottom),new Vec2(box.Right,box.Top),new Vec2(box.Left,box.Top)}.All(p=>Contains(h,p)) && !h.Select((p,i)=>new Segment2(p,h[(i+1)%h.Length])).Any(s=>Intersects(s,box)))) return false;
+            return element.Segments.Any(s => Intersects(s,box)) || element.Polygon.Count > 2 && Contains(element.Polygon,new Vec2(box.Left,box.Bottom)) || element.Faces.Any(f => Contains(f,new Vec2(box.Left,box.Bottom)));
         }
         public static bool Hit(ProjectedElement element, Vec2 point, double tolerance) =>
-            element.Segments.Any(s => Projection.Distance(point,s)<=tolerance) || element.Polygon.Count>2 && Contains(element.Polygon,point);
+            !element.Voids.Any(h=>Contains(h,point)) && (element.Segments.Any(s => Projection.Distance(point,s)<=tolerance) || element.Polygon.Count>2 && Contains(element.Polygon,point) || element.Faces.Any(f => Contains(f,point)));
         public static bool Intersects(Segment2 segment, Box2 box)=>Clip(segment,box).HasValue;
         public static Segment2? Clip(Segment2 segment, Box2 box)
         {
@@ -67,7 +68,7 @@ namespace QksExcelAddIn.Modeling.Core
             var items=elements.ToArray();
             for(int pass=0;pass<3;pass++) {
                 ModelSnap? best=null;double distance=tolerance;
-                foreach(var item in items) foreach(var segment in item.Segments) {
+                foreach(var item in items) foreach(var segment in item.AxisSegments) {
                     Vec2[] candidates;
                     if(pass==0)candidates=new[]{segment.A,segment.B};
                     else if(pass==1)candidates=new[]{new Vec2((segment.A.X+segment.B.X)/2,(segment.A.Y+segment.B.Y)/2)};

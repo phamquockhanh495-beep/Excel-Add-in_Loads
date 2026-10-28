@@ -30,7 +30,7 @@
         <Setter Property="Margin" Value="2"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="3"/>
-        <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp1"/>
+        <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp0"/>
         <Setter Property="materialDesign:RippleAssist.ClipToBounds" Value="True"/>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#163D66"/></Trigger>
@@ -38,12 +38,19 @@
         </Style.Triggers>
     </Style>
 
-    <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBox}">
+    <Style x:Key="WorkspaceSettingsButton" TargetType="ToggleButton" BasedOn="{StaticResource MaterialDesignFlatToggleButton}">
+        <Setter Property="Width" Value="34"/><Setter Property="Height" Value="30"/>
+        <Setter Property="Margin" Value="2"/><Setter Property="Padding" Value="5"/>
+        <Setter Property="Foreground" Value="#102A4C"/><Setter Property="Background" Value="#E8EFF6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
         <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Foreground" Value="#0F2240"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="MinHeight" Value="26"/>
-        <Setter Property="Padding" Value="4,1"/>
+        <Setter Property="Padding" Value="8,4"/>
         <Setter Property="Margin" Value="0,2"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
@@ -55,11 +62,14 @@
         <Setter Property="Padding" Value="8,6"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
     </Style>
-    <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignComboBox}">
+    <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
         <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Foreground" Value="#0F2240"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="MinHeight" Value="28"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="BorderBrush" Value="#B8C2CE"/>
+        <Setter Property="Background" Value="White"/>
         <Setter Property="Margin" Value="0,3"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>

@@ -52,8 +52,11 @@ namespace QksExcelAddIn.Modeling.Core
         public IReadOnlyList<Segment2> Segments { get; }
         public IReadOnlyList<Vec2> Polygon { get; }
         public bool IsCut { get; }
-        public ProjectedElement(ModelElement source, List<Segment2> segments, Vec2[] polygon, bool isCut)
-        { Source = source; Segments = segments.AsReadOnly(); Polygon = Array.AsReadOnly(polygon); IsCut = isCut; }
+        public IReadOnlyList<Vec2[]> Faces { get; }
+        public IReadOnlyList<Vec2[]> Voids { get; }
+        public IReadOnlyList<Segment2> AxisSegments { get; }
+        public ProjectedElement(ModelElement source, List<Segment2> segments, Vec2[] polygon, bool isCut, Vec2[][]? faces = null, IReadOnlyList<Segment2>? axisSegments = null, Vec2[][]? voids = null)
+        { Source = source; Segments = segments.AsReadOnly(); Polygon = Array.AsReadOnly(polygon); IsCut = isCut; Faces = faces ?? Array.Empty<Vec2[]>(); Voids = voids ?? Array.Empty<Vec2[]>(); AxisSegments = axisSegments ?? Segments; }
     }
     public static class Projection
     {
@@ -87,7 +90,7 @@ namespace QksExcelAddIn.Modeling.Core
             if (segments.Count == 0) return null;
             return new ProjectedElement(element, segments, inside && pts.Count > 2 ? pts.Select(plane.Project).ToArray() : Array.Empty<Vec2>(), !inside);
         }
-        private static bool Clip(ref Vec3 a, ref Vec3 b, ViewPlane plane)
+        internal static bool Clip(ref Vec3 a, ref Vec3 b, ViewPlane plane)
         {
             double da = plane.Depth(a), db = plane.Depth(b), delta = db - da, lo = 0, hi = 1;
             if (Math.Abs(delta) < 1e-12) return Math.Abs(da) <= plane.HalfDepth;

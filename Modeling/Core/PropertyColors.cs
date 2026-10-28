@@ -19,9 +19,9 @@ namespace QksExcelAddIn.Modeling.Core
         public static string ForKind(ElementKind kind)
         {
             switch (kind) {
-                case ElementKind.Column: return "#DC2626"; case ElementKind.Wall: return "#7C3AED";
-                case ElementKind.Slab: return "#0F766E"; case ElementKind.Opening: return "#64748B";
-                case ElementKind.Brace: return "#C2410C"; case ElementKind.Other: return "#475569"; default: return "#2563EB";
+                case ElementKind.Column: return "#334155"; case ElementKind.Wall: return "#475569";
+                case ElementKind.Slab: return "#8B80D9"; case ElementKind.Opening: return "#64748B";
+                case ElementKind.Brace: return "#C2410C"; case ElementKind.Other: return "#475569"; default: return "#00A9DF";
             }
         }
     }

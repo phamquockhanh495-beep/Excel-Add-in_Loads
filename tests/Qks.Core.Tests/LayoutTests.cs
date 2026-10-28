@@ -8,23 +8,28 @@ internal static partial class Program
 {
     private static void LayoutTests()
     {
-        Check("layout: columns stay out of Plan and Elevation",()=>{
+        Check("layout: columns are available in Plan and Elevation",()=>{
             var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(DraftFixture(),true);
-            Assert(vm.DisplayElements.Count==6&&vm.VisibleElements.All(e=>e.Kind!=ElementKind.Column));
-            vm.Elevation=true;Assert(vm.Scene.All(e=>e.Source.Kind!=ElementKind.Column));
+            Assert(vm.DisplayElements.Count==8&&vm.VisibleElements.Any(e=>e.Kind==ElementKind.Column));
+            vm.Elevation=true;Assert(vm.Scene.Any(e=>e.Source.Kind==ElementKind.Column));
         });
-        Check("layout: hidden columns cannot be filtered or selected",()=>{
-            var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(DraftFixture(),true);Assert(!vm.Kinds.Contains("Column"));
-            vm.Kind="Column";Assert(vm.Kind=="Tất cả");vm.SelectedElement=vm.Snapshot.Elements.First(e=>e.Kind==ElementKind.Column);Assert(vm.SelectedElement==null);
+        Check("layout: columns can be filtered and selected",()=>{
+            var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(DraftFixture(),true);Assert(vm.Kinds.Contains("Column"));
+            vm.Kind="Column";Assert(vm.Scene.All(e=>e.Source.Kind==ElementKind.Column));vm.SelectedElement=vm.Snapshot.Elements.First(e=>e.Kind==ElementKind.Column);Assert(vm.SelectedElement!=null);
         });
-        Check("layout: column loads stay out of visible and comparison tables",()=>{
+        Check("layout: column loads available without mutating source",()=>{
             var f=DraftFixture();var c=new ExistingLoad("Frame:C1","SDL","Frame force/length","Global",10,0,1,2,2,"kN/m");
             var s=new ModelSnapshot(1,f.Source,f.Version,f.Identity,f.SourceUnits,f.CapturedUtc,f.Elements,f.Levels,f.Loads.Concat(new[]{c}),f.Diagnostics,f.LoadPatterns);
             string before=JsonCodec.Serialize(s);var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(s,true);
-            Assert(vm.VisibleLoads.All(l=>l.ElementId!="Frame:C1")&&vm.ComparisonRows.All(r=>r.Load.ElementId!="Frame:C1"));
+            Assert(vm.VisibleLoads.Any(l=>l.ElementId=="Frame:C1"));
             Assert(JsonCodec.Serialize(s)==before&&vm.Drafts.Fingerprint==SnapshotFingerprint.Of(s));
         });
-        Check("layout: display counts exclude hidden source columns",()=>{var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(DraftFixture(),true);Assert(vm.Counts.StartsWith("5/6 đối tượng")&&vm.Snapshot.Elements.Count==8);});
+        Check("layout: independent visibility hides only the chosen kind",()=>{
+            var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(DraftFixture(),true);
+            vm.LabelSettings.Single(s=>s.Kind==ElementKind.Column).Visible=false;vm.NotifyStyle();
+            Assert(vm.Scene.All(e=>e.Source.Kind!=ElementKind.Column)&&vm.DisplayElements.Count==8&&vm.Scene.Any(e=>e.Source.Kind==ElementKind.Beam));
+            vm.LabelSettings.Single(s=>s.Kind==ElementKind.Column).Visible=true;vm.NotifyStyle();Assert(vm.Scene.Any(e=>e.Source.Kind==ElementKind.Column));
+        });
         Check("layout: Wind tab stays active when inspecting a beam",()=>{var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(DraftFixture(),true);vm.DraftModuleIndex=2;vm.SelectedElement=vm.Snapshot.Elements.First(e=>e.Kind==ElementKind.Beam);Assert(vm.DraftModuleIndex==2&&!vm.CanEditDraft&&vm.DraftValueLabel=="");});
         Check("layout: loading a saved draft selects its actual editor",()=>{var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(DraftFixture(),true);vm.DraftModuleIndex=2;var w=vm.Drafts;w.Put(Slab());vm.EditDraft(w.Loads.Single());Assert(vm.DraftModuleIndex==1&&vm.CanEditDraft);});
         Check("layout: desktop default is compact",()=>{var f=WorkspaceSize.Fit(1920,1040,1,1);Near(f.Width,1180);Near(f.Height,740);Assert(f.MinWidth<=f.Width&&f.MinHeight<=f.Height);});

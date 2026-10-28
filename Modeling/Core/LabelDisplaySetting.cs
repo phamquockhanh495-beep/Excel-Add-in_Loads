@@ -4,6 +4,8 @@ namespace QksExcelAddIn.Modeling.Core
     {
         public ElementKind Kind { get; }
         public string Caption { get; }
+        public bool Visible { get; set; } = true;
+        public bool Extrude { get; set; } = true;
         public bool Label { get; set; } = true;
         public bool UniqueName { get; set; }
         public bool Section { get; set; }
