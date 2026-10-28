@@ -23,7 +23,7 @@ namespace QksExcelAddIn.ViewModels
         public string[] Kinds { get; } = new[] { "Tất cả" }.Concat(Enum.GetNames(typeof(ElementKind)).Where(k => k != nameof(ElementKind.Column))).ToArray();
         private string status = "Kết nối API rồi mở workspace để tự đọc ETABS. SAFE 18–22 đang chờ kiểm chứng API.";
         public string Status { get => status; set { status = value; Changed(); } }
-        public string SourceText { get; private set; } = "Chưa có snapshot";
+        public string SourceText { get; private set; } = "Chưa đọc mô hình";
         public string Diagnostics => Snapshot == null ? "Chưa đọc dữ liệu." : string.Join(Environment.NewLine + Environment.NewLine, Snapshot.Diagnostics);
         public bool HasOpenings => Snapshot?.Elements.Any(e => e.Kind == ElementKind.Opening) == true;
         public string Counts => Scene.Count + "/" + DisplayElements.Count + " đối tượng · chọn " + SelectedIds.Count + " · " + (Snapshot?.Loads.Count(l => displayIds.Contains(l.ElementId)) ?? 0) + " tải · m/kN";
@@ -59,7 +59,7 @@ namespace QksExcelAddIn.ViewModels
             }
         }
         public string SelectedId => SelectedElement?.Id ?? "";
-        public string Inspector => SelectedElements.Count>1?"Đã chọn "+SelectedElements.Count+" cấu kiện.\n"+string.Join("\n",SelectedElements.Take(12).Select(e=>e.Name+" · "+e.Label+" · "+e.Story))+"\nChọn một cấu kiện để soạn tải riêng.":SelectedElement == null ? "Quét trái → phải: chọn trọn. Phải → trái: chọn giao.\nCtrl + click: thêm/bỏ. Esc: bỏ chọn / hủy thao tác. Delete: bỏ khỏi workspace; Khôi phục để hiện lại. Alt + click: đổi đối tượng chồng nhau." :
+        public string Inspector => SelectedElements.Count>1?"Đã chọn "+SelectedElements.Count+" cấu kiện.\n"+string.Join("\n",SelectedElements.Take(12).Select(e=>e.Name+" · "+e.Label+" · "+e.Story))+"\nChọn một cấu kiện để xem thuộc tính chi tiết.":SelectedElement == null ? "Quét trái → phải: chọn trọn. Phải → trái: chọn giao.\nCtrl + click: thêm/bỏ. Esc: bỏ chọn / hủy thao tác. Delete: bỏ khỏi workspace; Khôi phục để hiện lại. Alt + click: đổi đối tượng chồng nhau." :
             "Unique ID: " + SelectedElement.Name + "\nLabel: " + SelectedElement.Label + "\nStory: " + SelectedElement.Story + "\nType: " + SelectedElement.Kind +
             "\nProperty: " + SelectedElement.Property + "\nL 3D: " + (SelectedElement.Length3D?.ToString("0.###") ?? "N/A") + " m" +
             "\nLocal angle: " + (SelectedElement.LocalAxisDegrees?.ToString("0.###") ?? "N/A") + "°" + (SelectedElement.AdvancedLocalAxes ? " (advanced)" : "") +
@@ -75,7 +75,7 @@ namespace QksExcelAddIn.ViewModels
             level = Levels.LastOrDefault(); SelectedElement = null;
             OnSnapshotChanged(snapshot);
             NotifyWind();
-            SourceText = snapshot == null ? "Chưa có snapshot" : (offline ? "OFFLINE · " : "SNAPSHOT · ") + snapshot.Source + " " + snapshot.Version + " · " + snapshot.CapturedUtc.ToLocalTime().ToString("dd/MM HH:mm:ss") + " · " + snapshot.Identity;
+            SourceText = snapshot == null ? "Chưa đọc mô hình" : (offline ? "OFFLINE · " : "ĐÃ ĐỌC · ") + snapshot.Source + " " + snapshot.Version + " · " + snapshot.CapturedUtc.ToLocalTime().ToString("dd/MM HH:mm:ss") + " · " + snapshot.Identity;
             Changed(nameof(Levels)); Changed(nameof(Level)); Changed(nameof(SourceText)); Changed(nameof(Diagnostics)); Changed(nameof(VisibleLoads)); Changed(nameof(HasOpenings)); NotifyApply(); Refresh();
         }
         private static double Parse(string value)

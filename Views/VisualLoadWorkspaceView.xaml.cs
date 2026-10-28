@@ -22,7 +22,6 @@ namespace QksExcelAddIn.Views
         private readonly VisualWorkspaceViewModel vm = new VisualWorkspaceViewModel();
         private CancellationTokenSource? cancellation;
         private bool closed;
-        private static readonly SemaphoreSlim ApplyGate = new SemaphoreSlim(1, 1);
         private Vec2? firstPlanePoint;
         private bool displayVisible = true, editorVisible = true;
         private int panelMode = -1, tableMode = -1;
@@ -44,7 +43,7 @@ namespace QksExcelAddIn.Views
                 if (e.PropertyName == nameof(vm.Busy) && !vm.Busy) ScheduleConnectedRead();
             };
             PreviewKeyDown += Window_KeyDown;
-            Closing += (_, e) => { if (vm.Busy) { e.Cancel = true; vm.Status = "Chờ tác vụ kết thúc hoặc Hủy đọc trước khi đóng."; } else if (!CommitWindGrid() || !SavePendingDrafts()) e.Cancel = true; };
+            Closing += (_, e) => { if (vm.Busy) { e.Cancel = true; vm.Status = "Chờ tác vụ kết thúc hoặc Hủy đọc trước khi đóng."; } };
             AppConnectionManager.ConnectionChanged += ConnectionChanged;
             Closed += (_, __) => { closed = true; cancellation?.Cancel(); AppConnectionManager.ConnectionChanged -= ConnectionChanged; };
             try {
@@ -64,32 +63,6 @@ namespace QksExcelAddIn.Views
             await ReadConnectedModelAsync();
         }
         private void Cancel_Click(object sender, RoutedEventArgs e) { readLifecycle.CancelPending();cancellation?.Cancel(); }
-        private async void Apply_Click(object sender, RoutedEventArgs e)
-        {
-            if (!vm.CanApply || !await ApplyGate.WaitAsync(0)) return;
-            var document = vm.Drafts!.Document(); vm.Busy = true; cancellation = new CancellationTokenSource();
-            try {
-                var host = new EtabsLoadApplyHost(message => vm.Status = "Preflight · " + message);
-                var fresh = await host.ReadSnapshotAsync(cancellation.Token);
-                var plan = ApplyPlan.Create(fresh, document, host.Capabilities);
-                cancellation.Token.ThrowIfCancellationRequested();
-                string review = "Model: " + plan.Identity + "\n" + plan.DraftCount + " dòng nháp / " + plan.Groups.Count + " phạm vi cấu kiện–pattern.\n" +
-                    string.Join("\n", plan.Groups.Take(12).Select(g => g.Element.Id + " / " + g.Pattern + (g.Replace ? " · THAY" : " · THÊM"))) +
-                    "\n\nModel sẽ được lưu và sao lưu SHA-256 vào QKS_Backups trước khi ghi. Đọc lại để kiểm tra toàn bộ tải của cấu kiện. Nếu lỗi: dừng, không tự rollback hoặc tự thử lại.\n\nBản thử chưa nghiệm thu Windows; hãy dùng model thử. Tiến hành ghi?";
-                if (System.Windows.MessageBox.Show(this, review, "QKS · Kiểm tra Apply ETABS", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) { vm.Status = "Đã hủy Apply, chưa ghi model."; return; }
-                var report = await LoadApply.ExecuteAsync(document, host, cancellation.Token);
-                vm.SetApplyReport(report); vm.Status = report.Outcome + " · " + report.Error + (report.BackupPath.Length > 0 ? " · Backup: " + report.BackupPath : "");
-            } catch (Exception ex) { vm.Status = "Không Apply: " + ex.GetBaseException().Message; }
-            finally { cancellation.Dispose(); cancellation = null; vm.Busy = false; ApplyGate.Release(); }
-        }
-        private void SaveApplyReport_Click(object sender, RoutedEventArgs e)
-        {
-            if (vm.LastWriteReport == null) { vm.Status = "Chưa có báo cáo Apply."; return; }
-            var dialog = new SaveFileDialog { Filter = "QKS apply report (*.json)|*.json", FileName = "QKS-apply-report.json" };
-            if (dialog.ShowDialog(this) != true) return;
-            try { SaveAtomic(dialog.FileName, JsonCodec.Serialize(vm.LastWriteReport)); vm.Status = "Đã lưu báo cáo Apply."; }
-            catch (Exception ex) { vm.Status = "Không lưu được báo cáo: " + ex.Message; }
-        }
         private void Plan_Checked(object sender, RoutedEventArgs e) { if (DataContext != null) vm.Elevation = false; }
         private void Project_Click(object sender, RoutedEventArgs e) { vm.Refresh(); Canvas.Fit(); }
         private void Fit_Click(object sender, RoutedEventArgs e) => Canvas.Fit();
@@ -122,70 +95,6 @@ namespace QksExcelAddIn.Views
         private void ClearSelection_Click(object sender, RoutedEventArgs e) { Canvas.CancelInteraction(); vm.ClearSelection(); }
         private void RemoveSelection_Click(object sender, RoutedEventArgs e) { StopPlanePicking();vm.RemoveSelectedFromWorkspace(); }
         private void RestoreWorkspace_Click(object sender, RoutedEventArgs e) { Canvas.CancelInteraction();vm.RestoreWorkspace(); }
-        private void Open_Click(object sender, RoutedEventArgs e)
-        {
-            if(vm.Busy)return;readLifecycle.CancelPending();
-            var dialog = new OpenFileDialog { Filter = "QKS model snapshot (*.json)|*.json" };
-            if (dialog.ShowDialog(this) != true) return;
-            try { readLifecycle.CancelPending();StopPlanePicking(); vm.SetSnapshot(JsonCodec.Deserialize<ModelSnapshot>(JsonCodec.Read(dialog.FileName)), true); Canvas.Fit(); }
-            catch (Exception ex) { vm.Status = "Không mở được snapshot: " + ex.GetBaseException().Message; }
-        }
-        private void Save_Click(object sender, RoutedEventArgs e)
-        {
-            if (vm.Snapshot == null) { vm.Status = "Chưa có snapshot để lưu."; return; }
-            var dialog = new SaveFileDialog { Filter = "QKS model snapshot (*.json)|*.json", FileName = "QKS-model-snapshot.json" };
-            if (dialog.ShowDialog(this) != true) return;
-            try { SaveAtomic(dialog.FileName, JsonCodec.Serialize(vm.Snapshot)); vm.Status = "Đã lưu snapshot: " + dialog.FileName; }
-            catch (Exception ex) { vm.Status = "Không lưu được snapshot: " + ex.Message; }
-        }
-        private static void SaveAtomic(string path, string json)
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            try { JsonCodec.WriteAtomic(temporary, json); if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path); }
-            finally { if (File.Exists(temporary)) File.Delete(temporary); }
-        }
-        private void TryDraft(Action operation)
-        {
-            try { operation(); }
-            catch (Exception ex) { vm.Status = "Không cập nhật nháp: " + ex.GetBaseException().Message; }
-        }
-        private void DraftCommitted(object sender, RoutedEventArgs e) { WorkspaceTabs.SelectedItem = DraftTab; e.Handled = true; }
-        private void UndoDraft_Click(object sender, RoutedEventArgs e) => vm.UndoDraft();
-        private void RedoDraft_Click(object sender, RoutedEventArgs e) => vm.RedoDraft();
-        private void Draft_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (e.AddedItems.Count > 0 && e.AddedItems[0] is DraftLoad load) TryDraft(() => vm.EditDraft(load));
-        }
-        private bool SaveDraftFile()
-        {
-            if (vm.Drafts == null) { vm.Status = "Chưa có bộ nháp để lưu."; return false; }
-            var dialog = new SaveFileDialog { Filter = "QKS load draft (*.qksdraft.json)|*.qksdraft.json", FileName = "QKS-loads.qksdraft.json" };
-            if (dialog.ShowDialog(this) != true) return false;
-            try {
-                SaveAtomic(dialog.FileName, JsonCodec.Serialize(vm.Drafts.Document())); vm.Drafts.MarkSaved(); vm.NotifyDraftState();
-                vm.Status = "Đã lưu nháp (chưa ghi model): " + dialog.FileName; return true;
-            } catch (Exception ex) { vm.Status = "Không lưu được nháp: " + ex.Message; return false; }
-        }
-        private bool SavePendingDrafts()
-        {
-            if (vm.Drafts?.IsDirty != true && !vm.WindUserDirty) return true;
-            var answer = System.Windows.MessageBox.Show(this, "Bộ nháp có thay đổi chưa lưu. Lưu nháp trước khi tiếp tục?", "QKS · Nháp tải", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-            return answer == MessageBoxResult.No || answer == MessageBoxResult.Yes &&
-                (vm.Drafts?.IsDirty != true || SaveDraftFile()) && (!vm.WindUserDirty || SaveUserWindFile());
-        }
-        private void SaveDraft_Click(object sender, RoutedEventArgs e) => SaveDraftFile();
-        private void OpenDraft_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new OpenFileDialog { Filter = "QKS load draft (*.qksdraft.json)|*.qksdraft.json" };
-            if (dialog.ShowDialog(this) != true || !SavePendingDrafts()) return;
-            TryDraft(() => { vm.ImportDraft(JsonCodec.Deserialize<DraftDocument>(JsonCodec.Read(dialog.FileName))); WorkspaceTabs.SelectedItem = DraftTab; vm.Status = "Đã mở nháp gắn đúng snapshot; chưa ghi model."; });
-        }
-        private void NewDraft_Click(object sender, RoutedEventArgs e)
-        {
-            if (!SavePendingDrafts()) return;
-            TryDraft(() => { vm.NewDraftSet(); vm.Status = "Đã tạo bộ nháp mới cho snapshot hiện tại."; });
-        }
         private void StopPlanePicking()
         {
             Canvas.PickingPlanePoints = false; Canvas.CancelInteraction(); Canvas.FirstPlanePoint = null; firstPlanePoint = null; Canvas.Cursor = Cursors.Arrow; Canvas.InvalidateVisual();
@@ -193,7 +102,7 @@ namespace QksExcelAddIn.Views
         private void PickElevation_Click(object sender, RoutedEventArgs e)
         {
             if (Canvas.PickingPlanePoints) { StopPlanePicking(); vm.Status = "Đã hủy chọn mặt đứng."; return; }
-            if (vm.Snapshot == null || vm.Busy) { vm.Status = "Mở/đọc snapshot trước khi chọn hai điểm."; return; }
+            if (vm.Snapshot == null || vm.Busy) { vm.Status = "Đọc mô hình trước khi chọn hai điểm."; return; }
             try { vm.PreparePlanPointPicking(); }
             catch (Exception ex) { vm.Status = ex.Message; return; }
             PlanRadio.IsChecked = true; Canvas.Fit(); Canvas.PickingPlanePoints = true; Canvas.Cursor = Cursors.Cross;
@@ -214,9 +123,6 @@ namespace QksExcelAddIn.Views
                 e.Handled = true; return;
             }
             if (e.Key == Key.Delete) { if(!e.IsRepeat) { StopPlanePicking();vm.RemoveSelectedFromWorkspace(); }e.Handled = true; return; }
-            if (Keyboard.Modifiers != ModifierKeys.Control) return;
-            if (e.Key == Key.Z) { vm.UndoDraft(); e.Handled = true; }
-            if (e.Key == Key.Y) { vm.RedoDraft(); e.Handled = true; }
         }
         private void Minimize_Click(object sender,RoutedEventArgs e) => WindowState = WindowState.Minimized;
         private void Maximize_Click(object sender,RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;

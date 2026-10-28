@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:viewer="clr-namespace:QksExcelAddIn.Views.Controls"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        Title="QKS · Không gian tải trọng 2D · Preview 5.1" Width="1180" Height="740" MinWidth="640" MinHeight="360"
+        Title="QKS · Quản lý tải trọng 2D · Chỉ đọc" Width="1180" Height="740" MinWidth="640" MinHeight="360"
         WindowStyle="None" ResizeMode="CanResize" Background="#F8FAFC" Foreground="#0F2240"
         FontFamily="Segoe UI" FontSize="11.5" FontWeight="Normal" WindowStartupLocation="CenterScreen"
         Icon="pack://application:,,,/QksExcelAddIn;component/Resources/excel.ico">
@@ -28,7 +28,7 @@
                 <TextBlock Text="QKS" Foreground="#38BDF8" FontWeight="Bold"/>
                 <TextBlock Text="  |  " Foreground="#64748B"/>
             </StackPanel>
-            <TextBlock Grid.Column="1" Text="KHÔNG GIAN TẢI TRỌNG 2D · PREVIEW 5.1" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Grid.Column="1" Text="QUẢN LÝ TẢI TRỌNG 2D · CHỈ ĐỌC" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             <StackPanel Grid.Column="2" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
                 <Button Content="—" Style="{StaticResource QksTitleBarButton}" ToolTip="Thu nhỏ" Click="Minimize_Click"/>
                 <Button x:Name="MaximizeButton" Content="□" Style="{StaticResource QksTitleBarButton}" ToolTip="Phóng to / Khôi phục" Click="Maximize_Click"/>
@@ -62,16 +62,13 @@
                 <Button Content="Cập nhật vùng xem" Click="Project_Click"/>
                 <Button Content="Chọn 2 điểm / Hủy" Click="PickElevation_Click" ToolTip="Chọn hai điểm trên Plan để dựng Elevation; Esc để hủy."/>
                 <Separator Margin="0,6"/>
-                <Expander Header="File snapshot" Margin="0,6"><StackPanel IsEnabled="{Binding CanRead}">
-                    <Button Content="Mở snapshot" Click="Open_Click"/><Button Content="Lưu snapshot" Click="Save_Click"/>
-                </StackPanel></Expander>
                 <TextBlock Text="SAFE 18–22: đang phát triển adapter" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
             </StackPanel></ScrollViewer></Border>
             <Grid Grid.Column="2">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="5"/><RowDefinition x:Name="TableRow" Height="225" MinHeight="115"/></Grid.RowDefinitions>
                 <WrapPanel Margin="0,0,0,4">
                     <Button Content="Hiển thị" Click="ToggleDisplay_Click" ToolTip="Ẩn / hiện panel hiển thị"/>
-                    <Button Content="Tải / thuộc tính" Click="ToggleEditor_Click" ToolTip="Ẩn / hiện panel tải và thuộc tính"/>
+                    <Button Content="Thuộc tính" Click="ToggleEditor_Click" ToolTip="Ẩn / hiện panel tải và thuộc tính"/>
                     <ToggleButton x:Name="DisplaySettingsButton" Content="⚙" ToolTip="Lớp và hiển thị" Width="38" Height="30" Margin="2"/>
                     <Popup PlacementTarget="{Binding ElementName=DisplaySettingsButton}" Placement="Bottom" IsOpen="{Binding IsChecked, ElementName=DisplaySettingsButton}" StaysOpen="False" AllowsTransparency="True"><Border Style="{StaticResource Panel}" Width="235"><StackPanel>
                 <TextBlock Text="LỚP &amp; HIỂN THỊ" FontWeight="SemiBold"/>
@@ -80,16 +77,15 @@
                 <CheckBox Content="Label cấu kiện" IsChecked="{Binding ShowLabels}" Click="Style_Click" ToolTip="Hiện nhãn cấu kiện trong vùng nhìn; dầm xoay chữ theo hướng trục, giữ cỡ chữ khi zoom."/>
                 <CheckBox Content="Section / Property" IsChecked="{Binding ShowSections}" Click="Style_Click"/>
                 <CheckBox Content="UniqueName" IsChecked="{Binding ShowUniqueNames}" Click="Style_Click"/>
-                <CheckBox Content="Giá trị tải nháp" IsChecked="{Binding ShowDraftValues}" Click="Style_Click" ToolTip="Hiện giá trị tải nháp trong vùng nhìn, giữ cỡ chữ khi zoom."/>
                 <CheckBox Content="Màu theo property" IsChecked="{Binding ColorByProperty}" Click="Style_Click"/>
                 <TextBlock Text="Dầm: xanh · Sàn: teal · Vách: tím · Chọn: cam" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
                     </StackPanel></Border></Popup>
                     <Button Content="Vừa khung" Click="Fit_Click"/>
-                    <Button Content="Delete" Click="RemoveSelection_Click" IsEnabled="{Binding CanRemoveFromWorkspace}" ToolTip="Bỏ cấu kiện đang chọn khỏi workspace 2D. Không xóa trong ETABS và không xóa tải/nháp."/>
+                    <Button Content="Delete" Click="RemoveSelection_Click" IsEnabled="{Binding CanRemoveFromWorkspace}" ToolTip="Bỏ cấu kiện đang chọn khỏi workspace 2D. Không xóa trong ETABS."/>
                     <Button Content="Khôi phục" Click="RestoreWorkspace_Click" IsEnabled="{Binding CanRestoreWorkspace}" ToolTip="Hiện lại toàn bộ cấu kiện đã bỏ khỏi workspace."/>
                     <TextBlock Text="{Binding Counts}" Margin="6,7,0,3" MaxWidth="240" TextTrimming="CharacterEllipsis" ToolTip="{Binding Counts}"/>
                 </WrapPanel>
-                <Border Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"><viewer:StructuralCanvas x:Name="Canvas" Items="{Binding Scene}" SelectedId="{Binding SelectedId}" SelectedIds="{Binding SelectedIds}" ShowLabels="{Binding ShowLabels}" ShowSections="{Binding ShowSections}" ShowUniqueNames="{Binding ShowUniqueNames}" Elevation="{Binding Elevation}" Levels="{Binding Levels}" HasOpenings="{Binding HasOpenings}" ColorByProperty="{Binding ColorByProperty}" ColorOverrides="{Binding ColorOverrides}" DraftOverlays="{Binding DraftOverlays}" ShowDraftValues="{Binding ShowDraftValues}"/></Border>
+                <Border Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"><viewer:StructuralCanvas x:Name="Canvas" Items="{Binding Scene}" SelectedId="{Binding SelectedId}" SelectedIds="{Binding SelectedIds}" ShowLabels="{Binding ShowLabels}" ShowSections="{Binding ShowSections}" ShowUniqueNames="{Binding ShowUniqueNames}" Elevation="{Binding Elevation}" Levels="{Binding Levels}" HasOpenings="{Binding HasOpenings}" ColorByProperty="{Binding ColorByProperty}" ColorOverrides="{Binding ColorOverrides}"/></Border>
                 <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"/>
                 <TabControl x:Name="WorkspaceTabs" Grid.Row="3">
                     <TabItem Header="Đối tượng nguồn"><DataGrid x:Name="ObjectsTable" ItemsSource="{Binding VisibleElements}" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="Objects_SelectionChanged"><DataGrid.Columns>
@@ -100,24 +96,8 @@
                         <DataGridTextColumn Header="Property" Binding="{Binding Property}" Width="*" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
                         <DataGridTextColumn Header="Length (m)" Binding="{Binding Length3D, StringFormat=0.###}" Width="90" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
                     </DataGrid.Columns></DataGrid></TabItem>
-                    <TabItem x:Name="DraftTab" Header="Nháp / So sánh"><TabControl>
-                        <TabItem Header="Dòng nháp"><DataGrid x:Name="DraftTable" ItemsSource="{Binding DraftRows}" SelectionMode="Single" SelectionChanged="Draft_SelectionChanged" ColumnWidth="*" MinColumnWidth="75"><DataGrid.Columns>
-                            <DataGridTextColumn Header="Đối tượng" Binding="{Binding ElementId}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Pattern" Binding="{Binding Pattern}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Loại" Binding="{Binding KindName}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Thao tác" Binding="{Binding ActionName}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Hướng" Binding="{Binding DirectionName}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="r1" Binding="{Binding Start, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="r2" Binding="{Binding End, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="V1" Binding="{Binding Value1, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="V2" Binding="{Binding Value2, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Đơn vị" Binding="{Binding Unit}" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        </DataGrid.Columns></DataGrid></TabItem>
-                        <TabItem Header="Trước / Sau"><DataGrid ItemsSource="{Binding ComparisonRows}" ColumnWidth="*" MinColumnWidth="75"><DataGrid.Columns>
-                            <DataGridTextColumn Header="Mốc" Binding="{Binding Phase}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Nguồn" Binding="{Binding Origin}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Đối tượng" Binding="{Binding Load.ElementId}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Pattern" Binding="{Binding Load.Pattern}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Loại" Binding="{Binding Load.Kind}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="CSys" Binding="{Binding Load.CoordinateSystem}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Dir API" Binding="{Binding Load.Direction}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="r1" Binding="{Binding Load.Start, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="r2" Binding="{Binding Load.End, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="V1" Binding="{Binding Load.Value1, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="V2" Binding="{Binding Load.Value2, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Đơn vị" Binding="{Binding Load.Unit}" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        </DataGrid.Columns></DataGrid></TabItem>
-                    </TabControl></TabItem>
                     <TabItem Header="Tải đã đọc"><DataGrid ItemsSource="{Binding VisibleLoads}" ColumnWidth="*" MinColumnWidth="75"><DataGrid.Columns>
                         <DataGridTextColumn Header="ID" Binding="{Binding ElementId}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Pattern" Binding="{Binding Pattern}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Loại" Binding="{Binding Kind}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="CSys" Binding="{Binding CoordinateSystem}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Dir API" Binding="{Binding Direction}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="r1" Binding="{Binding Start, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="r2" Binding="{Binding End, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="V1" Binding="{Binding Value1, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="V2" Binding="{Binding Value2, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Đơn vị" Binding="{Binding Unit}" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                    </DataGrid.Columns></DataGrid></TabItem>
-                    <TabItem x:Name="UserWindTab" Header="User Loads gió"><DataGrid x:Name="WindUserTable" ItemsSource="{Binding WindUserRows}" SelectedItem="{Binding SelectedWindUserRow}" IsReadOnly="False" IsEnabled="{Binding CanRead}" CanUserAddRows="False" CanUserDeleteRows="False" ColumnWidth="*" MinColumnWidth="75"><DataGrid.Columns>
-                        <DataGridTextColumn Header="Story (đối chiếu)" Binding="{Binding Story}" IsReadOnly="True" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Khóa diaphragm (API)" Binding="{Binding DiaphragmKey}" IsReadOnly="True" Width="170" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        <DataGridTextColumn Header="Fx (kN)" Binding="{Binding Fx, ValidatesOnExceptions=True}" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        <DataGridTextColumn Header="Fy (kN)" Binding="{Binding Fy, ValidatesOnExceptions=True}" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        <DataGridTextColumn Header="Mz (kN·m)" Binding="{Binding Mz, ValidatesOnExceptions=True}" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        <DataGridTextColumn Header="X (m)" Binding="{Binding X, ValidatesOnExceptions=True}" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        <DataGridTextColumn Header="Y (m)" Binding="{Binding Y, ValidatesOnExceptions=True}" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
                     </DataGrid.Columns></DataGrid></TabItem>
                     <TabItem Header="Chẩn đoán"><TextBox Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"/></TabItem>
                 </TabControl>
@@ -127,37 +107,6 @@
                     <TextBox Text="{Binding Inspector, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent" MaxHeight="130" VerticalScrollBarVisibility="Auto"/>
                 </Expander>
                 <Button Content="Bỏ chọn / xem tất cả tải" Click="ClearSelection_Click"/>
-                <Separator Margin="0,6"/>
-                <TextBlock Text="NHÁP TẢI TRỌNG" FontWeight="SemiBold"/>
-                <TextBlock Text="{Binding DraftStatus}" TextWrapping="Wrap" Margin="0,4" Foreground="#64748B"/>
-                <WrapPanel IsEnabled="{Binding CanRead}"><Button Content="Lưu nháp" Click="SaveDraft_Click"/><Button Content="Mở nháp" Click="OpenDraft_Click"/><Button Content="Bộ mới" Click="NewDraft_Click"/></WrapPanel>
-                <TabControl Margin="0,6" SelectedIndex="{Binding DraftModuleIndex}">
-                    <TabItem Header="Dầm/Tường"><viewer:LoadDraftEditor DraftCommitted="DraftCommitted"/></TabItem>
-                    <TabItem Header="Sàn"><viewer:LoadDraftEditor DraftCommitted="DraftCommitted"/></TabItem>
-                    <TabItem Header="Gió"><StackPanel Margin="0,8">
-                        <TextBlock Text="TẢI GIÓ THEO STORY" FontWeight="SemiBold"/>
-                        <TextBlock Text="Lấy giá trị từ Excel hoặc nhập theo tầng. Dầm: q1/q2 (kN/m); User Loads: Fx/Fy/Mz/X/Y. Không quy đổi áp lực." TextWrapping="Wrap" Margin="0,6"/>
-                        <StackPanel IsEnabled="{Binding CanRead}">
-                            <TextBlock Text="Load pattern"/><ComboBox ItemsSource="{Binding AvailablePatterns}" SelectedItem="{Binding DraftPattern}"/>
-                            <Button Content="Nhập từ file Excel / CSV" Click="WindExcel_Click" IsEnabled="{Binding CanInputStoryWind}"/>
-                            <Button Content="Nhập giá trị theo Story…" Click="WindInput_Click" IsEnabled="{Binding CanInputStoryWind}"/>
-                            <TextBlock Text="Trong popup có mẫu Excel, đọc vùng chọn và kiểm tra từng dòng trước khi đưa vào nháp. UniqueName trống chỉ dùng các dầm đang chọn thuộc Story." TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
-                            <Separator Margin="0,6"/>
-                            <TextBlock Text="USER LOADS / DIAPHRAGM" FontWeight="SemiBold"/>
-                            <Button Content="Đọc User Loads của pattern" Click="ReadUserWind_Click"/>
-                            <TextBlock Text="{Binding WindUserStatus}" TextWrapping="Wrap" Foreground="#64748B"/>
-                            <TextBlock Text="Đọc khóa API trước khi nhập lực tầng; tự đối chiếu Story–diaphragm. Không tự tạo khóa hoặc lấy tâm cứng." TextWrapping="Wrap" Margin="0,6"/>
-                            <WrapPanel><Button Content="Lưu gió" Click="SaveUserWind_Click"/><Button Content="Mở gió" Click="OpenUserWind_Click"/></WrapPanel>
-                            <Button Content="Kiểm tra và Apply User Loads" Click="ApplyUserWind_Click" IsEnabled="{Binding CanApplyUserWind}"/>
-                        </StackPanel>
-                        <Button Content="Xóa dòng nháp đang chọn" Click="DeleteWindDraft_Click" IsEnabled="{Binding CanDeleteDraft}"/>
-                    </StackPanel></TabItem>
-                </TabControl>
-                <WrapPanel><Button Content="Undo" IsEnabled="{Binding CanUndoDraft}" Click="UndoDraft_Click"/><Button Content="Redo" IsEnabled="{Binding CanRedoDraft}" Click="RedoDraft_Click"/></WrapPanel>
-                <TextBlock Text="Tím: NHÁP. Trước/Sau gồm tải đã đọc. Apply chỉ mở với nguồn ETABS trực tiếp." TextWrapping="Wrap" Foreground="#9A3412" Margin="0,5"/>
-                <Button Content="Kiểm tra và Apply ETABS" Click="Apply_Click" IsEnabled="{Binding CanApply}"/>
-                <TextBlock Text="{Binding ApplySummary}" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
-                <Button Content="Lưu báo cáo Apply" Click="SaveApplyReport_Click" IsEnabled="{Binding CanRead}"/>
                 <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Quét trái/phải: chọn trọn/giao · Ctrl + click: thêm/bỏ · Esc: bỏ chọn / hủy thao tác · Delete: bỏ khỏi workspace · Khôi phục: hiện lại · Alt + click: đổi đối tượng chồng nhau" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
             </StackPanel></ScrollViewer></Border>
         </Grid>

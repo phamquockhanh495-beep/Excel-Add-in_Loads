@@ -81,7 +81,6 @@ namespace QksExcelAddIn.Views
         private void ModelList_Changed(object sender, SelectionChangedEventArgs e)
         {
             if (updatingModels || vm.Busy || !(ConnectedModelBox.SelectedItem is EtabsInstanceInfo chosen) || ReferenceEquals(chosen, AppConnectionManager.ActiveEtabs)) return;
-            if (!CommitWindGrid() || !SavePendingDrafts()) { RefreshModelList(false); return; }
             manualModelChoice = chosen;
             AppConnectionManager.SetConnections(chosen, AppConnectionManager.ActiveAutoCad, AppConnectionManager.ActiveExcel);
         }

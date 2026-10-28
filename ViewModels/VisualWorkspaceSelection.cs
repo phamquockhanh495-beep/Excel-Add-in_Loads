@@ -36,7 +36,7 @@ namespace QksExcelAddIn.ViewModels
             if(!CanRemoveFromWorkspace)return;
             int count=SelectedIds.Count;
             workspaceRemovedIds.UnionWith(SelectedIds);ClearSelection();NotifyWorkspaceVisibility();Refresh();
-            Status="Đã bỏ "+count+" cấu kiện khỏi workspace 2D. Bấm Khôi phục để hiện lại; mô hình và tải/nháp giữ nguyên.";
+            Status="Đã bỏ "+count+" cấu kiện khỏi workspace 2D. Bấm Khôi phục để hiện lại; mô hình và tải giữ nguyên.";
         }
         public void RestoreWorkspace()
         {
