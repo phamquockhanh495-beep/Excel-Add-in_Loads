@@ -1,0 +1,2 @@
+484cba45bdd4e3e4c7cbe06fefa481cb41c26b5618d54338a6e1f3e4d226d58f  QKS-2D-NetTaiTuong-2026-10-28.zip
+bd9f8f0c80b8b07cb1cd86c23205d5852ae28353318eb351d1171dc44640d94f  Excel/QksExcelAddIn-AddIn64-packed.xll
