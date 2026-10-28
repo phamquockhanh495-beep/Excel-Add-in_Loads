@@ -13,7 +13,19 @@ namespace QksExcelAddIn.Views.Controls
             var maxima=rows.GroupBy(LoadGlyphs.ScaleGroup).ToDictionary(g=>g.Key,g=>g.Max(r=>Math.Max(Math.Abs(r.Load.Value1),Math.Abs(r.Load.Value2))));
             foreach(var row in rows) {
                 Brush brush=row.Category=="Frame"?Brushes.Firebrick:row.Category=="Shell"?Brushes.RoyalBlue:Brushes.DarkViolet;
-                var pen=new Pen(brush,1.4);var vector=LoadGlyphs.Direction(row);var samples=LoadGlyphs.Samples(row,scale);
+                var pen=new Pen(brush,1.4);var vector=LoadGlyphs.Direction(row);
+                // Plan wall loads are assignment-length strokes. Do not change point loads,
+                // horizontal forces, moments or Joint/Shell direction symbols.
+                bool planLine=!Elevation&&row.Category=="Frame"&&row.Load.Start!=row.Load.End&&
+                    !LoadGlyphs.IsMoment(row)&&vector.HasValue&&Math.Abs(vector.Value.Dot(row.Plane.Normal))>1-1e-6;
+                if(planLine) {
+                    var lines=row.Geometry.AxisSegments.Select(s=>new Segment2(V(Screen(s.A)),V(Screen(s.B)))).ToArray();
+                    var loadPen=new Pen(SelectionBrush,3){StartLineCap=PenLineCap.Flat,EndLineCap=PenLineCap.Flat};
+                    foreach(var line in lines)dc.DrawLine(loadPen,new Point(line.A.X,line.A.Y),new Point(line.B.X,line.B.Y));
+                    if(ShowLoadValues)DrawLabel(dc,lines,Array.Empty<Vec2>(),false,row.Text,SelectionBrush,viewport);
+                    continue;
+                }
+                var samples=LoadGlyphs.Samples(row,scale);
                 Point? previousTail=null;Point? labelPoint=null;
                 foreach(var sample in samples) {
                     var head=Screen(sample);double value=LoadGlyphs.ValueAt(row,sample);

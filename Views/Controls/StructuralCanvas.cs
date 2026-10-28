@@ -104,6 +104,9 @@ namespace QksExcelAddIn.Views.Controls
                     foreach(var hole in item.Voids)geometry=new CombinedGeometry(GeometryCombineMode.Exclude,geometry,Path(hole));
                     dc.DrawGeometry(fill,null,geometry);
                 }
+                // Hide ordinary slab edges in Plan so they cannot be mistaken for beams.
+                // Selection outlines and elevation thickness remain visible; hit testing uses geometry.
+                if(Elevation||item.Source.Kind!=ElementKind.Slab||active)
                 foreach(var line in screenLines) {
                     dc.DrawLine(pen,new Point(line.A.X,line.A.Y),new Point(line.B.X,line.B.Y));
                 }

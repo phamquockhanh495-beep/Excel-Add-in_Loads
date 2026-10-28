@@ -161,7 +161,7 @@
                         <TextBlock Text="{Binding Detail}" Foreground="#52657C" TextWrapping="Wrap" Margin="0,3,0,0"/>
                     </StackPanel></DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
-                <TextBlock Text="Mũi tên theo hướng tải; kích thước tự chuẩn hóa riêng theo nhóm/đơn vị (6–160 px). ⊗ vào / ⊙ ra mặt phẳng; mũi tên kép hoặc cung tròn: mômen. Pattern và step hiển thị riêng." TextWrapping="Wrap" Foreground="#64748B" FontSize="10.5" Margin="0,8"/>
+                <TextBlock Text="Plan: nét đỏ đô thể hiện chiều dài đoạn tải phân bố đứng trên dầm. Các tải khác dùng mũi tên theo hướng; kích thước tự chuẩn hóa riêng theo nhóm/đơn vị (6–160 px). ⊗ vào / ⊙ ra mặt phẳng; mũi tên kép hoặc cung tròn: mômen. Pattern và step hiển thị riêng." TextWrapping="Wrap" Foreground="#64748B" FontSize="10.5" Margin="0,8"/>
                 <Expander Header="PHẠM VI DỮ LIỆU ĐÃ ĐỌC" Margin="0,5"><StackPanel>
                     <TextBlock Text="{Binding LoadReadNote}" TextWrapping="Wrap" Foreground="#64748B"/>
                     <TextBox Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="150" VerticalScrollBarVisibility="Auto" FontSize="10.5"/>
