@@ -19,6 +19,12 @@ namespace QksExcelAddIn.ViewModels
                 case ElementKind.Joint: return "Nút"; case ElementKind.Brace: return "Giằng"; case ElementKind.Opening: return "Lỗ mở"; default: return "Khác";
             }
         }
+        public static string SectionDescription(ModelElement element)
+        {
+            var section=element.Section;if(section==null)return "Chưa đọc được kích thước";
+            if(element.Kind==ElementKind.Slab||element.Kind==ElementKind.Wall)return $"Thickness = {section.Depth*1000:0.###} mm";
+            return $"(Width × Height) = ({section.Width*1000:0.###} × {section.Depth*1000:0.###}) mm"+(section.Shape=="Circle"?" · Tròn":"");
+        }
         public IReadOnlyList<KeyValuePair<string,string>> InspectorRows
         {
             get {
@@ -28,7 +34,7 @@ namespace QksExcelAddIn.ViewModels
                     var e=SelectedElement!;
                     Add("Unique ID",e.Name);Add("Label",e.Label);Add("Tầng",e.Story);Add("Loại",KindCaption(e.Kind));Add("Property",e.Property);
                     if(e.Length3D.HasValue)Add("Chiều dài",e.Length3D.Value.ToString("0.###")+" m");
-                    if(e.Kind!=ElementKind.Opening&&e.Kind!=ElementKind.Joint)Add("Tiết diện",e.Section?.ToString()??"Chưa đọc được kích thước");
+                    if(e.Kind!=ElementKind.Opening&&e.Kind!=ElementKind.Joint)Add("Tiết diện",SectionDescription(e));
                     if(e.LocalAxisDegrees.HasValue)Add("Góc local",e.LocalAxisDegrees.Value.ToString("0.###")+"°"+(e.AdvancedLocalAxes?" · Advanced":""));
                     Add("Tải đã đọc",(Snapshot?.Loads.Count(l=>l.ElementId==e.Id)??0)+" bản ghi");
                 } else if (SelectedElements.Count > 1) {

@@ -4,7 +4,6 @@
  <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="pack://application:,,,/QksExcelAddIn;component/Views/Styles/VisualWorkspaceStyles.xaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></Window.Resources>
  <Grid Margin="14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
  <StackPanel>
-  <Border Background="#0F2240" Padding="12" Margin="0,0,0,10"><TextBlock Text="SELECT · CHỌN THEO THUỘC TÍNH" Foreground="White" FontWeight="SemiBold"/></Border>
   <TextBlock Text="Loại cấu kiện"/><ComboBox x:Name="TypeBox" SelectionChanged="CriteriaChanged"/>
   <TextBlock Text="Chọn theo"/><ComboBox x:Name="AttributeBox" SelectionChanged="CriteriaChanged"/>
   <TextBlock Text="Phạm vi"/><ComboBox x:Name="ScopeBox" SelectionChanged="CriteriaChanged"/>

@@ -16,6 +16,16 @@ namespace QksExcelAddIn.Views.Controls
         public static readonly DependencyProperty ShowLoadValuesProperty=Register(nameof(ShowLoadValues),typeof(bool),true);
         public IReadOnlyList<ReadLoadDisplay>? ReadLoadItems { get=>(IReadOnlyList<ReadLoadDisplay>?)GetValue(ReadLoadItemsProperty);set=>SetValue(ReadLoadItemsProperty,value); }
         public bool ShowLoadValues { get=>(bool)GetValue(ShowLoadValuesProperty);set=>SetValue(ShowLoadValuesProperty,value); }
+        public static readonly DependencyProperty StructureTextProperty=Register(nameof(StructureText),typeof(TextAppearance),TextAppearance.StructureDefault);
+        public static readonly DependencyProperty LoadTextProperty=Register(nameof(LoadText),typeof(TextAppearance),TextAppearance.LoadsDefault);
+        public TextAppearance StructureText { get=>(TextAppearance)GetValue(StructureTextProperty);set=>SetValue(StructureTextProperty,value); }
+        public TextAppearance LoadText { get=>(TextAppearance)GetValue(LoadTextProperty);set=>SetValue(LoadTextProperty,value); }
+        private FormattedText ModelText(string value,Brush brush,bool load=false)
+        {
+            var style=load?LoadText:StructureText;
+            if(style.UseColor&&(load||!ReferenceEquals(brush,SelectionBrush)))brush=new SolidColorBrush(Color.FromRgb((byte)style.Red,(byte)style.Green,(byte)style.Blue));
+            return Text(value,brush,style.Size);
+        }
         private static readonly Brush SelectionBrush = new SolidColorBrush(Color.FromRgb(128,0,32));
         public static readonly DependencyProperty ExtrudeEnabledProperty=Register(nameof(ExtrudeEnabled),typeof(bool),true);
         public static readonly DependencyProperty CutStartProperty=Register(nameof(CutStart),typeof(Vec2?));
@@ -127,7 +137,6 @@ namespace QksExcelAddIn.Views.Controls
             DrawCutGuide(dc);
             if(FirstPlanePoint.HasValue)dc.DrawEllipse(Brushes.White,new Pen(Brushes.Teal,2),Screen(FirstPlanePoint.Value),5,5);
             if(PickingPlanePoints&&snap!=null) { var p=Screen(snap.Point);dc.DrawRectangle(Brushes.White,new Pen(Brushes.Teal,2),new Rect(p.X-4,p.Y-4,8,8));string name=items.FirstOrDefault(i=>i.Source.Id==snap.ElementId)?.Source.Name??"";dc.DrawText(Text(snap.Kind+" · "+name,Brushes.Teal),new Point(Math.Min(Math.Max(4,p.X+9),Math.Max(4,ActualWidth-180)),Math.Max(4,p.Y-22))); }
-            dc.DrawText(Text(items.Count==0?"Chưa có hình học trong vùng xem":"U →   V ↑ · Chọn "+selected.Count+(openings?" · Opening: khoét lỗ trên mặt đồng phẳng":""),Brushes.SlateGray,11),new Point(12,Math.Max(5,ActualHeight-26)));
         }
         private void DrawCutGuide(DrawingContext dc)
         {
@@ -144,9 +153,9 @@ namespace QksExcelAddIn.Views.Controls
         {
             var path=new StreamGeometry();using(var g=path.Open()) { g.BeginFigure(Screen(points[0]),true,true);g.PolyLineTo(points.Skip(1).Select(Screen).ToArray(),true,false); }path.Freeze();return path;
         }
-        private void DrawLabel(DrawingContext dc,IReadOnlyList<Segment2> lines,IReadOnlyList<Vec2> polygon,bool area,string value,Brush brush,Box2 viewport)
+        private void DrawLabel(DrawingContext dc,IReadOnlyList<Segment2> lines,IReadOnlyList<Vec2> polygon,bool area,string value,Brush brush,Box2 viewport,bool load=false)
         {
-            var text=Text(value,brush);
+            var text=ModelText(value,brush,load);
             var placed=MemberLabelLayout.Place(lines,polygon,area,text.WidthIncludingTrailingWhitespace,text.Height,viewport);if(placed==null)return;
             dc.PushTransform(new TranslateTransform(placed.Center.X,placed.Center.Y));dc.PushTransform(new RotateTransform(placed.AngleDegrees));
             dc.DrawText(text,new Point(-placed.Width/2,-placed.Height/2));dc.Pop();dc.Pop();

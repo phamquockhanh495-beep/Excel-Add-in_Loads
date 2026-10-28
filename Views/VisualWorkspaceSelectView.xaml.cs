@@ -13,7 +13,7 @@ namespace QksExcelAddIn.Views
         private readonly ElementKind[] types={ElementKind.Column,ElementKind.Beam,ElementKind.Slab,ElementKind.Wall};
         public VisualWorkspaceSelectView(VisualWorkspaceViewModel model)
         {
-            vm=model;InitializeComponent();
+            vm=model;InitializeComponent();WorkspacePopupChrome.Attach(this);
             TypeBox.ItemsSource=new[]{"Cột","Dầm","Sàn","Vách"};TypeBox.SelectedIndex=1;
             AttributeBox.ItemsSource=new[]{"Section","UniqueName","Label"};AttributeBox.SelectedIndex=0;
             ScopeBox.ItemsSource=new[]{"Vùng xem hiện tại","Toàn mô hình (trừ đối tượng ẩn)"};ScopeBox.SelectedIndex=0;

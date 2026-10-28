@@ -27,7 +27,7 @@ namespace QksExcelAddIn.Services.Modeling
                 int count=0;string[] keys=Array.Empty<string>(),names=Array.Empty<string>();int[] types=Array.Empty<int>();bool[] empty=Array.Empty<bool>();
                 int rc=sap.DatabaseTables.GetAllTables(ref count,ref keys,ref names,ref types,ref empty);
                 if(rc!=0){error(rc,"Chưa kiểm tra được Uniform Load Sets");return;}Arrays(count,keys,names,types,empty);
-                var nonempty=Enumerable.Range(0,count).Where(i=>!empty[i]&&keys[i].IndexOf("Uniform Load Set",StringComparison.OrdinalIgnoreCase)>=0).Select(i=>keys[i]).ToArray();
+                var nonempty=Enumerable.Range(0,count).Where(i=>!empty[i]&&keys[i].IndexOf("Uniform",StringComparison.OrdinalIgnoreCase)>=0&&keys[i].IndexOf("Set",StringComparison.OrdinalIgnoreCase)>=0).Select(i=>keys[i]).ToArray();
                 var assignmentKeys=nonempty.Where(k=>k.IndexOf("Assign",StringComparison.OrdinalIgnoreCase)>=0).ToArray();
                 if(assignmentKeys.Length==0)return;
                 var definitionKeys=nonempty.Except(assignmentKeys).ToArray();

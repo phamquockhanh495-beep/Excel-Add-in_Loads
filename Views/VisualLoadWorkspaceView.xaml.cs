@@ -44,6 +44,8 @@ namespace QksExcelAddIn.Views
             Closing += (_, e) => { if (vm.Busy) { e.Cancel = true; vm.Status = "Chờ tác vụ kết thúc hoặc Hủy đọc trước khi đóng."; } };
             AppConnectionManager.ConnectionChanged += ConnectionChanged;
             Closed += (_, __) => { closed = true; cancellation?.Cancel(); AppConnectionManager.ConnectionChanged -= ConnectionChanged; };
+            try { if(File.Exists(VisualWorkspaceTextView.ProfileFile))vm.ApplyTextProfile(JsonCodec.Deserialize<ViewerTextProfile>(JsonCodec.Read(VisualWorkspaceTextView.ProfileFile))); }
+            catch(Exception ex){vm.Status="Không đọc được cấu hình chữ: "+ex.Message;}
             try {
                 if (File.Exists(ColorFile)) {
                     var colors = JsonCodec.Deserialize<Dictionary<string, string>>(JsonCodec.Read(ColorFile));

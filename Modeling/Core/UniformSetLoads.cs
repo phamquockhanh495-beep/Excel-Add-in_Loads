@@ -21,8 +21,8 @@ namespace QksExcelAddIn.Modeling.Core
     {
         public static IReadOnlyList<ExistingLoad> Expand(LoadTable assignments,LoadTable definitions,IReadOnlyList<ModelElement> elements,UnitScale units)
         {
-            int area=assignments.Required("UniqueName","Area","AreaObject","AreaName","Name"),assignedSet=assignments.Required("LoadSet","UniformLoadSet","SetName","UniformLoadSetName");
-            int set=definitions.Required("Name","LoadSet","UniformLoadSetName","SetName"),pattern=definitions.Required("LoadPat","LoadPattern","Pattern"),value=definitions.Required("Value","LoadValue","UnifLoad","Load");
+            int area=assignments.Required("UniqueName","Area","AreaObject","AreaName","Name"),assignedSet=assignments.Required("LoadSet","UniformLoadSet","SetName","UniformLoadSetName","LoadSetName","UnifLoadSet");
+            int set=definitions.Required("Name","LoadSet","UniformLoadSetName","SetName","LoadSetName"),pattern=definitions.Required("LoadPat","LoadPattern","Pattern"),value=definitions.Required("Value","LoadValue","UnifLoad","Load");
             int direction=definitions.Column("Dir","Direction"),system=definitions.Column("CSys","CoordSys","CoordinateSystem");
             var areas=elements.Where(e=>e.Id.StartsWith("Area:",StringComparison.Ordinal)).ToDictionary(e=>e.Name,StringComparer.Ordinal);
             var result=new List<ExistingLoad>();var pairs=new HashSet<string>(StringComparer.Ordinal);

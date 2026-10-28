@@ -1,0 +1,24 @@
+<Window x:Class="QksExcelAddIn.Views.VisualWorkspaceTextView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="QKS · DISPLAY / TEXT" Width="460" Height="510" MinWidth="360" MinHeight="350" WindowStartupLocation="CenterOwner" FontFamily="Segoe UI" FontSize="11.5" Background="#F8FAFC">
+ <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="pack://application:,,,/QksExcelAddIn;component/Views/Styles/VisualWorkspaceStyles.xaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></Window.Resources>
+ <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="14">
+  <TextBlock Text="NHÃN CẤU KIỆN · LABEL / UNIQUENAME / SECTION" FontWeight="SemiBold" Margin="0,0,0,8"/>
+  <TextBlock Text="Cỡ chữ (6–30 DIP)"/><TextBox x:Name="StructureSize"/>
+  <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+   <StackPanel Margin="0,0,6,0"><TextBlock Text="R"/><TextBox x:Name="StructureRed"/></StackPanel>
+   <StackPanel Grid.Column="1" Margin="0,0,6,0"><TextBlock Text="G"/><TextBox x:Name="StructureGreen"/></StackPanel>
+   <StackPanel Grid.Column="2"><TextBlock Text="B"/><TextBox x:Name="StructureBlue"/></StackPanel>
+  </Grid>
+  <Separator Margin="0,12"/><TextBlock Text="NHÃN GIÁ TRỊ TẢI TRỌNG" FontWeight="SemiBold" Margin="0,0,0,8"/>
+  <TextBlock Text="Cỡ chữ (6–30 DIP)"/><TextBox x:Name="LoadSize"/>
+  <CheckBox x:Name="LoadCustomColor" Content="Dùng màu RGB riêng (bỏ chọn: màu theo nhóm tải)"/>
+  <Grid IsEnabled="{Binding IsChecked, ElementName=LoadCustomColor}"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+   <StackPanel Margin="0,0,6,0"><TextBlock Text="R"/><TextBox x:Name="LoadRed"/></StackPanel>
+   <StackPanel Grid.Column="1" Margin="0,0,6,0"><TextBlock Text="G"/><TextBox x:Name="LoadGreen"/></StackPanel>
+   <StackPanel Grid.Column="2"><TextBlock Text="B"/><TextBox x:Name="LoadBlue"/></StackPanel>
+  </Grid>
+  <TextBlock Text="RGB: 0–255. Cấu kiện đang chọn giữ chữ đỏ đô để nhận biết." TextWrapping="Wrap" Foreground="#64748B" Margin="0,10"/>
+  <TextBlock x:Name="ResultText" TextWrapping="Wrap" Foreground="#800020" Margin="0,4"/>
+  <WrapPanel><Button Content="Áp dụng" Click="Apply_Click"/><Button Content="Mặc định" Click="Reset_Click"/><Button Content="Đóng" Click="Close_Click"/></WrapPanel>
+ </StackPanel></ScrollViewer>
+</Window>

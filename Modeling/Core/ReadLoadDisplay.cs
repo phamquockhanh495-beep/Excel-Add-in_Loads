@@ -14,7 +14,9 @@ namespace QksExcelAddIn.Modeling.Core
         public ExistingLoad Load { get; }
         public ModelElement Source { get; }
         public ViewPlane Plane { get; }
-        public string Title => Category+" · "+Geometry.Source.Name+" · "+Load.Pattern;
+        public string UniformLoadSet=>LoadSetName(Load);
+        public static string LoadSetName(ExistingLoad load)=>load.Kind.StartsWith("Area uniform set: ",StringComparison.Ordinal)?load.Kind.Substring("Area uniform set: ".Length):"";
+        public string Title => (UniformLoadSet.Length>0?UniformLoadSet+" · ":"")+Category+" · "+Geometry.Source.Name+" · "+Load.Pattern;
         public string DirectionText {
             get {
                 if(Category=="Joint") {
@@ -26,7 +28,7 @@ namespace QksExcelAddIn.Modeling.Core
                 return Load.Direction>0&&Load.Direction<directions.Length?directions[Load.Direction]:"Dir "+Load.Direction;
             }
         }
-        public string Text => Load.Pattern+": "+Values+" "+Load.Unit+" · "+Load.CoordinateSystem+" / "+DirectionText+(Category=="Joint"?" · step "+Load.Step:Category=="Frame"?" · r="+Load.Start.ToString("0.###",CultureInfo.CurrentCulture)+(Load.Start!=Load.End?"→"+Load.End.ToString("0.###",CultureInfo.CurrentCulture):""):"");
+        public string Text => (UniformLoadSet.Length>0?"["+UniformLoadSet+"] ":"")+Load.Pattern+": "+Values+" "+Load.Unit+" · "+Load.CoordinateSystem+" / "+DirectionText+(Category=="Joint"?" · step "+Load.Step:Category=="Frame"?" · r="+Load.Start.ToString("0.###",CultureInfo.CurrentCulture)+(Load.Start!=Load.End?"→"+Load.End.ToString("0.###",CultureInfo.CurrentCulture):""):"");
         public string Detail => Text+"\n"+Load.Kind+(Category=="Frame"?" · I→J":"")+(LoadGlyphs.Direction(this).HasValue?"":" · chưa xác định hướng để vẽ");
         private string Values => Load.Value1.ToString("0.###",CultureInfo.CurrentCulture)+(Load.Value1!=Load.Value2?" → "+Load.Value2.ToString("0.###",CultureInfo.CurrentCulture):"");
         private ReadLoadDisplay(string category,ExistingLoad load,ProjectedElement geometry,ModelElement source,ViewPlane plane) { Category=category;Load=load;Geometry=geometry;ElementId=load.ElementId;Source=source;Plane=plane; }

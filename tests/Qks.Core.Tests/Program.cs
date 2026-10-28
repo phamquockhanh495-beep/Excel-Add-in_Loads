@@ -70,6 +70,7 @@ internal static partial class Program
         SectionLoadTests();
         LoadViewTests();
         SelectToolTests();
+        DisplayToolsTests();
         DraftTests();
         LayoutTests();
         ApplyTests();

@@ -22,7 +22,7 @@ namespace QksExcelAddIn.Views.Controls
                     var lines=row.Geometry.AxisSegments.Select(s=>new Segment2(V(Screen(s.A)),V(Screen(s.B)))).ToArray();
                     var loadPen=new Pen(SelectionBrush,3){StartLineCap=PenLineCap.Flat,EndLineCap=PenLineCap.Flat};
                     foreach(var line in lines)dc.DrawLine(loadPen,new Point(line.A.X,line.A.Y),new Point(line.B.X,line.B.Y));
-                    if(ShowLoadValues)DrawLabel(dc,lines,Array.Empty<Vec2>(),false,row.Text,SelectionBrush,viewport);
+                    if(ShowLoadValues)DrawLabel(dc,lines,Array.Empty<Vec2>(),false,row.Text,SelectionBrush,viewport,true);
                     continue;
                 }
                 var samples=LoadGlyphs.Samples(row,scale);
@@ -53,7 +53,7 @@ namespace QksExcelAddIn.Views.Controls
                 }
                 if(ShowLoadValues&&labelPoint.HasValue) {
                     var at=labelPoint.Value;string label=row.Text+(vector.HasValue?"":" · chưa xác định hướng");
-                    dc.DrawText(Text(label,brush,10),new Point(at.X+7,at.Y-17));
+                    dc.DrawText(ModelText(label,brush,true),new Point(at.X+7,at.Y-17));
                 }
             }
         }
