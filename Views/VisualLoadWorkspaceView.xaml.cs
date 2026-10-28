@@ -80,7 +80,7 @@ namespace QksExcelAddIn.Views
         {
             if (Canvas.PickingPlanePoints) { StopPlanePicking(); vm.Status = "Đã hủy chọn mặt đứng."; return; }
             if (vm.Snapshot == null || vm.Busy) { vm.Status = "Đọc mô hình trước khi chọn hai điểm."; return; }
-            try { vm.PreparePlanPointPicking(); }
+            try { vm.BeginNewSection(); }
             catch (Exception ex) { vm.Status = ex.Message; return; }
             PlanRadio.IsChecked = true; Canvas.Fit(); Canvas.PickingPlanePoints = true; Canvas.Cursor = Cursors.Cross;
             vm.Status = "Chọn điểm đầu trên Plan; snap đầu cấu kiện, trung điểm hoặc cạnh trong 8 DIP. Esc để hủy.";

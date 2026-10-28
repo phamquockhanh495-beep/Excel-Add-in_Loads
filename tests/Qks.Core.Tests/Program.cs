@@ -68,6 +68,7 @@ internal static partial class Program
         ViewerTests();
         ExtrusionTests();
         SectionLoadTests();
+        LoadViewTests();
         DraftTests();
         LayoutTests();
         ApplyTests();

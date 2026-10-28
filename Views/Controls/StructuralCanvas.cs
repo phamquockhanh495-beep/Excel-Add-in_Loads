@@ -108,7 +108,7 @@ namespace QksExcelAddIn.Views.Controls
                     dc.DrawLine(pen,new Point(line.A.X,line.A.Y),new Point(line.B.X,line.B.Y));
                 }
                 if(item.Source.Vertices.Count<=2&&screenLines.All(l=>Math.Abs(l.A.X-l.B.X)+Math.Abs(l.A.Y-l.B.Y)<.1)&&screenLines.Length>0)
-                    dc.DrawEllipse(brush,pen,new Point(screenLines[0].A.X,screenLines[0].A.Y),3,3);
+                    { var at=new Point(screenLines[0].A.X,screenLines[0].A.Y);if(item.Source.Kind==ElementKind.Joint)DrawCross(dc,pen,at,2.5);else dc.DrawEllipse(brush,pen,at,3,3); }
                 var labelLines=item.AxisSegments.Select(line=>new Segment2(V(Screen(line.A)),V(Screen(line.B)))).ToArray();
                 bool endOn=item.AxisSegments.All(l=>Math.Abs(l.A.X-l.B.X)+Math.Abs(l.A.Y-l.B.Y)<1e-9);
                 labels.Add((item,active?SelectionBrush:new SolidColorBrush(Color.FromRgb(15,34,64)),endOn?screenLines:labelLines,screenPolygon));
@@ -126,30 +126,11 @@ namespace QksExcelAddIn.Views.Controls
             if(PickingPlanePoints&&snap!=null) { var p=Screen(snap.Point);dc.DrawRectangle(Brushes.White,new Pen(Brushes.Teal,2),new Rect(p.X-4,p.Y-4,8,8));string name=items.FirstOrDefault(i=>i.Source.Id==snap.ElementId)?.Source.Name??"";dc.DrawText(Text(snap.Kind+" · "+name,Brushes.Teal),new Point(Math.Min(Math.Max(4,p.X+9),Math.Max(4,ActualWidth-180)),Math.Max(4,p.Y-22))); }
             dc.DrawText(Text(items.Count==0?"Chưa có hình học trong vùng xem":"U →   V ↑ · Chọn "+selected.Count+(openings?" · Opening: khoét lỗ trên mặt đồng phẳng":""),Brushes.SlateGray,11),new Point(12,Math.Max(5,ActualHeight-26)));
         }
-        private void DrawReadLoads(DrawingContext dc,Box2 viewport)
-        {
-            foreach(var group in (ReadLoadItems??Array.Empty<ReadLoadDisplay>()).GroupBy(l=>l.ElementId)) {
-                var first=group.First();Brush brush=first.Category=="Frame"?Brushes.DarkCyan:first.Category=="Shell"?Brushes.RoyalBlue:Brushes.DarkViolet;
-                var lines=new List<Segment2>();
-                foreach(var row in group)foreach(var line in row.Geometry.Segments) {
-                    var a=Screen(line.A);var b=Screen(line.B);lines.Add(new Segment2(V(a),V(b)));
-                    if((b-a).Length<.1)dc.DrawEllipse(null,new Pen(brush,2),a,5,5);
-                    else dc.DrawLine(new Pen(brush,2){DashStyle=DashStyles.Dash},a,b);
-                }
-                if(!ShowLoadValues)continue;
-                var polygon=first.Category=="Shell"?first.Geometry.Polygon.Select(p=>V(Screen(p))).ToArray():Array.Empty<Vec2>();
-                string value=string.Join("\n",group.Select(r=>r.Text));var text=Text(value,brush,10);
-                var placed=MemberLabelLayout.Place(lines,polygon,first.Category=="Shell",text.WidthIncludingTrailingWhitespace,text.Height,viewport);
-                if(placed==null)continue;
-                dc.PushTransform(new TranslateTransform(placed.Center.X,placed.Center.Y));dc.PushTransform(new RotateTransform(placed.AngleDegrees));
-                dc.DrawText(text,new Point(-placed.Width/2,-placed.Height/2));dc.Pop();dc.Pop();
-            }
-        }
         private void DrawCutGuide(DrawingContext dc)
         {
-            if(Elevation)return;
-            var start=PickingPlanePoints?FirstPlanePoint:CutStart;
-            var end=PickingPlanePoints?cursorPlanePoint:CutEnd;
+            if(Elevation||!PickingPlanePoints)return;
+            var start=FirstPlanePoint;
+            var end=cursorPlanePoint;
             if(!start.HasValue||!end.HasValue)return;
             var a=Screen(start.Value);var b=Screen(end.Value);
             dc.DrawLine(new Pen(SelectionBrush,1.8){DashStyle=DashStyles.Dash},a,b);

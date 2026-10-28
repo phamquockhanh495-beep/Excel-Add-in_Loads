@@ -63,6 +63,16 @@
                 <TextBlock Text="Nửa dải xem ±d (m)"/><TextBox Text="{Binding HalfDepth, UpdateSourceTrigger=PropertyChanged}"/>
                 <Button Content="Cập nhật vùng xem" Click="Project_Click"/>
                 <Button Content="Chọn 2 điểm / Hủy" Click="PickElevation_Click" ToolTip="Chọn hai điểm trên Plan để dựng Elevation; Esc để hủy."/>
+                <StackPanel Visibility="{Binding Elevation, Converter={StaticResource BoolVisible}}" Margin="0,10,0,0">
+                    <TextBlock Text="MẶT CẮT ĐÃ LƯU" FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding SavedSections}" SelectedItem="{Binding SelectedSection}" DisplayMemberPath="Name"/>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Button Content="Xem" Click="OpenSection_Click"/><Button Grid.Column="1" Content="Xóa" Click="DeleteSection_Click"/>
+                    </Grid>
+                    <TextBlock Text="Tên mặt cắt" Margin="0,5,0,0"/><TextBox Text="{Binding SectionName, UpdateSourceTrigger=PropertyChanged}" MaxLength="80"/>
+                    <Button Content="Lưu / cập nhật" Click="SaveSection_Click"/>
+                    <TextBlock Text="Lưu riêng theo file ETABS trên máy này." Foreground="#64748B" TextWrapping="Wrap" FontSize="10.5"/>
+                </StackPanel>
                 <Separator Margin="0,6"/>
                 <TextBlock Text="SAFE 18–22: đang phát triển adapter" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
             </StackPanel></ScrollViewer></Border>
@@ -143,6 +153,7 @@
                 <CheckBox Content="Hiện giá trị trên hình" IsChecked="{Binding ShowLoadValues}"/>
                 <CheckBox Content="Chỉ đối tượng đang chọn" IsChecked="{Binding OnlySelectedLoads}"/>
                 <CheckBox Content="Kể cả thành phần bằng 0" IsChecked="{Binding ShowZeroLoads}"/>
+                <TextBlock Text="{Binding ReadSourceSummary}" TextWrapping="Wrap" Foreground="#64748B" FontSize="10.5" Margin="0,5"/>
                 <TextBlock Text="{Binding ReadLoadSummary}" Foreground="#0072BC" TextWrapping="Wrap" Margin="0,8"/>
                 <ListBox ItemsSource="{Binding ReadLoadItems}" SelectionChanged="ReadLoad_SelectionChanged" ToolTip="Chọn dòng tải để chọn cấu kiện trên hình" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
                     <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="0,3">
@@ -150,7 +161,7 @@
                         <TextBlock Text="{Binding Detail}" Foreground="#52657C" TextWrapping="Wrap" Margin="0,3,0,0"/>
                     </StackPanel></DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
-                <TextBlock Text="Nét đứt/vòng tròn đánh dấu phạm vi/vị trí gán tải; không phải biểu đồ tỷ lệ lực. Giá trị/r là dữ liệu gán gốc; pattern và step liệt kê riêng." TextWrapping="Wrap" Foreground="#64748B" FontSize="10.5" Margin="0,8"/>
+                <TextBlock Text="Mũi tên theo hướng tải; kích thước tự chuẩn hóa riêng theo nhóm/đơn vị (6–160 px). ⊗ vào / ⊙ ra mặt phẳng; mũi tên kép hoặc cung tròn: mômen. Pattern và step hiển thị riêng." TextWrapping="Wrap" Foreground="#64748B" FontSize="10.5" Margin="0,8"/>
                 <Expander Header="PHẠM VI DỮ LIỆU ĐÃ ĐỌC" Margin="0,5"><StackPanel>
                     <TextBlock Text="{Binding LoadReadNote}" TextWrapping="Wrap" Foreground="#64748B"/>
                     <TextBox Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="150" VerticalScrollBarVisibility="Auto" FontSize="10.5"/>

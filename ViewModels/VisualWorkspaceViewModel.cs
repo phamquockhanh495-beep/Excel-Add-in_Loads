@@ -75,7 +75,7 @@ namespace QksExcelAddIn.ViewModels
             "\n\n" + string.Join("\n", SelectedElement.Vertices.Select((p, i) => $"P{i + 1}: {p.X:0.###}, {p.Y:0.###}, {p.Z:0.###} m"));
         public void SetSnapshot(ModelSnapshot? snapshot, bool offline)
         {
-            snapshot?.Validate(); CutStart=null; CutEnd=null; Changed(nameof(CutStart)); Changed(nameof(CutEnd)); Snapshot = snapshot; Offline = offline; applyNeedsRead = false;
+            snapshot?.Validate(); LoadSections(Array.Empty<SavedSection>()); CutStart=null; CutEnd=null; Changed(nameof(CutStart)); Changed(nameof(CutEnd)); Snapshot = snapshot; Offline = offline; applyNeedsRead = false;
             workspaceRemovedIds.Clear();NotifyWorkspaceVisibility();
             DisplayElements = snapshot?.Elements.ToArray() ?? Array.Empty<ModelElement>();
             displayIds = new HashSet<string>(DisplayElements.Select(e => e.Id), StringComparer.Ordinal);

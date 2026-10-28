@@ -9,6 +9,7 @@ namespace QksExcelAddIn.Modeling.Core
     {
         public double X { get; }
         public double Y { get; }
+        [Newtonsoft.Json.JsonConstructor]
         public Vec2(double x, double y) { X = x; Y = y; }
     }
     public sealed class ViewPlane

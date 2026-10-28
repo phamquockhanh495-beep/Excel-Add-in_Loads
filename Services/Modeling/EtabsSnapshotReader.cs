@@ -53,7 +53,7 @@ namespace QksExcelAddIn.Services.Modeling
                 progress(message); await Dispatcher.Yield(DispatcherPriority.Background); Guard();
             }
             var diagnostics = new List<string> {
-                "Phạm vi tải: frame distributed/point, area uniform, joint force/moment. Chưa gồm temperature, surface pressure, area nonuniform hoặc tải sinh tự động. Joint giữ riêng load step; không cộng các pattern/step.",
+                "Phạm vi tải: frame distributed/point, area uniform/uniform-to-frame + Uniform Load Sets, joint force/moment. Chưa gồm temperature, surface pressure, area nonuniform hoặc tải sinh tự động. Joint giữ riêng load step; không cộng các pattern/step.",
                 "Ảnh chụp dữ liệu chỉ đọc; không chỉnh mô hình/đơn vị trong khi đọc. API không cung cấp revision để phát hiện mọi thay đổi hình học cùng file.",
                 "Mặt đứng dựng từ hai điểm có snap, hiển thị mốc Story/cao độ đã đọc; lưới XY/named elevation chưa nhập. Extrude: tiết diện chữ nhật/tròn và chiều dày sàn/vách phẳng; cote mô hình là đỉnh dầm/sàn, chiều dày xuống dưới; cột/vách đặt giữa trục/mặt phân tích. Chưa xét insertion/end offsets. Sàn/vách nghiêng so với vùng xem giữ đường biên."
             };
@@ -126,9 +126,19 @@ namespace QksExcelAddIn.Services.Modeling
                     orientation == eAreaDesignOrientation.Floor ? ElementKind.Slab : orientation == eAreaDesignOrientation.Wall ? ElementKind.Wall : ElementKind.Other;
                 var element = new ModelElement("Area:" + name, name, label, story, property, kind, vertices, section: sections.Read(property, kind, false));
                 elements.Add(element); ReadAreaLoads(sap, element, scale, loads, LoadError);
+                ReadUniformToFrame(sap,element,scale,loads,LoadError);
                 if (i % 25 == 0) await Yield("Đọc area " + (i + 1) + "/" + areas.Length);
             }
+            ReadUniformSets(sap,scale,elements,loads,LoadError);
             await ReadJointLoadsAsync(sap,scale,elements,loads,Point,LoadError,Yield,Guard);
+            var needsAxes=new HashSet<string>(loads.Where(l=>l.ElementId.StartsWith("Joint:",StringComparison.Ordinal)?string.Equals(l.CoordinateSystem,"Local",StringComparison.OrdinalIgnoreCase):l.Direction>=1&&l.Direction<=3).Select(l=>l.ElementId),StringComparer.Ordinal);
+            int axesRead=0;
+            for(int i=0;i<elements.Count;i++) {
+                var e=elements[i];if(!needsAxes.Contains(e.Id))continue;Guard();
+                var axes=ReadAxes(sap,e.Kind==ElementKind.Joint?"Joint":e.Vertices.Count==2?"Frame":"Area",e.Name,Optional);
+                elements[i]=new ModelElement(e.Id,e.Name,e.Label,e.Story,e.Property,e.Kind,e.Vertices,e.LocalAxisDegrees,e.AdvancedLocalAxes,e.Section,axes);
+                if(++axesRead%25==0)await Yield("Đọc hướng local của đối tượng có tải…");
+            }
             Guard();
             if (levels.Count == 0) levels.AddRange(points.Values.Select(p => p.Z).Distinct().OrderBy(z => z).Select(z => new ModelLevel("Z=" + z.ToString("0.###"), z)));
             string version = ""; double versionNumber = 0;

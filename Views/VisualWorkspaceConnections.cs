@@ -72,7 +72,7 @@ namespace QksExcelAddIn.Views
             var reading = new CancellationTokenSource(); cancellation = reading;
             try {
                 var snapshot = await new EtabsSnapshotReader().ReadAsync(message => { if (Current() && !closed) vm.Status = message; }, reading.Token);
-                if (!closed && Current() && !reading.IsCancellationRequested) { vm.SetSnapshot(snapshot, false); Canvas.Fit(); }
+                if (!closed && Current() && !reading.IsCancellationRequested) { vm.SetSnapshot(snapshot, false); LoadSectionFile(); Canvas.Fit(); }
             } catch (OperationCanceledException) { if (Current() && !closed) vm.Status = "Đã hủy đọc; bấm Đọc lại khi cần."; }
             catch (Exception ex) { if (Current() && !closed) vm.Status = "Đọc không thành công: " + ex.GetBaseException().Message; }
             finally { if (ReferenceEquals(cancellation, reading)) cancellation = null; reading.Dispose(); vm.Busy = false; }

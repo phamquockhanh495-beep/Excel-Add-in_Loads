@@ -12,6 +12,8 @@ namespace QksExcelAddIn.Modeling.Core
         public string Category { get; }
         public ProjectedElement Geometry { get; }
         public ExistingLoad Load { get; }
+        public ModelElement Source { get; }
+        public ViewPlane Plane { get; }
         public string Title => Category+" · "+Geometry.Source.Name+" · "+Load.Pattern;
         public string DirectionText {
             get {
@@ -25,9 +27,9 @@ namespace QksExcelAddIn.Modeling.Core
             }
         }
         public string Text => Load.Pattern+": "+Values+" "+Load.Unit+" · "+Load.CoordinateSystem+" / "+DirectionText+(Category=="Joint"?" · step "+Load.Step:Category=="Frame"?" · r="+Load.Start.ToString("0.###",CultureInfo.CurrentCulture)+(Load.Start!=Load.End?"→"+Load.End.ToString("0.###",CultureInfo.CurrentCulture):""):"");
-        public string Detail => Text+"\n"+Load.Kind+(Category=="Frame"?" · I→J":"");
+        public string Detail => Text+"\n"+Load.Kind+(Category=="Frame"?" · I→J":"")+(LoadGlyphs.Direction(this).HasValue?"":" · chưa xác định hướng để vẽ");
         private string Values => Load.Value1.ToString("0.###",CultureInfo.CurrentCulture)+(Load.Value1!=Load.Value2?" → "+Load.Value2.ToString("0.###",CultureInfo.CurrentCulture):"");
-        private ReadLoadDisplay(string category,ExistingLoad load,ProjectedElement geometry) { Category=category;Load=load;Geometry=geometry;ElementId=load.ElementId; }
+        private ReadLoadDisplay(string category,ExistingLoad load,ProjectedElement geometry,ModelElement source,ViewPlane plane) { Category=category;Load=load;Geometry=geometry;ElementId=load.ElementId;Source=source;Plane=plane; }
         public static IReadOnlyList<ReadLoadDisplay> Build(ModelSnapshot? snapshot,IReadOnlyList<ProjectedElement> scene,ViewPlane plane,string? pattern,
             bool frames,bool shells,bool joints,bool onlySelected,IReadOnlyList<string> selected,bool showZero)
         {
@@ -37,13 +39,13 @@ namespace QksExcelAddIn.Modeling.Core
                 if(pattern!=null&&load.Pattern!=pattern || onlySelected&&!selectedSet.Contains(load.ElementId) || !showZero&&load.Value1==0&&load.Value2==0 || !visible.TryGetValue(load.ElementId,out var item))continue;
                 string category=item.Source.Kind==ElementKind.Joint?"Joint":item.Source.Vertices.Count==2?"Frame":"Shell";
                 if(category=="Frame"&&!frames||category=="Shell"&&!shells||category=="Joint"&&!joints)continue;
-                ProjectedElement? geometry=item;
+                ProjectedElement? geometry=category=="Shell"?Projection.Build(item.Source,plane):item;
                 if(category=="Frame") {
                     var source=item.Source;var a=source.Vertices[0];var d=source.Vertices[1]-a;
                     var points=load.Start==load.End?new[]{a+d*load.Start}:new[]{a+d*load.Start,a+d*load.End};
                     geometry=Projection.Build(new ModelElement(source.Id,source.Name,source.Label,source.Story,source.Property,source.Kind,points),plane);
                 }
-                if(geometry!=null)result.Add(new ReadLoadDisplay(category,load,geometry));
+                if(geometry!=null)result.Add(new ReadLoadDisplay(category,load,geometry,item.Source,plane));
             }
             return result.OrderBy(r=>r.Category,StringComparer.Ordinal).ThenBy(r=>r.ElementId,StringComparer.Ordinal).ThenBy(r=>r.Load.Pattern,StringComparer.Ordinal).ThenBy(r=>r.Load.Step).ThenBy(r=>r.Load.Direction).ToArray();
         }
