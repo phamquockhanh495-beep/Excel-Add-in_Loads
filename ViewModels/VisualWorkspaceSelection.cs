@@ -25,7 +25,7 @@ namespace QksExcelAddIn.ViewModels
             var next=ViewerSelection.Change(SelectedIds,ids.Where(id=>displayById.ContainsKey(id)&&!workspaceRemovedIds.Contains(id)),change);
             if(next.SequenceEqual(SelectedIds,StringComparer.Ordinal))return;
             SelectedIds=Array.AsReadOnly(next);selectedIdSet=new HashSet<string>(next,StringComparer.Ordinal);SelectedElements=Array.AsReadOnly(next.Select(id=>displayById[id]).ToArray());selected=SelectedElements.LastOrDefault();
-            foreach(string name in new[]{nameof(SelectedIds),nameof(SelectedElements),nameof(SingleSelection),nameof(SelectedElement),nameof(SelectedId),nameof(VisibleLoads),nameof(PropertyKey),nameof(Inspector),nameof(Counts)})Changed(name);
+            foreach(string name in new[]{nameof(SelectedIds),nameof(SelectedElements),nameof(SingleSelection),nameof(SelectedElement),nameof(SelectedId),nameof(VisibleLoads),nameof(PropertyKey),nameof(Inspector),nameof(InspectorTitle),nameof(InspectorSubtitle),nameof(InspectorRows),nameof(InspectorCoordinates),nameof(Counts)})Changed(name);
             PropertyColor=selected==null?"#2563EB":ColorOverrides.TryGetValue(PropertyKey,out var color)?color:PropertyColors.ForProperty(PropertyKey);Changed(nameof(PropertyColor));
             OnSelectionChanged();
             NotifyWorkspaceVisibility();

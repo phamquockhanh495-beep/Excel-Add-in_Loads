@@ -57,7 +57,8 @@
                 <Separator Margin="0,6"/>
                 <TextBlock Text="VÙNG HIỂN THỊ" FontWeight="SemiBold"/>
                 <StackPanel Orientation="Horizontal"><RadioButton x:Name="PlanRadio" Content="Plan" IsChecked="True" Checked="Plan_Checked"/><RadioButton Content="Elevation" IsChecked="{Binding Elevation}"/></StackPanel>
-                <TextBlock Text="Tầng / cao độ Plan"/><ComboBox ItemsSource="{Binding Levels}" SelectedItem="{Binding Level}"/>
+                <TextBlock Text="Tầng / cao độ Plan" ToolTip="Page Up: lên tầng · Page Down: xuống tầng"/><ComboBox ItemsSource="{Binding Levels}" SelectedItem="{Binding Level}"/>
+                <TextBlock Text="PgUp: lên tầng · PgDn: xuống tầng" FontSize="10.5" Foreground="#64748B" Margin="0,2,0,5"/>
                 <CheckBox Content="Đảo hướng nhìn" IsChecked="{Binding Reverse}"/>
                 <TextBlock Text="Nửa dải xem ±d (m)"/><TextBox Text="{Binding HalfDepth, UpdateSourceTrigger=PropertyChanged}"/>
                 <Button Content="Cập nhật vùng xem" Click="Project_Click"/>
@@ -66,7 +67,7 @@
                 <TextBlock Text="SAFE 18–22: đang phát triển adapter" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
             </StackPanel></ScrollViewer></Border>
             <Grid Grid.Column="2">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="5"/><RowDefinition x:Name="TableRow" Height="225" MinHeight="115"/></Grid.RowDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <WrapPanel Margin="0,0,0,4">
                     <Button Content="Hiển thị" Click="ToggleDisplay_Click" ToolTip="Ẩn / hiện panel hiển thị"/>
                     <Button Content="Thuộc tính" Click="ToggleEditor_Click" ToolTip="Ẩn / hiện thuộc tính cấu kiện"/>
@@ -100,7 +101,7 @@
                             </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                             <CheckBox Content="Màu theo Property (bỏ chọn: màu theo loại cấu kiện)" IsChecked="{Binding ColorByProperty}" Click="Style_Click" Margin="0,10,0,4"/>
                             <TextBlock Text="Dầm: cyan · Cột/vách: xám · Sàn: tím nhạt · Chọn: cam" TextWrapping="Wrap" Foreground="#64748B"/>
-                            <TextBlock Text="Extrude đặt giữa trục/mặt phân tích; chưa xét lệch tâm và end offsets. Tiết diện chưa hỗ trợ giữ đường trục/biên. Chi tiết tại Chẩn đoán." TextWrapping="Wrap" Foreground="#64748B" Margin="0,6,0,0"/>
+                            <TextBlock Text="Extrude đặt giữa trục/mặt phân tích; chưa xét lệch tâm và end offsets. Tiết diện chưa hỗ trợ hoặc thiếu dữ liệu giữ đường trục/biên." TextWrapping="Wrap" Foreground="#64748B" Margin="0,6,0,0"/>
                         </StackPanel></ScrollViewer></Border>
                     </Popup>
                     <Button Content="Vừa khung" Click="Fit_Click"/>
@@ -109,28 +110,32 @@
                     <TextBlock Text="{Binding Counts}" Margin="6,7,0,3" MaxWidth="240" TextTrimming="CharacterEllipsis" ToolTip="{Binding Counts}"/>
                 </WrapPanel>
                 <Border Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"><viewer:StructuralCanvas x:Name="Canvas" Items="{Binding Scene}" SelectedId="{Binding SelectedId}" SelectedIds="{Binding SelectedIds}" LabelSettings="{Binding LabelSettings}" Elevation="{Binding Elevation}" Levels="{Binding Levels}" HasOpenings="{Binding HasOpenings}" ColorByProperty="{Binding ColorByProperty}" ColorOverrides="{Binding ColorOverrides}"/></Border>
-                <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"/>
-                <TabControl x:Name="WorkspaceTabs" Grid.Row="3">
-                    <TabItem Header="Đối tượng nguồn"><DataGrid x:Name="ObjectsTable" ItemsSource="{Binding VisibleElements}" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="Objects_SelectionChanged"><DataGrid.Columns>
-                        <DataGridTextColumn Header="Unique ID" Binding="{Binding Name}" Width="110" ElementStyle="{StaticResource WorkspaceCellText}" HeaderStyle="{StaticResource WorkspaceHeaderLeft}"/>
-                        <DataGridTextColumn Header="Label" Binding="{Binding Label}" Width="70" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        <DataGridTextColumn Header="Story" Binding="{Binding Story}" Width="85" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        <DataGridTextColumn Header="Type" Binding="{Binding Kind}" Width="65" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        <DataGridTextColumn Header="Property" Binding="{Binding Property}" Width="*" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                        <DataGridTextColumn Header="Length (m)" Binding="{Binding Length3D, StringFormat=0.###}" Width="90" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                    </DataGrid.Columns></DataGrid></TabItem>
-                    <TabItem Header="Tải đã đọc"><DataGrid ItemsSource="{Binding VisibleLoads}" ColumnWidth="*" MinColumnWidth="75"><DataGrid.Columns>
-                        <DataGridTextColumn Header="ID" Binding="{Binding ElementId}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Pattern" Binding="{Binding Pattern}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Loại" Binding="{Binding Kind}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="CSys" Binding="{Binding CoordinateSystem}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Dir API" Binding="{Binding Direction}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="r1" Binding="{Binding Start, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="r2" Binding="{Binding End, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="V1" Binding="{Binding Value1, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="V2" Binding="{Binding Value2, StringFormat=0.###}" ElementStyle="{StaticResource WorkspaceCellCenter}"/><DataGridTextColumn Header="Đơn vị" Binding="{Binding Unit}" ElementStyle="{StaticResource WorkspaceCellCenter}"/>
-                    </DataGrid.Columns></DataGrid></TabItem>
-                    <TabItem Header="Chẩn đoán"><TextBox Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"/></TabItem>
-                </TabControl>
             </Grid>
             <Border x:Name="EditorPane" Grid.Column="4" Style="{StaticResource Panel}"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel>
-                <Expander Header="THUỘC TÍNH ĐỐI TƯỢNG" IsExpanded="True">
-                    <TextBox Text="{Binding Inspector, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent" MaxHeight="360" VerticalScrollBarVisibility="Auto"/>
+                <Border Background="#E8EFF7" CornerRadius="3" Padding="10,12" Margin="0,0,0,10">
+                    <TextBlock Text="THUỘC TÍNH ĐỐI TƯỢNG" FontWeight="Bold" FontSize="14" Foreground="#102A4C" TextWrapping="Wrap"/>
+                </Border>
+                <Border Background="#F1F6FC" BorderBrush="#D3E0EF" BorderThickness="1" CornerRadius="3" Padding="10" Margin="0,0,0,10"><StackPanel>
+                    <TextBlock Text="{Binding InspectorTitle}" FontSize="16" FontWeight="SemiBold" Foreground="#0072BC" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding InspectorSubtitle}" Foreground="#52657C" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel></Border>
+                <ItemsControl ItemsSource="{Binding InspectorRows}"><ItemsControl.ItemTemplate><DataTemplate>
+                    <Border BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="2,8"><Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="82"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Key}" Foreground="#64748B" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,6,0"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Value}" Foreground="#102A4C" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                    </Grid></Border>
+                </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                <Expander Header="TỌA ĐỘ ĐỐI TƯỢNG (m)" Visibility="{Binding SingleSelection, Converter={StaticResource BoolVisible}}" Margin="0,10,0,4">
+                    <ItemsControl ItemsSource="{Binding InspectorCoordinates}"><ItemsControl.ItemTemplate><DataTemplate>
+                        <Border BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="4,5"><StackPanel>
+                            <TextBlock Text="{Binding Key}" FontWeight="SemiBold" Foreground="#0072BC"/>
+                            <TextBlock Text="{Binding Value}" TextWrapping="Wrap" Foreground="#102A4C" Margin="0,3,0,0"/>
+                        </StackPanel></Border>
+                    </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                 </Expander>
-                <Button Content="Bỏ chọn / xem tất cả tải" Click="ClearSelection_Click"/>
-                <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Quét trái/phải: chọn trọn/giao · Ctrl + click: thêm/bỏ · Esc: bỏ chọn / hủy thao tác · Delete: bỏ khỏi workspace · Khôi phục: hiện lại · Alt + click: đổi đối tượng chồng nhau" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
+                <Button Content="Bỏ chọn" Click="ClearSelection_Click" Margin="0,10,0,4"/>
+                <TextBlock Text="Lăn chuột: zoom · Chuột giữa/phải: pan · Quét trái/phải: chọn trọn/giao · Ctrl + click: thêm/bỏ · Esc: bỏ chọn · Delete: bỏ khỏi workspace · Khôi phục: hiện lại · Alt + click: đổi đối tượng chồng nhau · Page Up/Down: lên/xuống tầng trong Plan" TextWrapping="Wrap" Foreground="#64748B" Margin="0,6"/>
             </StackPanel></ScrollViewer></Border>
         </Grid>
         <Border Grid.Row="3" Background="#0F2240" Padding="8,4"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>

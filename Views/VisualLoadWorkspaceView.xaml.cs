@@ -24,8 +24,7 @@ namespace QksExcelAddIn.Views
         private bool closed;
         private Vec2? firstPlanePoint;
         private bool displayVisible = true, editorVisible = true;
-        private int panelMode = -1, tableMode = -1;
-        private bool syncingSelection, selectionSyncPending;
+        private int panelMode = -1;
         private static string ColorFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QKS", "Viewer", "property-colors.json");
         public VisualLoadWorkspaceView()
         {
@@ -38,8 +37,6 @@ namespace QksExcelAddIn.Views
             Canvas.PlanePointPicked += PlanePointPicked;
             vm.PropertyChanged += (_, e) => {
                 if (e.PropertyName == nameof(vm.Elevation) && vm.Elevation && Canvas.PickingPlanePoints) StopPlanePicking();
-                if (e.PropertyName == nameof(vm.Scene)) { syncingSelection = true; ScheduleSelectionSync(); }
-                if (e.PropertyName == nameof(vm.SelectedIds) || e.PropertyName == nameof(vm.VisibleElements)) ScheduleSelectionSync();
                 if (e.PropertyName == nameof(vm.Busy) && !vm.Busy) ScheduleConnectedRead();
             };
             PreviewKeyDown += Window_KeyDown;
@@ -67,31 +64,6 @@ namespace QksExcelAddIn.Views
         private void Project_Click(object sender, RoutedEventArgs e) { vm.Refresh(); Canvas.Fit(); }
         private void Fit_Click(object sender, RoutedEventArgs e) => Canvas.Fit();
         private void Style_Click(object sender, RoutedEventArgs e) { vm.NotifyStyle(); Canvas.InvalidateVisual(); }
-        private void Objects_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (syncingSelection) return;
-            var ids = ObjectsTable.SelectedItems.OfType<ModelElement>().Select(x => x.Id).ToList();
-            if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != 0) {
-                var visible = new HashSet<string>(vm.VisibleElements.Select(x => x.Id), StringComparer.Ordinal);
-                ids.InsertRange(0, vm.SelectedIds.Where(id => !visible.Contains(id)));
-            }
-            vm.SelectElements(ids);
-        }
-        private void ScheduleSelectionSync()
-        {
-            if (selectionSyncPending) return; selectionSyncPending = true;
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.DataBind, new Action(() => {
-                selectionSyncPending = false; if (closed) return; syncingSelection = true;
-                try {
-                    var visible = new HashSet<string>(vm.VisibleElements.Select(x => x.Id), StringComparer.Ordinal);
-                    var desired = new HashSet<string>(vm.SelectedIds, StringComparer.Ordinal);
-                    if(visible.Count>0&&visible.All(desired.Contains)) { ObjectsTable.SelectAll(); return; }
-                    foreach (var item in ObjectsTable.SelectedItems.OfType<ModelElement>().ToArray()) if (!desired.Contains(item.Id)) ObjectsTable.SelectedItems.Remove(item);
-                    var current = new HashSet<string>(ObjectsTable.SelectedItems.OfType<ModelElement>().Select(x => x.Id), StringComparer.Ordinal);
-                    foreach (var item in vm.SelectedElements) if (visible.Contains(item.Id) && !current.Contains(item.Id)) ObjectsTable.SelectedItems.Add(item);
-                } finally { syncingSelection = false; }
-            }));
-        }
         private void ClearSelection_Click(object sender, RoutedEventArgs e) { Canvas.CancelInteraction(); vm.ClearSelection(); }
         private void RemoveSelection_Click(object sender, RoutedEventArgs e) { StopPlanePicking();vm.RemoveSelectedFromWorkspace(); }
         private void RestoreWorkspace_Click(object sender, RoutedEventArgs e) { Canvas.CancelInteraction();vm.RestoreWorkspace(); }
@@ -117,6 +89,11 @@ namespace QksExcelAddIn.Views
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
             if (Keyboard.FocusedElement is TextBoxBase || Keyboard.FocusedElement is PasswordBox) return;
+            if ((e.Key == Key.PageUp || e.Key == Key.PageDown) && Keyboard.Modifiers == ModifierKeys.None && !vm.Elevation) {
+                if (Keyboard.FocusedElement is ComboBoxItem || Keyboard.FocusedElement is ComboBox list && (list.IsDropDownOpen || list.IsEditable)) return;
+                if (vm.MovePlanLevel(e.Key == Key.PageUp ? 1 : -1)) StopPlanePicking();
+                e.Handled = true; return;
+            }
             if (e.Key == Key.Escape) {
                 if (Keyboard.FocusedElement is ComboBox combo && combo.IsDropDownOpen || Keyboard.FocusedElement is ComboBoxItem) return;
                 StopPlanePicking(); vm.ClearSelection(); vm.Status = "Đã hủy thao tác và bỏ chọn cấu kiện.";
@@ -132,8 +109,6 @@ namespace QksExcelAddIn.Views
             if (ActualWidth <= 0 || ActualHeight <= 0) return;
             int next = WorkspaceSize.PanelMode(ActualWidth);
             if (next != panelMode) { panelMode = next; displayVisible = next == 2; editorVisible = next >= 1; }
-            int nextTable = ActualHeight < 500 ? 0 : ActualHeight < 680 ? 1 : 2;
-            if (nextTable != tableMode) { tableMode = nextTable; TableRow.Height = new GridLength(nextTable == 0 ? 125 : nextTable == 1 ? 175 : 225); }
             ApplyPanels();
         }
         private void ApplyPanels()

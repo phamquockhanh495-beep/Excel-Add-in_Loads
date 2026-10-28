@@ -29,22 +29,67 @@ internal static partial class Program
         Check("selection badge: removal and restore notify bound properties",()=> { var vm=WorkspaceFixture();var events=new HashSet<string>();vm.PropertyChanged+=(_,e)=>events.Add(e.PropertyName);vm.SelectElements(new[]{"Frame:B1"});vm.RemoveSelectedFromWorkspace();Assert(events.Contains(nameof(vm.SelectionSummary))&&events.Contains(nameof(vm.CanRestoreWorkspace))&&vm.SelectionSummary.Contains("1"));events.Clear();vm.RestoreWorkspace();Assert(events.Contains(nameof(vm.SelectionSummary))&&vm.SelectionSummary=="Chưa chọn cấu kiện"); });
 
         var view=new Box2(new Vec2(0,0),new Vec2(300,200));
-        MemberLabelPlacement Place(Segment2 line,Func<MemberLabelPlacement,bool> blocked=null)=>MemberLabelLayout.Place(new[]{line},Array.Empty<Vec2>(),false,60,14,view,blocked);
-        Check("oriented labels: horizontal follows member regardless I/J order",()=> { foreach(var line in new[]{new Segment2(new Vec2(20,100),new Vec2(280,100)),new Segment2(new Vec2(280,100),new Vec2(20,100))}) { var p=Place(line);Near(p.AngleDegrees,0);Near(p.Center.X,150);Assert(!p.Intersects(line)); } });
-        Check("oriented labels: vertical is readable and has a rotated footprint",()=> { foreach(var line in new[]{new Segment2(new Vec2(150,10),new Vec2(150,190)),new Segment2(new Vec2(150,190),new Vec2(150,10))}) { var p=Place(line);Near(p.AngleDegrees,-90);Near(p.Bounds.Right-p.Bounds.Left,14);Near(p.Bounds.Top-p.Bounds.Bottom,60);Assert(!p.Intersects(line)); } });
-        Check("oriented labels: diagonal follows member and reverse retains orientation",()=> { var a=new Vec2(50,40);var b=new Vec2(180,170);Near(Place(new Segment2(a,b)).AngleDegrees,45);Near(Place(new Segment2(b,a)).AngleDegrees,45);Near(Place(new Segment2(new Vec2(50,170),new Vec2(180,40))).AngleDegrees,-45); });
-        Check("oriented labels: angle always stays upright",()=> { for(int i=0;i<360;i++) { double a=i*Math.PI/180;double angle=MemberLabelLayout.ReadableAngle(new Segment2(new Vec2(0,0),new Vec2(Math.Cos(a),Math.Sin(a))));Assert(angle>=-90.00001&&angle<90.00001); } });
-        Check("oriented labels: zoomed beam with both ends offscreen still has visible text",()=> { var p=Place(new Segment2(new Vec2(-2000,100),new Vec2(350,100)));Assert(p!=null&&view.Contains(p.Center));Near(p.Center.X,150);Assert(p.Bounds.Left>=0&&p.Bounds.Right<=300); });
-        Check("oriented labels: font dimensions stay fixed across zoom levels",()=> { foreach(double scale in new[]{.001,1,1000.0}) { var p=Place(new Segment2(new Vec2(150-100*scale,100),new Vec2(150+100*scale,100)));Assert(p!=null);Near(p.Width,60);Near(p.Height,14); } });
-        Check("oriented labels: crowded view always returns a fallback",()=> { var p=Place(new Segment2(new Vec2(20,100),new Vec2(280,100)),_=>true);Assert(p!=null&&view.Contains(p.Center)); });
-        Check("oriented labels: tries another placement before overlapping",()=> { var line=new Segment2(new Vec2(20,100),new Vec2(280,100));var p=Place(line,label=>label.Center.Y<100||label.Intersects(line));Assert(p.Center.Y>100&&!p.Intersects(line)); });
-        Check("oriented labels: dense short beams and collapsed points retain text",()=> { foreach(var line in new[]{new Segment2(new Vec2(150,100),new Vec2(150.01,100)),new Segment2(new Vec2(150,100),new Vec2(150,100))})Assert(Place(line,_=>true)!=null); });
-        Check("oriented labels: wholly offscreen members do not draw floating text",()=> { Assert(Place(new Segment2(new Vec2(-20,-10),new Vec2(-5,-10)))==null); });
-        Check("oriented labels: slab text remains at visible polygon centroid",()=> { var polygon=new[]{new Vec2(20,20),new Vec2(220,20),new Vec2(220,180),new Vec2(20,180)};var p=MemberLabelLayout.Place(Array.Empty<Segment2>(),polygon,true,60,14,view);Near(p.Center.X,120);Near(p.Center.Y,100);Near(p.AngleDegrees,0); });
-        Check("oriented labels: zooming into a slab retains label even when edges and centroid are offscreen",()=> { var polygon=new[]{new Vec2(-2000,-2000),new Vec2(1000,-2000),new Vec2(1000,1000),new Vec2(-2000,1000)};var p=MemberLabelLayout.Place(Array.Empty<Segment2>(),polygon,true,60,14,view);Assert(p!=null);Near(p.Center.X,150);Near(p.Center.Y,100); });
-        Check("oriented labels: clipped slab centroid follows visible portion",()=> { var polygon=new[]{new Vec2(-1000,-1000),new Vec2(100,-1000),new Vec2(100,1000),new Vec2(-1000,1000)};var p=MemberLabelLayout.Place(Array.Empty<Segment2>(),polygon,true,60,14,view);Near(p.Center.X,50);Near(p.Center.Y,100); });
-        Check("oriented labels: crowded tiny viewport still returns text instead of hiding",()=> { var p=MemberLabelLayout.Place(new[]{new Segment2(new Vec2(0,5),new Vec2(10,5))},Array.Empty<Vec2>(),false,300,20,new Box2(new Vec2(0,0),new Vec2(10,10)),_=>true);Assert(p!=null); });
-        Check("oriented labels: true rotated rectangle avoids false line collisions",()=> { var label=new MemberLabelPlacement(new Vec2(100,100),45,100,14);var far=new Segment2(new Vec2(30,70),new Vec2(130,170));Assert(!label.Intersects(far));Assert(label.Intersects(new Segment2(new Vec2(50,50),new Vec2(150,150)))); });
+        MemberLabelPlacement Place(Segment2 line)=>MemberLabelLayout.Place(new[]{line},Array.Empty<Vec2>(),false,60,14,view);
+        Check("anchored labels: horizontal midpoint independent of I/J order",()=> { foreach(var line in new[]{new Segment2(new Vec2(20,100),new Vec2(280,100)),new Segment2(new Vec2(280,100),new Vec2(20,100))}) { var p=Place(line);Near(p.AngleDegrees,0);Near(p.Center.X,150);Near(p.Center.Y,89);Assert(!p.Intersects(line)); } });
+        Check("anchored labels: vertical stays vertical with a rotated footprint",()=> { foreach(var line in new[]{new Segment2(new Vec2(150,10),new Vec2(150,190)),new Segment2(new Vec2(150,190),new Vec2(150,10))}) { var p=Place(line);Near(p.AngleDegrees,-90);Near(p.Bounds.Right-p.Bounds.Left,14);Near(p.Bounds.Top-p.Bounds.Bottom,60);Assert(!p.Intersects(line)); } });
+        Check("anchored labels: diagonal follows member and reverse retains orientation",()=> { var a=new Vec2(50,40);var b=new Vec2(180,170);Near(Place(new Segment2(a,b)).AngleDegrees,45);Near(Place(new Segment2(b,a)).AngleDegrees,45);Near(Place(new Segment2(new Vec2(50,170),new Vec2(180,40))).AngleDegrees,-45); });
+        Check("anchored labels: angle always stays upright",()=> { for(int i=0;i<360;i++) { double a=i*Math.PI/180;double angle=MemberLabelLayout.ReadableAngle(new Segment2(new Vec2(0,0),new Vec2(Math.Cos(a),Math.Sin(a))));Assert(angle>=-90.00001&&angle<90.00001); } });
+        Check("anchored labels: offscreen midpoint is not pulled into view",()=> { Assert(Place(new Segment2(new Vec2(-2000,100),new Vec2(350,100)))==null); });
+        Check("anchored labels: font and offset stay constant over zoom",()=> { foreach(double scale in new[]{.001,1,1000.0}) { var p=Place(new Segment2(new Vec2(150-100*scale,100),new Vec2(150+100*scale,100)));Assert(p!=null);Near(p.Width,60);Near(p.Height,14);Near(p.Center.X,150);Near(p.Center.Y,89); } });
+        Check("anchored labels: pan and zoom follow model anchor without collision relocation",()=> {
+            var largeView=new Box2(new Vec2(-10000,-10000),new Vec2(10000,10000));
+            foreach(double zoom in new[]{.1,1,10.0})foreach(double pan in new[]{-200.0,0,200}) {
+                var line=new Segment2(new Vec2(pan+zoom*10,zoom*30),new Vec2(pan+zoom*50,zoom*30));
+                var p=MemberLabelLayout.Place(new[]{line},Array.Empty<Vec2>(),false,60,14,largeView);
+                Near((p.Center.X-pan)/zoom,30);Near((p.Center.Y+11)/zoom,30);
+            }
+        });
+        Check("anchored labels: extruded beam polygon never makes vertical text horizontal",()=> {
+            var line=new Segment2(new Vec2(150,10),new Vec2(150,190));var polygon=new[]{new Vec2(145,10),new Vec2(155,10),new Vec2(155,190),new Vec2(145,190)};
+            var p=MemberLabelLayout.Place(new[]{line},polygon,false,60,14,view);Near(p.AngleDegrees,-90);Near(p.Center.Y,100);
+        });
+        Check("anchored labels: short beams and collapsed points retain text",()=> { foreach(var line in new[]{new Segment2(new Vec2(150,100),new Vec2(150.01,100)),new Segment2(new Vec2(150,100),new Vec2(150,100))})Assert(Place(line)!=null); });
+        Check("anchored labels: slab text stays at full polygon centroid",()=> { var polygon=new[]{new Vec2(-100,20),new Vec2(220,20),new Vec2(220,180),new Vec2(-100,180)};var p=MemberLabelLayout.Place(Array.Empty<Segment2>(),polygon,true,60,14,view);Near(p.Center.X,60);Near(p.Center.Y,100);Near(p.AngleDegrees,0); });
+        Check("anchored labels: offscreen slab centroid is not replaced by visible centroid",()=> { var polygon=new[]{new Vec2(-2000,-2000),new Vec2(1000,-2000),new Vec2(1000,1000),new Vec2(-2000,1000)};Assert(MemberLabelLayout.Place(Array.Empty<Segment2>(),polygon,true,60,14,view)==null); });
+        Check("anchored labels: partially visible text is clipped at real position",()=> { var p=Place(new Segment2(new Vec2(-50,100),new Vec2(60,100)));Near(p.Center.X,5);Assert(p.Bounds.Left<0); });
+        Check("anchored labels: no geometry means no label",()=> { Assert(MemberLabelLayout.Place(Array.Empty<Segment2>(),Array.Empty<Vec2>(),true,60,14,view)==null); });
+
+        Check("plan navigation: Page Down and Up follow elevation and refresh geometry",()=> {
+            var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(DraftFixture(),true);
+            Assert(vm.Level.Name=="Roof");Assert(vm.MovePlanLevel(-1));Near(vm.Level.Elevation,3);Assert(vm.Scene.Any(e=>e.Source.Id=="Frame:B1")&&!vm.Scene.Any(e=>e.Source.Id=="Frame:B2"));
+            Assert(vm.MovePlanLevel(1));Near(vm.Level.Elevation,6);
+        });
+        Check("plan navigation: ends never wrap and preserve selection",()=> {
+            var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(DraftFixture(),true);vm.SelectElements(new[]{"Frame:B2"});
+            Assert(!vm.MovePlanLevel(1)&&vm.SelectedIds.Count==1);Assert(vm.MovePlanLevel(-1)&&vm.SelectedIds.Count==0);Assert(vm.MovePlanLevel(-1));Assert(!vm.MovePlanLevel(-1));Near(vm.Level.Elevation,0);
+        });
+        Check("plan navigation: Busy, Elevation and disconnected states do not change floor",()=> {
+            var vm=new VisualWorkspaceViewModel();Assert(!vm.MovePlanLevel(1));vm.SetSnapshot(DraftFixture(),true);vm.Busy=true;Assert(!vm.MovePlanLevel(-1));vm.Busy=false;vm.Elevation=true;Assert(!vm.MovePlanLevel(-1));Near(vm.Level.Elevation,6);
+        });
+        Check("plan navigation: unsorted stories and duplicate elevations use physical height",()=> {
+            var f=DraftFixture();var vm=new VisualWorkspaceViewModel();
+            vm.SetSnapshot(new ModelSnapshot(1,f.Source,f.Version,f.Identity,f.SourceUnits,f.CapturedUtc,f.Elements,new[]{new ModelLevel("Top",6),new ModelLevel("Middle",3),new ModelLevel("Duplicate",3),new ModelLevel("Bottom",0)},f.Loads,f.Diagnostics),true);
+            Assert(vm.MovePlanLevel(1));Near(vm.Level.Elevation,3);Assert(vm.MovePlanLevel(1));Near(vm.Level.Elevation,6);Assert(vm.MovePlanLevel(-1));Near(vm.Level.Elevation,3);
+        });
+        Check("plan navigation: one story and zero direction are no-ops",()=> {
+            var f=DraftFixture();var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(new ModelSnapshot(1,f.Source,f.Version,f.Identity,f.SourceUnits,f.CapturedUtc,f.Elements,new[]{new ModelLevel("Only",3)},f.Loads,f.Diagnostics),true);
+            Assert(!vm.MovePlanLevel(1)&&!vm.MovePlanLevel(-1)&&!vm.MovePlanLevel(0));Near(vm.Level.Elevation,3);
+        });
+        Check("inspector: beam identity dimensions coordinates and read load count",()=> {
+            var vm=WorkspaceFixture();vm.SelectElements(new[]{"Frame:B1"});var rows=vm.InspectorRows.ToDictionary(r=>r.Key,r=>r.Value);
+            Assert(vm.InspectorTitle=="B1"&&rows["Unique ID"]=="B1"&&rows["Property"]=="B200x400"&&rows["Chiều dài"]=="6 m"&&rows["Tải đã đọc"]=="1 bản ghi");Assert(vm.InspectorCoordinates.Count==2);
+        });
+        Check("inspector: slab omits irrelevant frame length and local angle",()=> {
+            var vm=WorkspaceFixture();vm.SelectElements(new[]{"Area:S1"});Assert(!vm.InspectorRows.Any(r=>r.Key=="Chiều dài"||r.Key=="Góc local"));Assert(vm.InspectorCoordinates.Count==4);
+        });
+        Check("inspector: empty and multiple selection do not show stale single properties",()=> {
+            var vm=WorkspaceFixture();Assert(vm.InspectorRows.Count==0&&vm.InspectorCoordinates.Count==0);vm.SelectElements(new[]{"Frame:B1","Area:S1"});
+            var rows=vm.InspectorRows.ToDictionary(r=>r.Key,r=>r.Value);Assert(rows["Dầm"]=="1 cấu kiện"&&rows["Sàn"]=="1 cấu kiện"&&rows["Tải đã đọc"]=="2 bản ghi"&&vm.InspectorCoordinates.Count==0);vm.ClearSelection();Assert(vm.InspectorRows.Count==0);
+        });
+        Check("inspector: selection changes notify every displayed property",()=> {
+            var vm=WorkspaceFixture();var events=new HashSet<string>();vm.PropertyChanged+=(_,e)=>events.Add(e.PropertyName);vm.SelectElements(new[]{"Frame:B1"});
+            foreach(string name in new[]{nameof(vm.InspectorTitle),nameof(vm.InspectorSubtitle),nameof(vm.InspectorRows),nameof(vm.InspectorCoordinates),nameof(vm.SingleSelection)})Assert(events.Contains(name));
+        });
 
         Check("auto read: disconnected viewer never starts a read",()=> { var state=new WorkspaceReadLifecycle();state.Request();Assert(!state.Pending&&!state.TryBegin(false,out _)); });
         Check("auto read: current API model automatically queues exactly one read",()=> { var state=new WorkspaceReadLifecycle();var a=new object();Assert(state.Update(a,"1|a.edb")&&state.Pending);Assert(state.TryBegin(false,out long ticket));Assert(state.Accept(ticket,a,"1|a.edb")&&!state.Pending&&!state.TryBegin(false,out _)); });
