@@ -46,6 +46,10 @@ namespace QksExcelAddIn.ViewModels
         public bool ShowLabels { get; set; } = true;
         public bool ShowSections { get; set; }
         public bool ShowUniqueNames { get; set; }
+        public IReadOnlyList<LabelDisplaySetting> LabelSettings { get; } = new[] {
+            new LabelDisplaySetting(ElementKind.Beam, "Dầm"), new LabelDisplaySetting(ElementKind.Slab, "Sàn"),
+            new LabelDisplaySetting(ElementKind.Wall, "Vách"), new LabelDisplaySetting(ElementKind.Brace, "Giằng"),
+            new LabelDisplaySetting(ElementKind.Opening, "Opening"), new LabelDisplaySetting(ElementKind.Other, "Khác") };
         public bool ShowDraftValues { get; set; } = true;
         public bool ColorByProperty { get; set; }
         public Dictionary<string, string> ColorOverrides { get; set; } = new Dictionary<string, string>(StringComparer.Ordinal);

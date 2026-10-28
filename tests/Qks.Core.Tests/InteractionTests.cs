@@ -12,6 +12,7 @@ internal static partial class Program
     }
     private static void InteractionTests()
     {
+        Check("label settings: beam and slab choices are independent",()=>{var vm=new VisualWorkspaceViewModel();vm.SetSnapshot(DraftFixture(),true);var beam=vm.Snapshot.Elements.Single(e=>e.Id=="Frame:B1");var slab=vm.Snapshot.Elements.Single(e=>e.Id=="Area:S1");var a=vm.LabelSettings.Single(s=>s.Kind==ElementKind.Beam);var b=vm.LabelSettings.Single(s=>s.Kind==ElementKind.Slab);a.Label=false;a.UniqueName=true;b.Label=false;b.Section=true;Assert(a.Text(beam)==beam.Name&&b.Text(slab)==slab.Property);a.UniqueName=false;Assert(a.Text(beam)==""&&b.Text(slab)==slab.Property);});
         Check("selection: left window requires full beam; right crossing accepts intersection",()=>{var e=PlanGeometry(new Vec3(0,0,0),new Vec3(10,0,0));var b=new Box2(new Vec2(2,-1),new Vec2(8,1));Assert(!ViewerSelection.InBox(e,b,false)&&ViewerSelection.InBox(e,b,true));});
         Check("selection: full containment and boundary touch accepted",()=>{var e=PlanGeometry(new Vec3(0,0,0),new Vec3(10,0,0));var b=new Box2(new Vec2(0,-1),new Vec2(10,1));Assert(ViewerSelection.InBox(e,b,false));Assert(ViewerSelection.InBox(e,new Box2(new Vec2(10,0),new Vec2(12,2)),true));});
         Check("selection: crossing diagonal with no endpoint inside",()=>{var e=PlanGeometry(new Vec3(-10,-10,0),new Vec3(10,10,0));var b=new Box2(new Vec2(-1,-1),new Vec2(1,1));Assert(ViewerSelection.InBox(e,b,true)&&!ViewerSelection.InBox(e,b,false));});

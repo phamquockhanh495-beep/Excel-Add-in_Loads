@@ -18,6 +18,7 @@ namespace QksExcelAddIn.Views.Controls
         public static readonly DependencyProperty ShowLabelsProperty=Register(nameof(ShowLabels),typeof(bool),true);
         public static readonly DependencyProperty ShowSectionsProperty=Register(nameof(ShowSections),typeof(bool),false);
         public static readonly DependencyProperty ShowUniqueNamesProperty=Register(nameof(ShowUniqueNames),typeof(bool),false);
+        public static readonly DependencyProperty LabelSettingsProperty=Register(nameof(LabelSettings),typeof(IReadOnlyList<LabelDisplaySetting>));
         public static readonly DependencyProperty HasOpeningsProperty=Register(nameof(HasOpenings),typeof(bool),false);
         public static readonly DependencyProperty ColorByPropertyProperty=Register(nameof(ColorByProperty),typeof(bool),false);
         public static readonly DependencyProperty ColorOverridesProperty=Register(nameof(ColorOverrides),typeof(Dictionary<string,string>));
@@ -31,6 +32,7 @@ namespace QksExcelAddIn.Views.Controls
         public bool ShowLabels { get=>(bool)GetValue(ShowLabelsProperty);set=>SetValue(ShowLabelsProperty,value); }
         public bool ShowSections { get=>(bool)GetValue(ShowSectionsProperty);set=>SetValue(ShowSectionsProperty,value); }
         public bool ShowUniqueNames { get=>(bool)GetValue(ShowUniqueNamesProperty);set=>SetValue(ShowUniqueNamesProperty,value); }
+        public IReadOnlyList<LabelDisplaySetting>? LabelSettings { get=>(IReadOnlyList<LabelDisplaySetting>?)GetValue(LabelSettingsProperty);set=>SetValue(LabelSettingsProperty,value); }
         public bool HasOpenings { get=>(bool)GetValue(HasOpeningsProperty);set=>SetValue(HasOpeningsProperty,value); }
         public bool ColorByProperty { get=>(bool)GetValue(ColorByPropertyProperty);set=>SetValue(ColorByPropertyProperty,value); }
         public Dictionary<string,string>? ColorOverrides { get=>(Dictionary<string,string>?)GetValue(ColorOverridesProperty);set=>SetValue(ColorOverridesProperty,value); }
@@ -83,7 +85,8 @@ namespace QksExcelAddIn.Views.Controls
                 foreach(var s in screenLines) { dc.DrawLine(pen,new Point(s.A.X,s.A.Y),new Point(s.B.X,s.B.Y));if(item.Source.Vertices.Count==2) { var clipped=ViewerSelection.Clip(s,viewport);if(clipped.HasValue)lineIndex.Add(clipped.Value); } }
                 labels.Add((item,active?Brushes.DarkOrange:brush,screenLines,screenPolygon));
             }
-            if(ShowLabels||ShowSections||ShowUniqueNames)foreach(var entry in labels.OrderBy(e=>selected.Contains(e.Item.Source.Id)?0:1)) { string value=ElementLabels.Text(entry.Item.Source,ShowLabels,ShowSections,ShowUniqueNames);if(value.Length>0)DrawLabel(dc,entry.Lines,entry.Polygon,entry.Item.Source.Vertices.Count>2,value,entry.Brush,viewport,lineIndex); }
+            var settings=LabelSettings?.ToDictionary(s=>s.Kind);
+            foreach(var entry in labels.OrderBy(e=>selected.Contains(e.Item.Source.Id)?0:1)) { string value=settings!=null&&settings.TryGetValue(entry.Item.Source.Kind,out var setting)?setting.Text(entry.Item.Source):ElementLabels.Text(entry.Item.Source,ShowLabels,ShowSections,ShowUniqueNames);if(value.Length>0)DrawLabel(dc,entry.Lines,entry.Polygon,entry.Item.Source.Vertices.Count>2,value,entry.Brush,viewport,lineIndex); }
             foreach(var overlay in DraftOverlays??Array.Empty<DraftOverlay>()) {
                 var pen=new Pen(Brushes.MediumPurple,3){DashStyle=DashStyles.Dash};foreach(var s in overlay.Geometry.Segments) { if(selected.Contains(overlay.ElementId))dc.DrawLine(new Pen(Brushes.DarkOrange,6),Screen(s.A),Screen(s.B));dc.DrawLine(pen,Screen(s.A),Screen(s.B)); }
                 if(ShowDraftValues)DrawLabel(dc,overlay.Geometry.Segments.Select(s=>new Segment2(V(Screen(s.A)),V(Screen(s.B)))).ToArray(),overlay.Geometry.Polygon.Select(p=>V(Screen(p))).ToArray(),overlay.Geometry.Source.Vertices.Count>2,overlay.Text,pen.Brush,viewport,lineIndex);

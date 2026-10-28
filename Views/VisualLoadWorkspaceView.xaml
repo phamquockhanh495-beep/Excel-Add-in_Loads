@@ -74,9 +74,14 @@
                 <TextBlock Text="LỚP &amp; HIỂN THỊ" FontWeight="SemiBold"/>
                 <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}"/>
                 <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tìm ID, label, story hoặc property"/>
-                <CheckBox Content="Label cấu kiện" IsChecked="{Binding ShowLabels}" Click="Style_Click" ToolTip="Hiện nhãn cấu kiện trong vùng nhìn; dầm xoay chữ theo hướng trục, giữ cỡ chữ khi zoom."/>
-                <CheckBox Content="Section / Property" IsChecked="{Binding ShowSections}" Click="Style_Click"/>
-                <CheckBox Content="UniqueName" IsChecked="{Binding ShowUniqueNames}" Click="Style_Click"/>
+                <TextBlock Text="NHÃN THEO CẤU KIỆN" FontWeight="SemiBold" Margin="0,8,0,3"/>
+                <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding LabelSettings}"><ItemsControl.ItemTemplate><DataTemplate>
+                    <StackPanel Margin="0,3"><TextBlock Text="{Binding Caption}" FontWeight="SemiBold"/><WrapPanel>
+                        <CheckBox Content="Label" IsChecked="{Binding Label}" Click="Style_Click" Margin="0,2,8,2"/>
+                        <CheckBox Content="UniqueName" IsChecked="{Binding UniqueName}" Click="Style_Click" Margin="0,2,8,2"/>
+                        <CheckBox Content="Section / Property" IsChecked="{Binding Section}" Click="Style_Click" Margin="0,2"/>
+                    </WrapPanel></StackPanel>
+                </DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
                 <CheckBox Content="Màu theo property" IsChecked="{Binding ColorByProperty}" Click="Style_Click"/>
                 <TextBlock Text="Dầm: xanh · Sàn: teal · Vách: tím · Chọn: cam" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
                     </StackPanel></Border></Popup>
@@ -85,7 +90,7 @@
                     <Button Content="Khôi phục" Click="RestoreWorkspace_Click" IsEnabled="{Binding CanRestoreWorkspace}" ToolTip="Hiện lại toàn bộ cấu kiện đã bỏ khỏi workspace."/>
                     <TextBlock Text="{Binding Counts}" Margin="6,7,0,3" MaxWidth="240" TextTrimming="CharacterEllipsis" ToolTip="{Binding Counts}"/>
                 </WrapPanel>
-                <Border Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"><viewer:StructuralCanvas x:Name="Canvas" Items="{Binding Scene}" SelectedId="{Binding SelectedId}" SelectedIds="{Binding SelectedIds}" ShowLabels="{Binding ShowLabels}" ShowSections="{Binding ShowSections}" ShowUniqueNames="{Binding ShowUniqueNames}" Elevation="{Binding Elevation}" Levels="{Binding Levels}" HasOpenings="{Binding HasOpenings}" ColorByProperty="{Binding ColorByProperty}" ColorOverrides="{Binding ColorOverrides}"/></Border>
+                <Border Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"><viewer:StructuralCanvas x:Name="Canvas" Items="{Binding Scene}" SelectedId="{Binding SelectedId}" SelectedIds="{Binding SelectedIds}" LabelSettings="{Binding LabelSettings}" Elevation="{Binding Elevation}" Levels="{Binding Levels}" HasOpenings="{Binding HasOpenings}" ColorByProperty="{Binding ColorByProperty}" ColorOverrides="{Binding ColorOverrides}"/></Border>
                 <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"/>
                 <TabControl x:Name="WorkspaceTabs" Grid.Row="3">
                     <TabItem Header="Đối tượng nguồn"><DataGrid x:Name="ObjectsTable" ItemsSource="{Binding VisibleElements}" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="Objects_SelectionChanged"><DataGrid.Columns>
