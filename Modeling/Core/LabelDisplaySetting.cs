@@ -1,10 +1,13 @@
+#nullable enable
 namespace QksExcelAddIn.Modeling.Core
 {
-    public sealed class LabelDisplaySetting
+    public sealed class LabelDisplaySetting : System.ComponentModel.INotifyPropertyChanged
     {
         public ElementKind Kind { get; }
         public string Caption { get; }
-        public bool Visible { get; set; } = true;
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        private bool visible=true;
+        public bool Visible { get=>visible;set { if(visible==value)return;visible=value;PropertyChanged?.Invoke(this,new System.ComponentModel.PropertyChangedEventArgs(nameof(Visible))); } }
         public bool Extrude { get; set; } = true;
         public bool Label { get; set; } = true;
         public bool UniqueName { get; set; }

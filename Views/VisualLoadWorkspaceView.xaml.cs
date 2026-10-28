@@ -35,6 +35,7 @@ namespace QksExcelAddIn.Views
             StateChanged += (_, __) => MaximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
             Canvas.SelectionRequested += (ids, change) => vm.SelectElements(ids, change);
             Canvas.PlanePointPicked += PlanePointPicked;
+            Canvas.ViewContextRequested += OpenViewContextMenu;
             vm.PropertyChanged += (_, e) => {
                 if (e.PropertyName == nameof(vm.Elevation) && vm.Elevation && Canvas.PickingPlanePoints) StopPlanePicking();
                 if (e.PropertyName == nameof(vm.Busy) && !vm.Busy) ScheduleConnectedRead();
@@ -94,6 +95,13 @@ namespace QksExcelAddIn.Views
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
             if (Keyboard.FocusedElement is TextBoxBase || Keyboard.FocusedElement is PasswordBox) return;
+            var key=e.Key==Key.System?e.SystemKey:e.Key;
+            if(Keyboard.Modifiers==ModifierKeys.Alt&&key==Key.S){OpenDisplaySettings();e.Handled=true;return;}
+            if(Canvas.IsKeyboardFocusWithin&&Keyboard.Modifiers==ModifierKeys.Control) {
+                if(key==Key.I){StopPlanePicking();vm.IsolateSelection();e.Handled=true;return;}
+                if(key==Key.H){StopPlanePicking();vm.RemoveSelectedFromWorkspace();e.Handled=true;return;}
+                if(key==Key.A){StopPlanePicking();vm.ShowAllObjects();e.Handled=true;return;}
+            }
             if ((e.Key == Key.PageUp || e.Key == Key.PageDown) && Keyboard.Modifiers == ModifierKeys.None && !vm.Elevation) {
                 if (Keyboard.FocusedElement is ComboBoxItem || Keyboard.FocusedElement is ComboBox list && (list.IsDropDownOpen || list.IsEditable)) return;
                 if (vm.MovePlanLevel(e.Key == Key.PageUp ? 1 : -1)) StopPlanePicking();

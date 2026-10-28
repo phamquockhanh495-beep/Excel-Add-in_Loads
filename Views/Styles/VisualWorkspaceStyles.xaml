@@ -5,6 +5,22 @@
         <!-- Use the same QKS Material Design resources as WallLoadView / ShellLoadView. -->
         <ResourceDictionary Source="pack://application:,,,/QksExcelAddIn;component/MaterialDesignResources.xaml"/>
     </ResourceDictionary.MergedDictionaries>
+    <Style x:Key="WorkspaceContextItem" TargetType="MenuItem">
+        <Setter Property="Foreground" Value="#F1F5F9"/><Setter Property="Background" Value="Transparent"/>
+        <Setter Property="FontWeight" Value="Normal"/><Setter Property="Padding" Value="10,12"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="MenuItem">
+            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="3">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="{TemplateBinding InputGestureText}" Foreground="{TemplateBinding Foreground}" Opacity="0.65" Margin="20,0,0,0" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsHighlighted" Value="True"><Setter Property="Background" Value="#1E3A5F"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="#64748B"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <BooleanToVisibilityConverter x:Key="BoolVisible"/>
     <Style TargetType="TextBlock"><Setter Property="FontWeight" Value="Normal"/></Style>
 

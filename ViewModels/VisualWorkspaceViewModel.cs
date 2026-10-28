@@ -76,7 +76,7 @@ namespace QksExcelAddIn.ViewModels
         public void SetSnapshot(ModelSnapshot? snapshot, bool offline)
         {
             snapshot?.Validate(); LoadSections(Array.Empty<SavedSection>()); CutStart=null; CutEnd=null; Changed(nameof(CutStart)); Changed(nameof(CutEnd)); Snapshot = snapshot; Offline = offline; applyNeedsRead = false;
-            workspaceRemovedIds.Clear();NotifyWorkspaceVisibility();
+            workspaceRemovedIds.Clear();isolatedIds=null;NotifyWorkspaceVisibility();
             DisplayElements = snapshot?.Elements.ToArray() ?? Array.Empty<ModelElement>();
             displayIds = new HashSet<string>(DisplayElements.Select(e => e.Id), StringComparer.Ordinal);
             displayById=DisplayElements.ToDictionary(e=>e.Id,StringComparer.Ordinal);
@@ -100,7 +100,7 @@ namespace QksExcelAddIn.ViewModels
                 var plane = CurrentPlane();
                 var scene = new List<ProjectedElement>();
                 foreach (var element in DisplayElements) {
-                    if (workspaceRemovedIds.Contains(element.Id)) continue;
+                    if (workspaceRemovedIds.Contains(element.Id)||isolatedIds!=null&&!isolatedIds.Contains(element.Id)) continue;
                     var settings = LabelSettings.FirstOrDefault(s => s.Kind == element.Kind);
                     if (settings?.Visible == false) continue;
                     if (Kind != "Tất cả" && element.Kind.ToString() != Kind) continue;

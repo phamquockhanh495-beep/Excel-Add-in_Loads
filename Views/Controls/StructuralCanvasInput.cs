@@ -8,6 +8,9 @@ namespace QksExcelAddIn.Views.Controls
 {
     public sealed partial class StructuralCanvas
     {
+        public event Action? ViewContextRequested;
+        private Point? rightStart;
+        private bool rightDragged;
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
             var p=e.GetPosition(this);double next=Math.Max(.0001,Math.Min(100000,scale*(e.Delta>0?1.2:1/1.2))),ratio=next/scale;
@@ -16,7 +19,7 @@ namespace QksExcelAddIn.Views.Controls
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             Focus();var p=e.GetPosition(this);
-            if(e.ChangedButton==MouseButton.Middle||e.ChangedButton==MouseButton.Right) { CancelInteraction();pan=p;CaptureMouse();Cursor=Cursors.Hand; }
+            if(e.ChangedButton==MouseButton.Middle||e.ChangedButton==MouseButton.Right) { CancelInteraction();pan=p;if(e.ChangedButton==MouseButton.Right){rightStart=p;rightDragged=false;}CaptureMouse();Cursor=Cursors.Hand; }
             else if(e.ChangedButton==MouseButton.Left) {
                 if(PickingPlanePoints) { snap=ModelSnap.Find(Items??Array.Empty<ProjectedElement>(),World(p),8/scale);cursorPlanePoint=snap?.Point??World(p);PlanePointPicked?.Invoke(cursorPlanePoint.Value); }
                 else { selectionStart=p;selectionEnd=p;dragged=false;addSelection=(Keyboard.Modifiers&ModifierKeys.Control)!=0;CaptureMouse(); }
@@ -26,13 +29,16 @@ namespace QksExcelAddIn.Views.Controls
         protected override void OnMouseMove(MouseEventArgs e)
         {
             var p=e.GetPosition(this);
+            if(rightStart.HasValue&&(p-rightStart.Value).Length>4)rightDragged=true;
             if(pan.HasValue) { ox+=p.X-pan.Value.X;oy+=p.Y-pan.Value.Y;pan=p;InvalidateVisual(); }
             else if(selectionStart.HasValue&&IsMouseCaptured) { selectionEnd=p;if((p-selectionStart.Value).Length>4)dragged=true;InvalidateVisual(); }
             else if(PickingPlanePoints) { snap=ModelSnap.Find(Items??Array.Empty<ProjectedElement>(),World(p),8/scale);cursorPlanePoint=snap?.Point??World(p);InvalidateVisual(); }
         }
         protected override void OnMouseUp(MouseButtonEventArgs e)
         {
+            bool openContext=e.ChangedButton==MouseButton.Right&&rightStart.HasValue&&!rightDragged;
             var start=selectionStart;var end=e.GetPosition(this);bool box=dragged,add=addSelection;CancelInteraction();
+            if(openContext){ViewContextRequested?.Invoke();e.Handled=true;return;}
             if(e.ChangedButton!=MouseButton.Left||!start.HasValue)return;var items=Items??Array.Empty<ProjectedElement>();
             if(box) {
                 var rect=new Box2(World(start.Value),World(end));bool crossing=end.X<start.Value.X;
@@ -45,7 +51,7 @@ namespace QksExcelAddIn.Views.Controls
             }
             e.Handled=true;
         }
-        public void CancelInteraction() { pan=null;selectionStart=null;selectionEnd=null;dragged=false;snap=null;cursorPlanePoint=null;if(IsMouseCaptured)ReleaseMouseCapture();Cursor=PickingPlanePoints?Cursors.Cross:Cursors.Arrow;InvalidateVisual(); }
-        protected override void OnLostMouseCapture(MouseEventArgs e) { pan=null;selectionStart=null;selectionEnd=null;dragged=false;Cursor=PickingPlanePoints?Cursors.Cross:Cursors.Arrow;InvalidateVisual(); }
+        public void CancelInteraction() { rightStart=null;rightDragged=false;pan=null;selectionStart=null;selectionEnd=null;dragged=false;snap=null;cursorPlanePoint=null;if(IsMouseCaptured)ReleaseMouseCapture();Cursor=PickingPlanePoints?Cursors.Cross:Cursors.Arrow;InvalidateVisual(); }
+        protected override void OnLostMouseCapture(MouseEventArgs e) { rightStart=null;rightDragged=false;pan=null;selectionStart=null;selectionEnd=null;dragged=false;Cursor=PickingPlanePoints?Cursors.Cross:Cursors.Arrow;InvalidateVisual(); }
     }
 }

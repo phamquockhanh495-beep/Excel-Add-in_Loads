@@ -114,6 +114,7 @@
                             <TextBlock Text="Dầm/sàn: cote mô hình là đỉnh, chiều dày xuống dưới. Cột/vách luôn có đường bao; Extrude bật/tắt tô màu. Tiết diện chưa hỗ trợ hoặc thiếu dữ liệu giữ đường trục/biên." TextWrapping="Wrap" Foreground="#64748B" Margin="0,6,0,0"/>
                         </StackPanel></ScrollViewer></Border>
                     </Popup>
+                    <Button Content="Select" Click="SelectAttributes_Click" IsEnabled="{Binding CanShowAll}" ToolTip="Chọn theo Section, UniqueName, Label"/>
                     <Button Content="Vừa khung" Click="Fit_Click"/>
                     <Button Content="Delete" Click="RemoveSelection_Click" IsEnabled="{Binding CanRemoveFromWorkspace}" ToolTip="Bỏ cấu kiện đang chọn khỏi workspace 2D. Không xóa trong ETABS."/>
                     <Button Content="Khôi phục" Click="RestoreWorkspace_Click" IsEnabled="{Binding CanRestoreWorkspace}" ToolTip="Hiện lại toàn bộ cấu kiện đã bỏ khỏi workspace."/>

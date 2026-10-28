@@ -16,13 +16,13 @@ namespace QksExcelAddIn.ViewModels
         private readonly HashSet<string> workspaceRemovedIds=new HashSet<string>(StringComparer.Ordinal);
         public int RemovedFromWorkspaceCount=>workspaceRemovedIds.Count;
         public bool CanRemoveFromWorkspace=>!Busy&&SelectedIds.Count>0;
-        public bool CanRestoreWorkspace=>!Busy&&workspaceRemovedIds.Count>0;
+        public bool CanRestoreWorkspace=>!Busy&&(workspaceRemovedIds.Count>0||IsIsolated);
         public string SelectionSummary=>SelectedElements.Count==0?"Chưa chọn cấu kiện"+(workspaceRemovedIds.Count>0?" · Đã bỏ khỏi view: "+workspaceRemovedIds.Count:""):
             SelectedElements.Count==1?"Đang chọn: "+SelectedElement!.Name+" · Label: "+SelectedElement.Label+" · "+SelectedElement.Story+" · "+SelectedElement.Kind+" · "+SelectedElement.Property:
             "Đang chọn "+SelectedElements.Count+" cấu kiện · "+string.Join("; ",SelectedElements.GroupBy(e=>e.Kind).Select(g=>g.Key+": "+g.Count()));
         public void SelectElements(IEnumerable<string> ids,SelectionChange change=SelectionChange.Replace)
         {
-            var next=ViewerSelection.Change(SelectedIds,ids.Where(id=>displayById.ContainsKey(id)&&!workspaceRemovedIds.Contains(id)),change);
+            var next=ViewerSelection.Change(SelectedIds,ids.Where(id=>displayById.ContainsKey(id)&&!workspaceRemovedIds.Contains(id)&&(isolatedIds==null||isolatedIds.Contains(id))),change);
             if(next.SequenceEqual(SelectedIds,StringComparer.Ordinal))return;
             SelectedIds=Array.AsReadOnly(next);selectedIdSet=new HashSet<string>(next,StringComparer.Ordinal);SelectedElements=Array.AsReadOnly(next.Select(id=>displayById[id]).ToArray());selected=SelectedElements.LastOrDefault();
             foreach(string name in new[]{nameof(SelectedIds),nameof(SelectedElements),nameof(SingleSelection),nameof(SelectedElement),nameof(SelectedId),nameof(VisibleLoads),nameof(PropertyKey),nameof(Inspector),nameof(InspectorTitle),nameof(InspectorSubtitle),nameof(InspectorRows),nameof(InspectorCoordinates),nameof(Counts)})Changed(name);
@@ -42,12 +42,12 @@ namespace QksExcelAddIn.ViewModels
         public void RestoreWorkspace()
         {
             if(!CanRestoreWorkspace)return;
-            int count=workspaceRemovedIds.Count;workspaceRemovedIds.Clear();NotifyWorkspaceVisibility();Refresh();
+            int count=workspaceRemovedIds.Count;workspaceRemovedIds.Clear();isolatedIds=null;NotifyWorkspaceVisibility();Refresh();
             Status="Đã khôi phục "+count+" cấu kiện trong workspace 2D.";
         }
         private void NotifyWorkspaceVisibility()
         {
-            foreach(string name in new[]{nameof(RemovedFromWorkspaceCount),nameof(CanRemoveFromWorkspace),nameof(CanRestoreWorkspace),nameof(SelectionSummary),nameof(VisibleLoads),nameof(ComparisonRows)})Changed(name);
+            foreach(string name in new[]{nameof(IsIsolated),nameof(CanShowAll),nameof(RemovedFromWorkspaceCount),nameof(CanRemoveFromWorkspace),nameof(CanRestoreWorkspace),nameof(SelectionSummary),nameof(VisibleLoads),nameof(ComparisonRows)})Changed(name);
         }
     }
 }
