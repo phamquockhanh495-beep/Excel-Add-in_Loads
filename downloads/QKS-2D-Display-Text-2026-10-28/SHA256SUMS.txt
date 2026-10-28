@@ -1,0 +1,2 @@
+5b195fe7e339157b251e83e7b301cf5404cf4bad80477ac46da7cb32e65b44ce  QKS-2D-Display-Text-2026-10-28.zip
+287d4ff63676ebde9acb48e9599f249bda9d2d728443ac7b11214b30db044949  Excel/QksExcelAddIn-AddIn64-packed.xll
