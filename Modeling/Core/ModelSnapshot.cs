@@ -25,7 +25,7 @@ namespace QksExcelAddIn.Modeling.Core
     {
         public static bool Finite(double v) => !double.IsNaN(v) && !double.IsInfinity(v);
     }
-    public enum ElementKind { Beam, Column, Brace, Slab, Wall, Opening, Other }
+    public enum ElementKind { Beam, Column, Brace, Slab, Wall, Opening, Other, Joint }
     public sealed class ModelElement
     {
         public string Id { get; }
@@ -67,11 +67,13 @@ namespace QksExcelAddIn.Modeling.Core
         public double Value1 { get; }
         public double Value2 { get; }
         public string Unit { get; }
+        [Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
+        public int Step { get; }
         public ExistingLoad(string elementId, string pattern, string kind, string coordinateSystem, int direction,
-            double start, double end, double value1, double value2, string unit)
+            double start, double end, double value1, double value2, string unit, int step = 0)
         {
             ElementId = elementId; Pattern = pattern; Kind = kind; CoordinateSystem = coordinateSystem;
-            Direction = direction; Start = start; End = end; Value1 = value1; Value2 = value2; Unit = unit;
+            Direction = direction; Start = start; End = end; Value1 = value1; Value2 = value2; Unit = unit; Step = step;
         }
     }
     public sealed class ModelSnapshot
@@ -105,7 +107,7 @@ namespace QksExcelAddIn.Modeling.Core
             if (SchemaVersion != 1 || string.IsNullOrWhiteSpace(Identity)) throw new ArgumentException("Snapshot version/identity không hợp lệ.");
             var ids = new HashSet<string>(StringComparer.Ordinal);
             foreach (var e in Elements)
-                if (string.IsNullOrWhiteSpace(e.Id) || !ids.Add(e.Id) || e.Vertices.Count < 2 ||
+                if (string.IsNullOrWhiteSpace(e.Id) || !ids.Add(e.Id) || (e.Kind == ElementKind.Joint ? e.Vertices.Count != 1 : e.Vertices.Count < 2) ||
                     e.Vertices.Any(p => !p.IsFinite) || e.LocalAxisDegrees.HasValue && !Number.Finite(e.LocalAxisDegrees.Value) || !Enum.IsDefined(typeof(ElementKind), e.Kind))
                     throw new ArgumentException("Đối tượng snapshot không hợp lệ: " + e.Id);
             if (Levels.Any(l => !Number.Finite(l.Elevation))) throw new ArgumentException("Cao độ không hợp lệ.");
@@ -119,6 +121,7 @@ namespace QksExcelAddIn.Modeling.Core
     {
         public double LengthToMetres { get; }
         public double ForceToKn { get; }
+        public double PointFactor(bool moment) => ForceToKn * (moment ? LengthToMetres : 1);
         public double LineForce => ForceToKn / LengthToMetres;
         public double Pressure => ForceToKn / (LengthToMetres * LengthToMetres);
         public double DistributedFactor(int apiType)

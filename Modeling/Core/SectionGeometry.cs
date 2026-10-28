@@ -23,8 +23,12 @@ namespace QksExcelAddIn.Modeling.Core
 
     public static class SectionExtrusion
     {
-        // Solids are centred on the analysis axis/reference surface. Physical insertion/end offsets are not applied.
+        // Viewer convention: beams and horizontal slabs have their top at the analytical elevation. Columns/walls stay centred.
         public static ProjectedElement? Build(ModelElement element, ViewPlane plane)
+        {
+            return SectionRange.Clip(BuildCore(element,plane.WithoutRange()),plane);
+        }
+        private static ProjectedElement? BuildCore(ModelElement element, ViewPlane plane)
         {
             var original = Projection.Build(element, plane);
             var section = element.Section;
@@ -45,6 +49,7 @@ namespace QksExcelAddIn.Modeling.Core
                 var offsets = section.Shape == "Circle"
                     ? Enumerable.Range(0, 48).Select(i => rotatedTwo * (section.Depth / 2 * Math.Cos(i * Math.PI / 24)) + rotatedThree * (section.Depth / 2 * Math.Sin(i * Math.PI / 24))).ToArray()
                     : new[] { rotatedTwo * (-section.Depth / 2) + rotatedThree * (-section.Width / 2), rotatedTwo * (section.Depth / 2) + rotatedThree * (-section.Width / 2), rotatedTwo * (section.Depth / 2) + rotatedThree * (section.Width / 2), rotatedTwo * (-section.Depth / 2) + rotatedThree * (section.Width / 2) };
+                if (element.Kind == ElementKind.Beam) { double top = offsets.Max(o=>o.Z); offsets=offsets.Select(o=>o-new Vec3(0,0,top)).ToArray(); }
                 var pts = new List<Vec2>();
                 void Edge(Vec3 a, Vec3 b) { if (Projection.Clip(ref a, ref b, plane)) { pts.Add(plane.Project(a)); pts.Add(plane.Project(b)); } }
                 for (int i = 0; i < offsets.Length; i++) {
@@ -54,6 +59,26 @@ namespace QksExcelAddIn.Modeling.Core
                 }
                 var hull = Hull(pts);
                 return hull.Length < 3 ? original : Solid(element, hull, original);
+            }
+            // Vertical convex walls: project the actual thick prism, including oblique cuts.
+            if(section.Shape=="Shell" && element.Kind==ElementKind.Wall && element.Vertices.Count>=3) {
+                var vertices=element.Vertices;var normal=new Vec3(0,0,0);
+                for(int i=1;i+1<vertices.Count&&normal.Length<1e-9;i++)normal=(vertices[i]-vertices[0]).Cross(vertices[i+1]-vertices[0]);
+                if(normal.Length>1e-9) {
+                    normal=normal*(1/normal.Length);double sign=0;bool convex=true;
+                    for(int i=0;i<vertices.Count;i++) {
+                        var a=vertices[i];var b=vertices[(i+1)%vertices.Count];var c=vertices[(i+2)%vertices.Count];double turn=(b-a).Cross(c-b).Dot(normal);
+                        if(Math.Abs(turn)>1e-9) { if(sign!=0&&Math.Sign(turn)!=Math.Sign(sign))convex=false;sign=turn; }
+                    }
+                    if(convex&&Math.Abs(normal.Z)<1e-8&&vertices.All(p=>Math.Abs((p-vertices[0]).Dot(normal))<1e-7)) {
+                        var points=new List<Vec2>();var offset=normal*(section.Depth/2);
+                        void Edge(Vec3 a,Vec3 b) { if(Projection.Clip(ref a,ref b,plane)) { points.Add(plane.Project(a));points.Add(plane.Project(b)); } }
+                        for(int i=0;i<vertices.Count;i++) {
+                            var a=vertices[i];var b=vertices[(i+1)%vertices.Count];Edge(a-offset,b-offset);Edge(a+offset,b+offset);Edge(a-offset,a+offset);
+                        }
+                        var hull=Hull(points);return hull.Length<3?original:Solid(element,hull,original);
+                    }
+                }
             }
             if (section.Shape == "Shell" && element.Kind != ElementKind.Opening && original != null) {
                 // Face-on shells retain their original concave outline. Edge-on shells reveal thickness.
@@ -66,9 +91,10 @@ namespace QksExcelAddIn.Modeling.Core
                 if (facing > .999999) return original;
                 if (facing > .000001) return original; // Inclined shell: keep analytical outline, not a misleading convex fill.
                 var delta = new Vec2(normal.Dot(plane.U) * section.Depth / 2, normal.Dot(plane.V) * section.Depth / 2);
+                var shift = element.Kind==ElementKind.Slab && Math.Abs(normal.Z)>.999999 ? new Vec2(0,-section.Depth/2*plane.V.Z) : new Vec2(0,0);
                 var faces = original.Segments.Where(s => Length(s) > 1e-9).Select(s => new[] {
-                    new Vec2(s.A.X-delta.X,s.A.Y-delta.Y), new Vec2(s.B.X-delta.X,s.B.Y-delta.Y),
-                    new Vec2(s.B.X+delta.X,s.B.Y+delta.Y), new Vec2(s.A.X+delta.X,s.A.Y+delta.Y) }).ToArray();
+                    new Vec2(s.A.X-delta.X+shift.X,s.A.Y-delta.Y+shift.Y), new Vec2(s.B.X-delta.X+shift.X,s.B.Y-delta.Y+shift.Y),
+                    new Vec2(s.B.X+delta.X+shift.X,s.B.Y+delta.Y+shift.Y), new Vec2(s.A.X+delta.X+shift.X,s.A.Y+delta.Y+shift.Y) }).ToArray();
                 if (faces.Length == 0) return original;
                 return new ProjectedElement(element, faces.SelectMany(Edges).ToList(), Array.Empty<Vec2>(), original.IsCut, faces, original.Segments);
             }

@@ -30,7 +30,7 @@ internal static partial class Program
             var item=SectionExtrusion.Build(Member(new Vec3(0,0,0),new Vec3(4,0,4)),ViewPlane.Plan(2,.1));
             Assert(item!=null&&item.IsCut&&item.Polygon.Count>=4&&Width(item)<2);Near(Height(item),.3);
         });
-        Check("extrude: solid intersects band even if axis is outside",()=>{var item=SectionExtrusion.Build(beam,ViewPlane.Plan(3.25,.05));Assert(item!=null&&item.Faces.Count==1&&item.AxisSegments.Count==0);Assert(SectionExtrusion.Build(beam,ViewPlane.Plan(5,.05))==null);});
+        Check("extrude: solid intersects band even if axis is outside",()=>{var item=SectionExtrusion.Build(beam,ViewPlane.Plan(2.75,.05));Assert(item!=null&&item.Faces.Count==1&&item.AxisSegments.Count==0);Assert(SectionExtrusion.Build(beam,ViewPlane.Plan(5,.05))==null);});
         Check("extrude: missing section and advanced axes preserve analytical geometry",()=>{
             var plain=new ModelElement("f","f","","","B300x600",ElementKind.Beam,beam.Vertices,0);
             Assert(SectionExtrusion.Build(plain,ViewPlane.Plan(3,.15)).Faces.Count==0);

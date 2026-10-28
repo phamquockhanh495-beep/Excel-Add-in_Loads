@@ -18,6 +18,8 @@ namespace QksExcelAddIn.Modeling.Core
         public Vec3 V { get; }
         public Vec3 Normal { get; }
         public double HalfDepth { get; }
+        public double? MinU { get; private set; }
+        public double? MaxU { get; private set; }
         private ViewPlane(Vec3 origin, Vec3 u, Vec3 v, double halfDepth)
         {
             if (!origin.IsFinite || !Number.Finite(halfDepth) || halfDepth < .000001) throw new ArgumentException("Dải xem phải lớn hơn 0.");
@@ -30,12 +32,15 @@ namespace QksExcelAddIn.Modeling.Core
             double a = angleDegrees * Math.PI / 180, sign = reverse ? -1 : 1;
             return new ViewPlane(new Vec3(x, y, 0), new Vec3(sign * Math.Cos(a), sign * Math.Sin(a), 0), new Vec3(0, 0, 1), halfDepth);
         }
-        public static ViewPlane ElevationThrough(Vec2 first, Vec2 second, double halfDepth)
+        public static ViewPlane ElevationThrough(Vec2 first, Vec2 second, double halfDepth, bool reverse = false)
         {
             double dx = second.X - first.X, dy = second.Y - first.Y;
             if (!Number.Finite(dx) || !Number.Finite(dy) || dx * dx + dy * dy < 1e-12) throw new ArgumentException("Hai điểm mặt đứng phải khác nhau và hữu hạn.");
-            return Elevation(first.X, first.Y, Math.Atan2(dy, dx) * 180 / Math.PI, halfDepth);
+            var plane = Elevation(first.X, first.Y, Math.Atan2(dy, dx) * 180 / Math.PI, halfDepth, reverse);
+            double length = Math.Sqrt(dx*dx+dy*dy);
+            plane.MinU = reverse ? -length : 0; plane.MaxU = reverse ? 0 : length; return plane;
         }
+        internal ViewPlane WithoutRange() => MinU.HasValue ? new ViewPlane(Origin,U,V,HalfDepth) : this;
         public Vec2 Project(Vec3 p) { var d = p - Origin; return new Vec2(d.Dot(U), d.Dot(V)); }
         public double Depth(Vec3 p) => (p - Origin).Dot(Normal);
         public Vec3 Unproject(Vec2 p) => Origin + U * p.X + V * p.Y;
@@ -64,6 +69,7 @@ namespace QksExcelAddIn.Modeling.Core
         {
             var pts = element.Vertices;
             var segments = new List<Segment2>();
+            if (pts.Count == 1) { if (Math.Abs(plane.Depth(pts[0])) > plane.HalfDepth) return null; var p=plane.Project(pts[0]);return SectionRange.Clip(new ProjectedElement(element,new List<Segment2>{new Segment2(p,p)},Array.Empty<Vec2>(),false),plane); }
             int edges = pts.Count == 2 ? 1 : pts.Count;
             for (int i = 0; i < edges; i++)
             {
@@ -88,7 +94,7 @@ namespace QksExcelAddIn.Modeling.Core
                 }
             }
             if (segments.Count == 0) return null;
-            return new ProjectedElement(element, segments, inside && pts.Count > 2 ? pts.Select(plane.Project).ToArray() : Array.Empty<Vec2>(), !inside);
+            return SectionRange.Clip(new ProjectedElement(element, segments, inside && pts.Count > 2 ? pts.Select(plane.Project).ToArray() : Array.Empty<Vec2>(), !inside),plane);
         }
         internal static bool Clip(ref Vec3 a, ref Vec3 b, ViewPlane plane)
         {

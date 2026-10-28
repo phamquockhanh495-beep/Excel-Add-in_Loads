@@ -36,6 +36,8 @@ namespace QksExcelAddIn.ViewModels
         public bool Elevation { get => elevation; set { elevation = value; Changed(); Refresh(); } }
         private bool reverse;
         public bool Reverse { get => reverse; set { reverse = value; Changed(); Refresh(); } }
+        public Vec2? CutStart { get; private set; }
+        public Vec2? CutEnd { get; private set; }
         public string OriginX { get; set; } = "0";
         public string OriginY { get; set; } = "0";
         public string Angle { get; set; } = "0";
@@ -49,7 +51,7 @@ namespace QksExcelAddIn.ViewModels
         public IReadOnlyList<LabelDisplaySetting> LabelSettings { get; } = new[] {
             new LabelDisplaySetting(ElementKind.Beam, "Dầm"), new LabelDisplaySetting(ElementKind.Column, "Cột"), new LabelDisplaySetting(ElementKind.Slab, "Sàn"),
             new LabelDisplaySetting(ElementKind.Wall, "Vách"), new LabelDisplaySetting(ElementKind.Brace, "Giằng"),
-            new LabelDisplaySetting(ElementKind.Opening, "Opening"), new LabelDisplaySetting(ElementKind.Other, "Khác") };
+            new LabelDisplaySetting(ElementKind.Opening, "Opening"), new LabelDisplaySetting(ElementKind.Other, "Khác"), new LabelDisplaySetting(ElementKind.Joint, "Nút") { Label=false } };
         private bool extrude = true;
         public bool Extrude { get => extrude; set { extrude=value;Changed();Refresh(); } }
         public bool ShowDraftValues { get; set; } = true;
@@ -73,7 +75,7 @@ namespace QksExcelAddIn.ViewModels
             "\n\n" + string.Join("\n", SelectedElement.Vertices.Select((p, i) => $"P{i + 1}: {p.X:0.###}, {p.Y:0.###}, {p.Z:0.###} m"));
         public void SetSnapshot(ModelSnapshot? snapshot, bool offline)
         {
-            snapshot?.Validate(); Snapshot = snapshot; Offline = offline; applyNeedsRead = false;
+            snapshot?.Validate(); CutStart=null; CutEnd=null; Changed(nameof(CutStart)); Changed(nameof(CutEnd)); Snapshot = snapshot; Offline = offline; applyNeedsRead = false;
             workspaceRemovedIds.Clear();NotifyWorkspaceVisibility();
             DisplayElements = snapshot?.Elements.ToArray() ?? Array.Empty<ModelElement>();
             displayIds = new HashSet<string>(DisplayElements.Select(e => e.Id), StringComparer.Ordinal);
@@ -83,18 +85,19 @@ namespace QksExcelAddIn.ViewModels
             OnSnapshotChanged(snapshot);
             NotifyWind();
             SourceText = snapshot == null ? "Chưa đọc mô hình" : (offline ? "OFFLINE · " : "ĐÃ ĐỌC · ") + snapshot.Source + " " + snapshot.Version + " · " + snapshot.CapturedUtc.ToLocalTime().ToString("dd/MM HH:mm:ss") + " · " + snapshot.Identity;
-            Changed(nameof(Levels)); Changed(nameof(Level)); Changed(nameof(SourceText)); Changed(nameof(Diagnostics)); Changed(nameof(VisibleLoads)); Changed(nameof(HasOpenings)); NotifyApply(); Refresh();
+            Changed(nameof(Levels)); Changed(nameof(Level)); Changed(nameof(SourceText)); Changed(nameof(Diagnostics)); Changed(nameof(VisibleLoads)); Changed(nameof(HasOpenings)); NotifyApply(); Refresh(); ResetReadLoads();
         }
         private static double Parse(string value)
         {
             if (!double.TryParse(value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double result) || !Number.Finite(result)) throw new ArgumentException("Giá trị phải là số hữu hạn, dùng dấu thập phân . hoặc ,.");
             return result;
         }
+        public ViewPlane CurrentPlane() => Elevation ? CutStart.HasValue && CutEnd.HasValue ? ViewPlane.ElevationThrough(CutStart.Value,CutEnd.Value,Parse(HalfDepth),Reverse) : ViewPlane.Elevation(Parse(OriginX),Parse(OriginY),Parse(Angle),Parse(HalfDepth),Reverse) : ViewPlane.Plan(Level?.Elevation??0,Parse(HalfDepth));
         public void Refresh()
         {
             try {
                 double depth = Parse(HalfDepth);
-                var plane = Elevation ? ViewPlane.Elevation(Parse(OriginX), Parse(OriginY), Parse(Angle), depth, Reverse) : ViewPlane.Plan(Level?.Elevation ?? 0, depth);
+                var plane = CurrentPlane();
                 var scene = new List<ProjectedElement>();
                 foreach (var element in DisplayElements) {
                     if (workspaceRemovedIds.Contains(element.Id)) continue;
@@ -102,14 +105,15 @@ namespace QksExcelAddIn.ViewModels
                     if (settings?.Visible == false) continue;
                     if (Kind != "Tất cả" && element.Kind.ToString() != Kind) continue;
                     if (!string.IsNullOrWhiteSpace(Search) && (element.Id + " " + element.Label + " " + element.Property + " " + element.Story).IndexOf(Search, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                    var projected = Extrude && settings?.Extrude != false ? SectionExtrusion.Build(element, plane) : Projection.Build(element, plane); if (projected != null) scene.Add(projected);
+                    var projected = (element.Kind==ElementKind.Column || element.Kind==ElementKind.Wall || Extrude && settings?.Extrude != false) ? SectionExtrusion.Build(element, plane) : Projection.Build(element, plane); if (projected != null) scene.Add(projected);
                 }
                 var openings = DisplayElements.Where(e => e.Kind == ElementKind.Opening).Select(e => Projection.Build(e, plane)).Where(e => e != null).Cast<ProjectedElement>().ToArray();
                 if (openings.Length > 0) scene = scene.Select(e => SectionExtrusion.WithOpenings(e, openings)).ToList();
                 Scene = scene.AsReadOnly(); VisibleElements = scene.Select(e => e.Source).ToArray();
                 UpdateDraftOverlays(plane);
+                RefreshReadLoads();
                 Changed(nameof(Scene)); Changed(nameof(VisibleElements)); Changed(nameof(Counts));
-                if (!Busy) Status = Elevation ? "Elevation · U ngang, V = +Z · dải ±" + depth + " m. Nét đứt: đối tượng bị cắt bởi dải xem." : "Plan · XY · Z=" + (Level?.Elevation ?? 0) + " m · dải ±" + depth + " m.";
+                if (!Busy) Status = Elevation ? "Elevation · " + (plane.MinU.HasValue ? "A–B: " + (plane.MaxU!.Value-plane.MinU.Value).ToString("0.###") + " m · " : "") + "U ngang, V = +Z · dải ±" + depth + " m. Nét đứt: đối tượng bị cắt bởi dải xem." : "Plan · XY · Z=" + (Level?.Elevation ?? 0) + " m · dải ±" + depth + " m.";
             }
             catch (Exception ex) { Status = "Không cập nhật hình: " + ex.Message; }
         }

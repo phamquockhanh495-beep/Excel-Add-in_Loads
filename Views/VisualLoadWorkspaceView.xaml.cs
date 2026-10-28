@@ -64,6 +64,11 @@ namespace QksExcelAddIn.Views
         private void Project_Click(object sender, RoutedEventArgs e) { vm.Refresh(); Canvas.Fit(); }
         private void Fit_Click(object sender, RoutedEventArgs e) => Canvas.Fit();
         private void Style_Click(object sender, RoutedEventArgs e) { vm.NotifyStyle(); Canvas.InvalidateVisual(); }
+        private void ReadLoad_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var row=e.AddedItems.OfType<ReadLoadDisplay>().FirstOrDefault();
+            if(row!=null)vm.SelectElements(new[]{row.ElementId});
+        }
         private void ClearSelection_Click(object sender, RoutedEventArgs e) { Canvas.CancelInteraction(); vm.ClearSelection(); }
         private void RemoveSelection_Click(object sender, RoutedEventArgs e) { StopPlanePicking();vm.RemoveSelectedFromWorkspace(); }
         private void RestoreWorkspace_Click(object sender, RoutedEventArgs e) { Canvas.CancelInteraction();vm.RestoreWorkspace(); }

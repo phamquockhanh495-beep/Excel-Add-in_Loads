@@ -67,6 +67,7 @@ internal static partial class Program
         ViewerTestRoot = root;
         ViewerTests();
         ExtrusionTests();
+        SectionLoadTests();
         DraftTests();
         LayoutTests();
         ApplyTests();

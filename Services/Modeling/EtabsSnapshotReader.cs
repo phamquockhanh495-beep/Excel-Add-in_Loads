@@ -10,7 +10,7 @@ using QksExcelAddIn.Modeling.Core;
 namespace QksExcelAddIn.Services.Modeling
 {
     /// <summary>Read-only adapter. All COM access stays on the caller's WPF STA; no Task.Run or unit changes.</summary>
-    public sealed class EtabsSnapshotReader
+    public sealed partial class EtabsSnapshotReader
     {
         private static readonly SemaphoreSlim Gate = new SemaphoreSlim(1, 1);
         public async Task<ModelSnapshot> ReadAsync(Action<string> progress, CancellationToken token, bool requireCompleteLoads = false)
@@ -53,9 +53,9 @@ namespace QksExcelAddIn.Services.Modeling
                 progress(message); await Dispatcher.Yield(DispatcherPriority.Background); Guard();
             }
             var diagnostics = new List<string> {
-                "Phạm vi tải đã đọc: frame distributed và area uniform. Chưa gồm joint/point load, frame point, temperature, surface pressure hoặc tải sinh tự động.",
+                "Phạm vi tải: frame distributed/point, area uniform, joint force/moment. Chưa gồm temperature, surface pressure, area nonuniform hoặc tải sinh tự động. Joint giữ riêng load step; không cộng các pattern/step.",
                 "Ảnh chụp dữ liệu chỉ đọc; không chỉnh mô hình/đơn vị trong khi đọc. API không cung cấp revision để phát hiện mọi thay đổi hình học cùng file.",
-                "Mặt đứng dựng từ hai điểm có snap, hiển thị mốc Story/cao độ đã đọc; lưới XY/named elevation chưa nhập. Extrude: tiết diện chữ nhật/tròn và chiều dày sàn/vách phẳng; kích thước thật đặt giữa trục/mặt phân tích, chưa xét insertion/end offsets. Sàn/vách nghiêng so với vùng xem giữ đường biên."
+                "Mặt đứng dựng từ hai điểm có snap, hiển thị mốc Story/cao độ đã đọc; lưới XY/named elevation chưa nhập. Extrude: tiết diện chữ nhật/tròn và chiều dày sàn/vách phẳng; cote mô hình là đỉnh dầm/sàn, chiều dày xuống dưới; cột/vách đặt giữa trục/mặt phân tích. Chưa xét insertion/end offsets. Sàn/vách nghiêng so với vùng xem giữ đường biên."
             };
             int optionalErrorCount = 0;
             void Optional(int code, string message) {
@@ -105,6 +105,7 @@ namespace QksExcelAddIn.Services.Modeling
                 if (advanced) Optional(-1, "Extrude frame " + name + ": advanced local axes chưa hỗ trợ; giữ đường trục.");
                 elements.Add(element);
                 ReadFrameLoads(sap, element, scale, loads, LoadError);
+                ReadFramePointLoads(sap, element, scale, loads, LoadError);
                 if (i % 25 == 0) await Yield("Đọc frame " + (i + 1) + "/" + frames.Length);
             }
             count = 0; names = Array.Empty<string>(); rc = sap.AreaObj.GetNameList(ref count, ref names);
@@ -127,6 +128,7 @@ namespace QksExcelAddIn.Services.Modeling
                 elements.Add(element); ReadAreaLoads(sap, element, scale, loads, LoadError);
                 if (i % 25 == 0) await Yield("Đọc area " + (i + 1) + "/" + areas.Length);
             }
+            await ReadJointLoadsAsync(sap,scale,elements,loads,Point,LoadError,Yield,Guard);
             Guard();
             if (levels.Count == 0) levels.AddRange(points.Values.Select(p => p.Z).Distinct().OrderBy(z => z).Select(z => new ModelLevel("Z=" + z.ToString("0.###"), z)));
             string version = ""; double versionNumber = 0;

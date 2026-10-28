@@ -16,7 +16,7 @@ namespace QksExcelAddIn.ViewModels
             switch (kind) {
                 case ElementKind.Beam: return "Dầm"; case ElementKind.Column: return "Cột";
                 case ElementKind.Slab: return "Sàn"; case ElementKind.Wall: return "Vách";
-                case ElementKind.Brace: return "Giằng"; case ElementKind.Opening: return "Lỗ mở"; default: return "Khác";
+                case ElementKind.Joint: return "Nút"; case ElementKind.Brace: return "Giằng"; case ElementKind.Opening: return "Lỗ mở"; default: return "Khác";
             }
         }
         public IReadOnlyList<KeyValuePair<string,string>> InspectorRows
@@ -28,7 +28,7 @@ namespace QksExcelAddIn.ViewModels
                     var e=SelectedElement!;
                     Add("Unique ID",e.Name);Add("Label",e.Label);Add("Tầng",e.Story);Add("Loại",KindCaption(e.Kind));Add("Property",e.Property);
                     if(e.Length3D.HasValue)Add("Chiều dài",e.Length3D.Value.ToString("0.###")+" m");
-                    if(e.Kind!=ElementKind.Opening)Add("Tiết diện",e.Section?.ToString()??"Chưa đọc được kích thước");
+                    if(e.Kind!=ElementKind.Opening&&e.Kind!=ElementKind.Joint)Add("Tiết diện",e.Section?.ToString()??"Chưa đọc được kích thước");
                     if(e.LocalAxisDegrees.HasValue)Add("Góc local",e.LocalAxisDegrees.Value.ToString("0.###")+"°"+(e.AdvancedLocalAxes?" · Advanced":""));
                     Add("Tải đã đọc",(Snapshot?.Loads.Count(l=>l.ElementId==e.Id)??0)+" bản ghi");
                 } else if (SelectedElements.Count > 1) {

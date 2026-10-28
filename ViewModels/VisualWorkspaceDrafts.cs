@@ -109,6 +109,7 @@ namespace QksExcelAddIn.ViewModels
         public void SetElevationThrough(Vec2 first, Vec2 second)
         {
             ViewPlane.ElevationThrough(first, second, Parse(HalfDepth));
+            CutStart=first;CutEnd=second;Changed(nameof(CutStart));Changed(nameof(CutEnd));
             OriginX = first.X.ToString("R", CultureInfo.InvariantCulture); OriginY = first.Y.ToString("R", CultureInfo.InvariantCulture);
             Angle = (Math.Atan2(second.Y-first.Y, second.X-first.X)*180/Math.PI).ToString("R", CultureInfo.InvariantCulture);
             Changed(nameof(OriginX)); Changed(nameof(OriginY)); Changed(nameof(Angle)); Elevation = true;

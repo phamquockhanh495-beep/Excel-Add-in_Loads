@@ -28,6 +28,7 @@ namespace QksExcelAddIn.ViewModels
             foreach(string name in new[]{nameof(SelectedIds),nameof(SelectedElements),nameof(SingleSelection),nameof(SelectedElement),nameof(SelectedId),nameof(VisibleLoads),nameof(PropertyKey),nameof(Inspector),nameof(InspectorTitle),nameof(InspectorSubtitle),nameof(InspectorRows),nameof(InspectorCoordinates),nameof(Counts)})Changed(name);
             PropertyColor=selected==null?"#2563EB":ColorOverrides.TryGetValue(PropertyKey,out var color)?color:PropertyColors.ForProperty(PropertyKey);Changed(nameof(PropertyColor));
             OnSelectionChanged();
+            RefreshReadLoads();
             NotifyWorkspaceVisibility();
         }
         public void ClearSelection()=>SelectElements(Array.Empty<string>());
