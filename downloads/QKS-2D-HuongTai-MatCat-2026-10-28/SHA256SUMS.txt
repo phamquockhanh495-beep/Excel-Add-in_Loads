@@ -1,0 +1,2 @@
+fbec62902ff5c64da0f1a3288bf30bf80a065881d7663e1a75c2bd6f3a73e659  QKS-2D-HuongTai-MatCat-2026-10-28.zip
+54b9f8fe040def6e2d0a6df849c83f6dd3850d00e86fa07c2064762fafab6667  Excel/QksExcelAddIn-AddIn64-packed.xll
