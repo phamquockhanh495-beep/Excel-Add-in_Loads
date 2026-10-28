@@ -1,0 +1,2 @@
+6cdccc6eacd00191e8dfa25828b03d6c82a66f68acdce945afbd00d7db1f283b  QKS-2D-Color-Objects-2026-10-29.zip
+0035d70e46bc1ab3ce723ec28a5b6ac14e7269354755697e0848e67087f6b6da  Excel/QksExcelAddIn-AddIn64-packed.xll
