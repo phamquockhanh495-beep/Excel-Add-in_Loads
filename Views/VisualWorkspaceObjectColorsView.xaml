@@ -1,0 +1,39 @@
+<Window x:Class="QksExcelAddIn.Views.VisualWorkspaceObjectColorsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="QKS · DISPLAY / COLOR OBJECTS" Width="620" Height="620" MinWidth="360" MinHeight="350" WindowStartupLocation="CenterOwner" FontFamily="Segoe UI" FontSize="11.5" Background="#F8FAFC">
+ <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="pack://application:,,,/QksExcelAddIn;component/Views/Styles/VisualWorkspaceStyles.xaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></Window.Resources>
+ <Grid Margin="14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <StackPanel>
+   <TextBlock Text="CHẾ ĐỘ MÀU CẤU KIỆN" FontWeight="SemiBold"/>
+   <ComboBox x:Name="ModeBox" SelectionChanged="Mode_Changed"/>
+   <TextBlock x:Name="ModeNote" TextWrapping="Wrap" Foreground="#64748B" Margin="0,4,0,10"/>
+  </StackPanel>
+  <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+   <StackPanel MinWidth="520">
+    <Grid Background="#E8EFF7" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="62"/><ColumnDefinition Width="62"/><ColumnDefinition Width="62"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+     <TextBlock Text="Cấu kiện" Margin="6,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+     <TextBlock Grid.Column="1" Text="R" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+     <TextBlock Grid.Column="2" Text="G" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+     <TextBlock Grid.Column="3" Text="B" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+     <TextBlock Grid.Column="4" Text="Xem trước / HEX" VerticalAlignment="Center" Margin="12,0"/>
+    </Grid>
+    <ItemsControl x:Name="Rows"><ItemsControl.ItemTemplate><DataTemplate>
+     <Border BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="0,6"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="62"/><ColumnDefinition Width="62"/><ColumnDefinition Width="62"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+      <TextBlock Text="{Binding Caption}" Margin="6,0" VerticalAlignment="Center"/>
+      <TextBox Grid.Column="1" Text="{Binding Red, UpdateSourceTrigger=PropertyChanged}" Margin="3,0" ToolTip="Red: 0–255"/>
+      <TextBox Grid.Column="2" Text="{Binding Green, UpdateSourceTrigger=PropertyChanged}" Margin="3,0" ToolTip="Green: 0–255"/>
+      <TextBox Grid.Column="3" Text="{Binding Blue, UpdateSourceTrigger=PropertyChanged}" Margin="3,0" ToolTip="Blue: 0–255"/>
+      <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+       <Border Background="{Binding PreviewColor}" Width="32" Height="22" BorderBrush="#64748B" BorderThickness="1"/>
+       <TextBlock Text="{Binding Hex}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+      </StackPanel>
+     </Grid></Border>
+    </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+   </StackPanel>
+  </ScrollViewer>
+  <StackPanel Grid.Row="2" Margin="0,10,0,0">
+   <TextBlock Text="Màu áp dụng cho nét và phần tô theo Extrude. Sàn trên Plan vẫn ẩn viền; cấu kiện đang chọn giữ đỏ đô. Màu chữ chỉnh tại Display → Text." Foreground="#64748B" TextWrapping="Wrap"/>
+   <TextBlock x:Name="ResultText" Foreground="#800020" TextWrapping="Wrap" Margin="0,8"/>
+   <WrapPanel><Button Content="Áp dụng" Click="Apply_Click"/><Button Content="Mặc định" Click="Reset_Click"/><Button Content="Đóng" Click="Close_Click"/></WrapPanel>
+  </StackPanel>
+ </Grid>
+</Window>

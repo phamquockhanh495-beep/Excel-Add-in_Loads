@@ -71,6 +71,7 @@ internal static partial class Program
         LoadViewTests();
         SelectToolTests();
         DisplayToolsTests();
+        ObjectColorTests();
         DraftTests();
         LayoutTests();
         ApplyTests();

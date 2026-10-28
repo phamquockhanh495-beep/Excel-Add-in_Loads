@@ -111,7 +111,7 @@
                                 </Grid></Border>
                             </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                             <CheckBox Content="Màu theo Property (bỏ chọn: màu theo loại cấu kiện)" IsChecked="{Binding ColorByProperty}" Click="Style_Click" Margin="0,10,0,4"/>
-                            <TextBlock Text="Dầm: cyan · Cột/vách: xám · Sàn: tím nhạt · Chọn: đỏ đô" TextWrapping="Wrap" Foreground="#64748B"/>
+                            <TextBlock Text="Màu theo loại: Display → Color Objects · Đối tượng đang chọn: đỏ đô" TextWrapping="Wrap" Foreground="#64748B"/>
                             <TextBlock Text="Dầm/sàn: cote mô hình là đỉnh, chiều dày xuống dưới. Cột/vách luôn có đường bao; Extrude bật/tắt tô màu. Tiết diện chưa hỗ trợ hoặc thiếu dữ liệu giữ đường trục/biên." TextWrapping="Wrap" Foreground="#64748B" Margin="0,6,0,0"/>
                         </StackPanel></ScrollViewer></Border>
                     </Popup>
@@ -119,7 +119,7 @@
                     <Button Content="Vừa khung" Click="Fit_Click"/>
                     </WrapPanel>
                 </DockPanel>
-                <Border Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"><viewer:StructuralCanvas x:Name="Canvas" StructureText="{Binding StructureText}" LoadText="{Binding LoadText}" Items="{Binding Scene}" ReadLoadItems="{Binding ReadLoadItems}" ShowLoadValues="{Binding ShowLoadValues}" ExtrudeEnabled="{Binding Extrude}" CutStart="{Binding CutStart}" CutEnd="{Binding CutEnd}" SelectedId="{Binding SelectedId}" SelectedIds="{Binding SelectedIds}" LabelSettings="{Binding LabelSettings}" Elevation="{Binding Elevation}" Levels="{Binding Levels}" HasOpenings="{Binding HasOpenings}" ColorByProperty="{Binding ColorByProperty}" ColorOverrides="{Binding ColorOverrides}"/></Border>
+                <Border Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"><viewer:StructuralCanvas x:Name="Canvas" StructureText="{Binding StructureText}" LoadText="{Binding LoadText}" Items="{Binding Scene}" ReadLoadItems="{Binding ReadLoadItems}" ShowLoadValues="{Binding ShowLoadValues}" ExtrudeEnabled="{Binding Extrude}" CutStart="{Binding CutStart}" CutEnd="{Binding CutEnd}" SelectedId="{Binding SelectedId}" SelectedIds="{Binding SelectedIds}" LabelSettings="{Binding LabelSettings}" Elevation="{Binding Elevation}" Levels="{Binding Levels}" HasOpenings="{Binding HasOpenings}" ColorByProperty="{Binding ColorByProperty}" ObjectColors="{Binding ObjectColors}" ColorOverrides="{Binding ColorOverrides}"/></Border>
             </Grid>
             <Border x:Name="EditorPane" Grid.Column="4" Style="{StaticResource Panel}"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel>
                 <Border Background="#E8EFF7" CornerRadius="3" Padding="10,12" Margin="0,0,0,10">

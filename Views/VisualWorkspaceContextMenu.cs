@@ -18,8 +18,10 @@ namespace QksExcelAddIn.Views
             var menu=new ContextMenu{PlacementTarget=(UIElement)sender,Placement=PlacementMode.Bottom};
             var text=new MenuItem{Header="Text · Cỡ chữ và màu RGB",Icon=new PackIcon{Kind=PackIconKind.FormatText,Width=18,Height=18}};
             text.Click+=(_,__)=>{StopPlanePicking();new VisualWorkspaceTextView(vm){Owner=this}.ShowDialog();Canvas.Focus();};
+            var colors=new MenuItem{Header="Color Objects · Màu cấu kiện",Icon=new PackIcon{Kind=PackIconKind.PaletteOutline,Width=18,Height=18}};
+            colors.Click+=(_,__)=>{StopPlanePicking();new VisualWorkspaceObjectColorsView(vm){Owner=this}.ShowDialog();Canvas.Focus();};
             var pane=new MenuItem{Header="Ẩn / hiện panel vùng xem"};pane.Click+=(_,args)=>ToggleDisplay_Click(sender,args);
-            menu.Items.Add(text);menu.Items.Add(pane);menu.IsOpen=true;
+            menu.Items.Add(text);menu.Items.Add(colors);menu.Items.Add(pane);menu.IsOpen=true;
         }
         private void OpenDisplaySettings()
         {

@@ -43,6 +43,8 @@ namespace QksExcelAddIn.Views.Controls
         public static readonly DependencyProperty LabelSettingsProperty=Register(nameof(LabelSettings),typeof(IReadOnlyList<LabelDisplaySetting>));
         public static readonly DependencyProperty HasOpeningsProperty=Register(nameof(HasOpenings),typeof(bool),false);
         public static readonly DependencyProperty ColorByPropertyProperty=Register(nameof(ColorByProperty),typeof(bool),false);
+        public static readonly DependencyProperty ObjectColorsProperty=Register(nameof(ObjectColors),typeof(ObjectColorProfile),ObjectColorProfile.Default);
+        public ObjectColorProfile ObjectColors { get=>(ObjectColorProfile)GetValue(ObjectColorsProperty);set=>SetValue(ObjectColorsProperty,value); }
         public static readonly DependencyProperty ColorOverridesProperty=Register(nameof(ColorOverrides),typeof(Dictionary<string,string>));
         public static readonly DependencyProperty DraftOverlaysProperty=Register(nameof(DraftOverlays),typeof(IReadOnlyList<DraftOverlay>));
         public static readonly DependencyProperty ShowDraftValuesProperty=Register(nameof(ShowDraftValues),typeof(bool),true);
@@ -100,7 +102,7 @@ namespace QksExcelAddIn.Views.Controls
                 var screenPolygon=item.Polygon.Select(p=>V(Screen(p))).ToArray();
                 if(!screenLines.Any(s=>ViewerSelection.Intersects(s,viewport))&&!(screenPolygon.Length>2&&ViewerSelection.Contains(screenPolygon,new Vec2(ActualWidth/2,ActualHeight/2)))&&!item.Faces.Any(f=>ViewerSelection.Contains(f,World(new Point(ActualWidth/2,ActualHeight/2)))))continue;
                 string key=item.Source.Kind+"|"+item.Source.Property;
-                string hex=ColorByProperty?ColorOverrides!=null&&ColorOverrides.TryGetValue(key,out var custom)?custom:PropertyColors.ForProperty(key):PropertyColors.ForKind(item.Source.Kind);
+                string hex=ColorByProperty?ColorOverrides!=null&&ColorOverrides.TryGetValue(key,out var custom)?custom:PropertyColors.ForProperty(key):ObjectColors.ForKind(item.Source.Kind);
                 var color=(Color)ColorConverter.ConvertFromString(hex);Brush brush=new SolidColorBrush(color);bool active=selected.Contains(item.Source.Id);
                 var pen=new Pen(active?SelectionBrush:brush,active?2.8:item.Faces.Count>0?1:1.2);if((item.IsCut&&item.Faces.Count==0)||item.Source.Kind==ElementKind.Opening)pen.DashStyle=DashStyles.Dash;
                 if(active)color=Color.FromRgb(128,0,32);
