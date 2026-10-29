@@ -1,0 +1,2 @@
+dceaccd7e00bd4d6df2a5ce7ed42541b301b299495911b1d4b4aa89a66ba8449  QKS-2D-Slab-Color-2026-10-29.zip
+bb4264fed762620f82ccb863594f8cd0c4c8748b1b32405ba35122172827a678  Excel/QksExcelAddIn-AddIn64-packed.xll
