@@ -2,7 +2,7 @@
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <Compile Include="Program.cs;ExtrusionTests.cs;SectionLoadTests.cs;LoadViewTests.cs;SelectToolTests.cs;DisplayToolsTests.cs;SlabReportTests.cs;ObjectColorTests.cs;ViewerTests.cs;DraftTests.cs;LayoutTests.cs;ApplyTests.cs;WindTests.cs;InteractionTests.cs;StoryWindTests.cs;WorkspaceUpdateTests.cs;Benchmarks.cs;../../Shared/*.cs;../../Modeling/Core/*.cs;../../ViewModels/*.cs" />
+    <Compile Include="Program.cs;ExtrusionTests.cs;SectionLoadTests.cs;LoadViewTests.cs;SelectToolTests.cs;DisplayToolsTests.cs;SlabReportTests.cs;ViewerPreferencesTests.cs;ObjectColorTests.cs;ViewerTests.cs;DraftTests.cs;LayoutTests.cs;ApplyTests.cs;WindTests.cs;InteractionTests.cs;StoryWindTests.cs;WorkspaceUpdateTests.cs;Benchmarks.cs;../../Shared/*.cs;../../Modeling/Core/*.cs;../../ViewModels/*.cs" />
     <Reference Include="Microsoft.CodeAnalysis"><HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath></Reference>
     <Reference Include="Microsoft.CodeAnalysis.CSharp"><HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath></Reference>
   </ItemGroup>

@@ -72,6 +72,7 @@ internal static partial class Program
         SelectToolTests();
         DisplayToolsTests();
         SlabReportTests();
+        ViewerPreferencesTests();
         ObjectColorTests();
         DraftTests();
         LayoutTests();

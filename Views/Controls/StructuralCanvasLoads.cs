@@ -23,7 +23,7 @@ namespace QksExcelAddIn.Views.Controls
                     var lines=row.Geometry.AxisSegments.Select(s=>new Segment2(V(Screen(s.A)),V(Screen(s.B)))).ToArray();
                     var loadPen=new Pen(SelectionBrush,3){StartLineCap=PenLineCap.Flat,EndLineCap=PenLineCap.Flat};
                     foreach(var line in lines)dc.DrawLine(loadPen,new Point(line.A.X,line.A.Y),new Point(line.B.X,line.B.Y));
-                    if(ShowLoadValues)DrawLabel(dc,lines,Array.Empty<Vec2>(),false,row.Text,SelectionBrush,viewport,true);
+                    if(ShowLoadValues)DrawLabel(dc,lines,Array.Empty<Vec2>(),false,row.PlanLineLabel,SelectionBrush,viewport,true);
                     continue;
                 }
                 var samples=LoadGlyphs.Samples(row,scale);

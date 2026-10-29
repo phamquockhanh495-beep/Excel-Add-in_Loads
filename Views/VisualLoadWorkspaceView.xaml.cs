@@ -41,7 +41,7 @@ namespace QksExcelAddIn.Views
                 if (e.PropertyName == nameof(vm.Busy) && !vm.Busy) ScheduleConnectedRead();
             };
             PreviewKeyDown += Window_KeyDown;
-            Closing += (_, e) => { if (vm.Busy) { e.Cancel = true; vm.Status = "Chờ tác vụ kết thúc hoặc Hủy đọc trước khi đóng."; } };
+            Closing += (_, e) => { if (vm.Busy) { e.Cancel = true; vm.Status = "Chờ tác vụ kết thúc hoặc Hủy đọc trước khi đóng."; return; } SaveViewerPreferences(); };
             AppConnectionManager.ConnectionChanged += ConnectionChanged;
             Closed += (_, __) => { closed = true; cancellation?.Cancel(); AppConnectionManager.ConnectionChanged -= ConnectionChanged; };
             try {if(File.Exists(VisualWorkspaceObjectColorsView.ProfileFile))vm.ApplyObjectColors(JsonCodec.Deserialize<ObjectColorProfile>(JsonCodec.Read(VisualWorkspaceObjectColorsView.ProfileFile)));}
@@ -55,6 +55,7 @@ namespace QksExcelAddIn.Views
                     vm.NotifyStyle();
                 }
             } catch (Exception ex) { vm.Status = "Không đọc được profile màu: " + ex.Message; }
+            LoadViewerPreferences();
         }
         private void Connect_Click(object sender, RoutedEventArgs e) => new GetApiView().Show();
         private async void Read_Click(object sender, RoutedEventArgs e)
@@ -125,7 +126,7 @@ namespace QksExcelAddIn.Views
         {
             if (ActualWidth <= 0 || ActualHeight <= 0) return;
             int next = WorkspaceSize.PanelMode(ActualWidth);
-            if (next != panelMode) { panelMode = next; displayVisible = next == 2; editorVisible = next >= 1; }
+            if (next != panelMode) { panelMode = next; if(!panelsCustomized) { displayVisible = next == 2; editorVisible = next >= 1; } else if(next<2&&displayVisible&&editorVisible)displayVisible=false; }
             ApplyPanels();
         }
         private void ApplyPanels()
@@ -139,13 +140,13 @@ namespace QksExcelAddIn.Views
         }
         private void ToggleDisplay_Click(object sender,RoutedEventArgs e)
         {
-            displayVisible = !displayVisible;
+            panelsCustomized=true;displayVisible = !displayVisible;
             if (displayVisible && panelMode < 2) editorVisible = false;
             ApplyPanels(); Dispatcher.BeginInvoke(new Action(Canvas.Fit));
         }
         private void ToggleEditor_Click(object sender,RoutedEventArgs e)
         {
-            editorVisible = !editorVisible;
+            panelsCustomized=true;editorVisible = !editorVisible;
             if (editorVisible && panelMode < 2) displayVisible = false;
             ApplyPanels(); Dispatcher.BeginInvoke(new Action(Canvas.Fit));
         }

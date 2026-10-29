@@ -30,6 +30,7 @@ namespace QksExcelAddIn.Modeling.Core
             }
         }
         public string Text => NamesOnly?UniformLoadSet: (UniformLoadSet.Length>0?"["+UniformLoadSet+"] ":"")+Load.Pattern+": "+Values+" "+Load.Unit+" · "+Load.CoordinateSystem+" / "+DirectionText+(Category=="Joint"?" · step "+Load.Step:Category=="Frame"?" · r="+Load.Start.ToString("0.###",CultureInfo.CurrentCulture)+(Load.Start!=Load.End?"→"+Load.End.ToString("0.###",CultureInfo.CurrentCulture):""):"");
+        public string PlanLineLabel => Load.Pattern + " - " + Values + " " + Load.Unit;
         public string Detail => NamesOnly?UniformLoadSet: Text+"\n"+Load.Kind+(Category=="Frame"?" · I→J":"")+(LoadGlyphs.Direction(this).HasValue?"":" · chưa xác định hướng để vẽ");
         private string Values => Load.Value1.ToString("0.###",CultureInfo.CurrentCulture)+(Load.Value1!=Load.Value2?" → "+Load.Value2.ToString("0.###",CultureInfo.CurrentCulture):"");
         private ReadLoadDisplay(string category,ExistingLoad load,ProjectedElement geometry,ModelElement source,ViewPlane plane) { Category=category;Load=load;Geometry=geometry;ElementId=load.ElementId;Source=source;Plane=plane; }
