@@ -1,0 +1,2 @@
+953de0a8279adebff344f1bf1a8ead3d1191ba5963abb04ec0a603a194660035  QKS-2D-Slab-Report-2026-10-29.zip
+f29103b1310c0837c40e08416d96480dd1ed7a72d4720073053ebef75a9cd50f  Excel/QksExcelAddIn-AddIn64-packed.xll
