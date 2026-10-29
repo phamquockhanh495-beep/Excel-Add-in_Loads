@@ -1,0 +1,2 @@
+d00feb1b6e58345174001e3a40a3a8935764ffac1483e5b081520087ae5f3ea0  QKS-2D-Slab-Matrix-2026-10-29.zip
+ddf4a6289d681c14a7ea185a32ad12bc3eb884fb8f48d2bdaa054d8f944b4789  Excel/QksExcelAddIn-AddIn64-packed.xll
