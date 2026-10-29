@@ -31,7 +31,9 @@ Workbook chỉ còn **Tong hop** và một sheet cho mỗi tầng. Tất cả d�
 Ví dụ trên minh họa bố cục, không phải tải gán mẫu. File thực tế lấy tên Pattern/Set và giá trị từ mô hình đã đọc.
 
 - Tiêu đề chính nền navy, chữ trắng đậm; `Load Pattern` gộp ngang trên các cột Pattern. STT, Story, Load Sets gộp dọc qua hai hàng tiêu đề.
-- Pattern có hàng tiêu đề phụ nền trắng; bảng có đường viền mảnh, căn giữa theo chiều dọc, tự xuống dòng. Cố định hai hàng tiêu đề và ba cột đầu khi cuộn.
+- Pattern có hàng tiêu đề phụ nền trắng; bảng có đường viền dọc xanh xám rõ hơn để phân cách các cột, viền ngang mảnh, căn giữa theo chiều dọc và tự xuống dòng. Cố định hai hàng tiêu đề và ba cột đầu khi cuộn.
+- Các dòng cùng tầng dùng chung nền xanh nhạt hoặc kem nhạt; đổi màu khi sang tầng kế tiếp. Ô trống cũng có nền và đường viền. Sheet từng tầng giữ màu nền giống nhóm tầng tương ứng trong sheet tổng hợp.
+- Tên Load Sets in đậm và có màu chữ riêng cho từng set; cùng tên dùng cùng màu giữa các tầng/sheet và khi lọc trong cùng dữ liệu mô hình. Dòng `(Gán trực tiếp)` giữ chữ thường.
 - Tầng xếp từ cao xuống thấp. Cột Pattern lấy theo tên thực tế trong phạm vi xuất và sắp theo tên; không có danh sách tải giả định cố định.
 - Bỏ sheet **Thong tin** và các cột **Step**, **Số bản ghi**. Không có cột đếm trong ma trận.
 - Một dòng cho mỗi cặp Story / Load Set. Tải gán trực tiếp được tách vào dòng `(Gán trực tiếp)`.

@@ -84,7 +84,7 @@ namespace QksExcelAddIn.Modeling.Core
             }
             sheets.Add(new KeyValuePair<string, List<object?[]>>("Tong hop", Matrix(stories)));
             foreach (string name in stories) sheets.Add(new KeyValuePair<string, List<object?[]>>(name, Matrix(new[]{name})));
-            WritePackage(path, sheets);
+            WritePackage(path, sheets, model.Loads.Select(ReadLoadDisplay.LoadSetName).Where(n => n.Length > 0).Distinct(StringComparer.Ordinal).OrderBy(n => n, StringComparer.Ordinal).ToArray());
             return rows.Count;
         }
 
@@ -95,7 +95,7 @@ namespace QksExcelAddIn.Modeling.Core
         }
 
         private static readonly XNamespace Main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
-        private static void WritePackage(string path, List<KeyValuePair<string, List<object?[]>>> sheets)
+        private static void WritePackage(string path, List<KeyValuePair<string, List<object?[]>>> sheets, string[] setNames)
         {
             if (sheets.Any(s => s.Value.Count > 1048576)) throw new InvalidDataException("Số dòng vượt giới hạn Excel. Hãy xuất theo tầng hoặc Pattern / Set.");
             string full = Path.GetFullPath(path), temp = full + "." + Guid.NewGuid().ToString("N") + ".tmp";
@@ -108,28 +108,22 @@ namespace QksExcelAddIn.Modeling.Core
                     void Override(string part, string kind) => content.Add(new XElement(types + "Override", new XAttribute("PartName", part), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.spreadsheetml." + kind + "+xml")));
                     Override("/xl/workbook.xml", "sheet.main"); Override("/xl/styles.xml", "styles");
                     var units = sheets.SelectMany(s => s.Value).SelectMany(r => r).OfType<LoadValue>().Select(v => v.Unit).Distinct(StringComparer.Ordinal).ToList();
+                    var formatting = new WorkbookStyles(units, setNames);
+                    var storyBands = sheets[0].Value.Skip(2).Select(r => (string)r[1]!).Distinct(StringComparer.Ordinal).Select((name, index) => new {name, band = index % 2}).ToDictionary(x => x.name, x => x.band, StringComparer.Ordinal);
                     var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase); var list = new XElement(Main + "sheets"); var links = new XElement(package + "Relationships", Link("styles", "styles", "styles.xml"));
                     for (int i = 0; i < sheets.Count; i++) {
                         string id = "rId" + (i + 1), file = "worksheets/sheet" + (i + 1) + ".xml";
                         string name = SheetName(sheets[i].Key, names);
                         list.Add(new XElement(Main + "sheet", new XAttribute("name", name), new XAttribute("sheetId", i + 1), new XAttribute(rel + "id", id)));
                         links.Add(Link(id, "worksheet", file)); Override("/xl/" + file, "worksheet");
-                        Entry("xl/" + file, Worksheet(sheets[i].Value, units));
+                        Entry("xl/" + file, Worksheet(sheets[i].Value, units, formatting, storyBands));
                     }
                     Entry("[Content_Types].xml", content);
                     Entry("_rels/.rels", new XElement(package + "Relationships", Link("rId1", "officeDocument", "xl/workbook.xml")));
                     Entry("xl/workbook.xml", new XElement(Main + "workbook", new XAttribute(XNamespace.Xmlns + "r", rel), list));
                     Entry("xl/_rels/workbook.xml.rels", links);
-                    var styles = XElement.Parse(Styles);
-                    var formats = new XElement(Main + "numFmts", new XAttribute("count", units.Count));
-                    var xfs = styles.Element(Main + "cellXfs")!;
-                    for (int i = 0; i < units.Count; i++) {
-                        string literal = units[i].Replace("\\", "\\\\").Replace("\"", "\\\"");
-                        formats.Add(new XElement(Main + "numFmt", new XAttribute("numFmtId", 164 + i), new XAttribute("formatCode", "0.###############\" " + literal + "\"")));
-                        var xf = new XElement(xfs.Elements().First()); xf.SetAttributeValue("numFmtId", 164 + i); xf.SetAttributeValue("applyNumberFormat", 1); xfs.Add(xf);
-                    }
-                    xfs.SetAttributeValue("count", xfs.Elements().Count()); styles.AddFirst(formats);
-                    Entry("xl/styles.xml", styles);
+                    Entry("xl/styles.xml", formatting.Xml);
+
                 }
                 if (File.Exists(full)) File.Replace(temp, full, null); else File.Move(temp, full);
             } finally { if (File.Exists(temp)) File.Delete(temp); }
@@ -153,7 +147,7 @@ namespace QksExcelAddIn.Modeling.Core
             return name;
         }
 
-        private static XElement Worksheet(List<object?[]> rows, List<string> units)
+        private static XElement Worksheet(List<object?[]> rows, List<string> units, WorkbookStyles formatting, IReadOnlyDictionary<string, int> storyBands)
         {
             var data = new XElement(Main + "sheetData"); int width = rows[0].Length;
             for (int r = 0; r < rows.Count; r++) {
@@ -163,6 +157,7 @@ namespace QksExcelAddIn.Modeling.Core
                     object? value = rows[r][c]; var load = value as LoadValue;
                     bool numeric = value is int || load != null;
                     int style = r == 0 || r == 1 && c < 3 ? 1 : r == 1 ? 2 : load != null ? 4 + units.IndexOf(load.Unit) : c == 0 ? 3 : 0;
+                    if (r >= 2) style = formatting.DataStyle(style, storyBands[(string)rows[r][1]!], c == 2 ? (string?)value : null);
                     var cell = new XElement(Main + "c", new XAttribute("r", Column(c) + (r + 1)), new XAttribute("s", style));
                     if (numeric) cell.Add(new XElement(Main + "v", load != null ? load.Number.ToString("R", CultureInfo.InvariantCulture) : Convert.ToString(value, CultureInfo.InvariantCulture)));
                     else if (value != null) {
@@ -184,10 +179,60 @@ namespace QksExcelAddIn.Modeling.Core
                 new XElement(Main + "pageSetup", new XAttribute("orientation", "landscape"), new XAttribute("paperSize", 9)));
         }
 
+        // Cache combinations so a large export reuses cell formats instead of creating one per cell.
+        private sealed class WorkbookStyles
+        {
+            public XElement Xml { get; } = XElement.Parse(Styles);
+            private readonly Dictionary<string, int> setFonts = new Dictionary<string, int>(StringComparer.Ordinal);
+            private readonly Dictionary<string, int> combinations = new Dictionary<string, int>(StringComparer.Ordinal);
+            private readonly XElement xfs;
+            public WorkbookStyles(List<string> units, string[] setNames)
+            {
+                xfs = Xml.Element(Main + "cellXfs")!;
+                var formats = new XElement(Main + "numFmts", new XAttribute("count", units.Count));
+                for (int i = 0; i < units.Count; i++) {
+                    string literal = units[i].Replace("\\", "\\\\").Replace("\"", "\\\"");
+                    formats.Add(new XElement(Main + "numFmt", new XAttribute("numFmtId", 164 + i), new XAttribute("formatCode", "0.###############\" " + literal + "\"")));
+                    var xf = new XElement(xfs.Elements().First()); xf.SetAttributeValue("numFmtId", 164 + i); xf.SetAttributeValue("applyNumberFormat", 1); xfs.Add(xf);
+                }
+                Xml.AddFirst(formats);
+                var fonts = Xml.Element(Main + "fonts")!;
+                string[] palette = {"FF1D4ED8", "FF9D174D", "FF047857", "FF7C3AED", "FFB45309", "FF0E7490", "FFBE123C", "FF4338CA", "FF3F6212", "FF6B21A8", "FF9A3412", "FF0F766E"};
+                var colors = new HashSet<string>(StringComparer.Ordinal);
+                for (int i = 0; i < setNames.Length; i++) {
+                    string color;
+                    if (i < palette.Length) color = palette[i];
+                    else {
+                        using (var sha = System.Security.Cryptography.SHA256.Create()) {
+                            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(setNames[i]));
+                            int rgb = (32 + hash[0] % 80) << 16 | (32 + hash[1] % 80) << 8 | (32 + hash[2] % 80);
+                            color = "FF" + rgb.ToString("X6", CultureInfo.InvariantCulture);
+                            while (colors.Contains(color)) { rgb = (rgb + 1) & 0x7F7F7F; color = "FF" + rgb.ToString("X6", CultureInfo.InvariantCulture); }
+                        }
+                    }
+                    colors.Add(color); setFonts.Add(setNames[i], fonts.Elements().Count());
+                    fonts.Add(new XElement(Main + "font", new XElement(Main + "b"), new XElement(Main + "sz", new XAttribute("val", 11)), new XElement(Main + "color", new XAttribute("rgb", color)), new XElement(Main + "name", new XAttribute("val", "Calibri"))));
+                }
+                fonts.SetAttributeValue("count", fonts.Elements().Count());
+                xfs.SetAttributeValue("count", xfs.Elements().Count());
+            }
+            public int DataStyle(int basis, int band, string? set)
+            {
+                int font = set != null && setFonts.TryGetValue(set, out int id) ? id : 0;
+                string key = basis + ":" + band + ":" + font;
+                if (combinations.TryGetValue(key, out int existing)) return existing;
+                var style = new XElement(xfs.Elements().ElementAt(basis));
+                style.SetAttributeValue("fillId", 3 + band); style.SetAttributeValue("applyFill", 1);
+                if (font != 0) { style.SetAttributeValue("fontId", font); style.SetAttributeValue("applyFont", 1); }
+                int result = xfs.Elements().Count(); xfs.Add(style); xfs.SetAttributeValue("count", result + 1);
+                combinations.Add(key, result); return result;
+            }
+        }
+
         private const string Styles = @"<styleSheet xmlns='http://schemas.openxmlformats.org/spreadsheetml/2006/main'>
 <fonts count='2'><font><sz val='11'/><name val='Calibri'/></font><font><b/><sz val='11'/><color rgb='FFFFFFFF'/><name val='Calibri'/></font></fonts>
-<fills count='3'><fill><patternFill patternType='none'/></fill><fill><patternFill patternType='gray125'/></fill><fill><patternFill patternType='solid'><fgColor rgb='FF002060'/><bgColor indexed='64'/></patternFill></fill></fills>
-<borders count='1'><border><left style='thin'><color rgb='FFD4D4D4'/></left><right style='thin'><color rgb='FFD4D4D4'/></right><top style='thin'><color rgb='FFD4D4D4'/></top><bottom style='thin'><color rgb='FFD4D4D4'/></bottom><diagonal/></border></borders>
+<fills count='5'><fill><patternFill patternType='none'/></fill><fill><patternFill patternType='gray125'/></fill><fill><patternFill patternType='solid'><fgColor rgb='FF002060'/><bgColor indexed='64'/></patternFill></fill><fill><patternFill patternType='solid'><fgColor rgb='FFF0F6FC'/><bgColor indexed='64'/></patternFill></fill><fill><patternFill patternType='solid'><fgColor rgb='FFFFF8E9'/><bgColor indexed='64'/></patternFill></fill></fills>
+<borders count='1'><border><left style='thin'><color rgb='FF8297B0'/></left><right style='thin'><color rgb='FF8297B0'/></right><top style='thin'><color rgb='FFD4D4D4'/></top><bottom style='thin'><color rgb='FFD4D4D4'/></bottom><diagonal/></border></borders>
 <cellStyleXfs count='1'><xf numFmtId='0' fontId='0' fillId='0' borderId='0'/></cellStyleXfs>
 <cellXfs count='4'>
 <xf numFmtId='0' fontId='0' fillId='0' borderId='0' xfId='0' applyAlignment='1' applyBorder='1'><alignment horizontal='left' vertical='center' wrapText='1'/></xf>

@@ -74,7 +74,7 @@ internal static partial class Program
                     Assert(l2.Descendants(ns+"pane").Single().Attribute("topLeftCell").Value=="D3");
                     var styles=Part(zip,"xl/styles.xml");
                     Assert(styles.Descendants(ns+"numFmt").Single().Attribute("formatCode").Value.Contains("kN/m²"));
-                    Assert(styles.Descendants(ns+"fgColor").Single().Attribute("rgb").Value=="FF002060");
+                    Assert(styles.Descendants(ns+"fgColor").Any(e=>e.Attribute("rgb").Value=="FF002060"));
                     Assert(!summary.Descendants(ns+"t").Any(e=>new[]{"Step","Số bản ghi","Số ô sàn"}.Contains(e.Value)));
                 }
                 Assert(JsonCodec.Serialize(model)==before);
