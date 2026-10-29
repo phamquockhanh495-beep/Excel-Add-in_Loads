@@ -20,7 +20,7 @@ namespace QksExcelAddIn.ViewModels
         public bool HasSlabLegend=>SlabRegions.Count>0;
         private string uniformLoadSet=AllUniformSets;
         public string UniformLoadSet { get=>uniformLoadSet;set {uniformLoadSet=value??AllUniformSets;Changed();if(uniformLoadSet!=AllUniformSets){showShellLoads=true;loadSetsMode=true;Changed(nameof(LoadSetsMode));Changed(nameof(PatternMode));}Changed(nameof(ShowShellLoads));RefreshReadLoads();} }
-        public string UniformSetNote=>UniformLoadSets.Skip(1).Any()?"Load Sets chỉ hiển thị tên set, độc lập với Load Pattern.":"Chưa có tải Uniform Load Sets đã đọc. Xem phạm vi dữ liệu nếu mô hình có gán set.";
+        public string UniformSetNote=>UniformLoadSets.Skip(1).Any()?"Trên hình: tên set. Chú giải: giá trị từng Pattern trong set. Độc lập với bộ lọc Load Pattern.":"Chưa có tải Uniform Load Sets đã đọc. Xem phạm vi dữ liệu nếu mô hình có gán set.";
         private bool MatchesUniformSet(ExistingLoad load)=>!LoadSetsMode||ReadLoadDisplay.LoadSetName(load).Length>0&&(UniformLoadSet==AllUniformSets||ReadLoadDisplay.LoadSetName(load)==UniformLoadSet);
         private string readPattern=AllReadPatterns;
         public string ReadPattern { get=>readPattern;set { readPattern=value??AllReadPatterns;Changed();RefreshReadLoads(); } }
@@ -43,9 +43,10 @@ namespace QksExcelAddIn.ViewModels
         private void RefreshReadLoads()
         {
             try { ReadLoadItems=ReadLoadDisplay.Build(Snapshot,Scene,CurrentPlane(),LoadSetsMode||ReadPattern==AllReadPatterns?null:ReadPattern,!LoadSetsMode&&ShowFrameLoads,LoadSetsMode||ShowShellLoads,!LoadSetsMode&&ShowJointLoads,OnlySelectedLoads,SelectedIds,LoadSetsMode||ShowZeroLoads,LoadSetsMode).Where(r=>MatchesUniformSet(r.Load)).ToArray();
+                SlabRegions=SlabLoadRegion.Build(ReadLoadItems,LoadSetsMode);
                 if(LoadSetsMode)ReadLoadItems=ReadLoadItems.GroupBy(r=>r.ElementId+"\0"+r.UniformLoadSet).Select(g=>g.First()).ToArray(); }
-            catch(ArgumentException) { ReadLoadItems=Array.Empty<ReadLoadDisplay>(); }
-            SlabRegions=SlabLoadRegion.Build(ReadLoadItems,LoadSetsMode);Changed(nameof(SlabRegions));Changed(nameof(SlabLegend));Changed(nameof(HasSlabLegend));
+            catch(ArgumentException) { ReadLoadItems=Array.Empty<ReadLoadDisplay>(); SlabRegions=Array.Empty<SlabLoadRegion>(); }
+            Changed(nameof(SlabRegions));Changed(nameof(SlabLegend));Changed(nameof(HasSlabLegend));
             Changed(nameof(ReadLoadItems));Changed(nameof(ReadLoadSummary));Changed(nameof(ReadSourceSummary));
         }
         private void ResetReadLoads()
