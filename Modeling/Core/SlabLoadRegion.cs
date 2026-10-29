@@ -5,6 +5,23 @@ using System.Globalization;
 using System.Linq;
 namespace QksExcelAddIn.Modeling.Core
 {
+    public sealed class SlabLoadLegendLine
+    {
+        public string PatternHeading { get; }
+        public string Value { get; }
+        public string Axes { get; }
+        public string LoadSet { get; }
+        public string Source { get; }
+        public SlabLoadLegendLine(ReadLoadDisplay row)
+        {
+            PatternHeading = row.Load.Pattern + ": ";
+            Value = row.Load.Value1.ToString("0.###", CultureInfo.CurrentCulture) +
+                (row.Load.Value1 == row.Load.Value2 ? "" : " → " + row.Load.Value2.ToString("0.###", CultureInfo.CurrentCulture)) + " " + row.Load.Unit;
+            Axes = " · " + row.Load.CoordinateSystem + " / " + row.DirectionText;
+            LoadSet = row.UniformLoadSet.Length == 0 ? "" : " · " + row.UniformLoadSet;
+            Source = row.UniformLoadSet.Length == 0 ? " · " + row.Load.Kind : "";
+        }
+    }
     public sealed class SlabLoadRegion
     {
         public string ElementId { get; }
@@ -12,7 +29,8 @@ namespace QksExcelAddIn.Modeling.Core
         public string Label { get; }
         public string Color { get; }
         public string LegendLabel { get; }
-        private SlabLoadRegion(string id,string key,string label,string legend){ElementId=id;Key=key;Label=label;LegendLabel=legend;using(var sha=System.Security.Cryptography.SHA256.Create()){var bytes=sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(key));Color=$"#{64+bytes[0]%144:X2}{64+bytes[1]%144:X2}{64+bytes[2]%144:X2}";}}
+        public IReadOnlyList<SlabLoadLegendLine> LegendLines { get; }
+        private SlabLoadRegion(string id,string key,string label,string legend,IEnumerable<ReadLoadDisplay> rows){LegendLines=rows.Select(r=>new SlabLoadLegendLine(r)).ToArray();ElementId=id;Key=key;Label=label;LegendLabel=legend;using(var sha=System.Security.Cryptography.SHA256.Create()){var bytes=sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(key));Color=$"#{64+bytes[0]%144:X2}{64+bytes[1]%144:X2}{64+bytes[2]%144:X2}";}}
         public static IReadOnlyList<SlabLoadRegion> Build(IEnumerable<ReadLoadDisplay> rows,bool sets)
         {
             return rows.Where(r=>r.Source.Kind==ElementKind.Slab).GroupBy(r=>r.ElementId).Select(g=>{
@@ -23,7 +41,7 @@ namespace QksExcelAddIn.Modeling.Core
                     string.Join("\n",sorted.Select(r=>Values(r)+" · "+r.Load.Kind));
                 string key=sets?Qks.Shared.JsonCodec.Serialize(sorted.Select(r=>r.UniformLoadSet).Distinct().OrderBy(n=>n,StringComparer.Ordinal)):
                     Qks.Shared.JsonCodec.Serialize(sorted.Select(r=>new{r.Load.Pattern,r.Load.Kind,r.Load.CoordinateSystem,r.Load.Direction,r.Load.Value1,r.Load.Value2,r.Load.Unit}));
-                return new SlabLoadRegion(g.Key,key,label,legend);
+                return new SlabLoadRegion(g.Key,key,label,legend,sorted);
             }).ToArray();
         }
     }

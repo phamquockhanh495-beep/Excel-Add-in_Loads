@@ -34,7 +34,7 @@ namespace QksExcelAddIn.Views
             try {
                 int count = await Task.Run(() => SlabLoadWorkbook.Write(dialog.FileName, snapshot, sets, filter, story));
                 vm.Status = "Đã xuất " + count + " bản ghi tải sàn · " + (story ?? "toàn bộ tầng") + " · " + dialog.FileName;
-                if (count == 0) MessageBox.Show(this, "Không có bản ghi tải sàn trong phạm vi đã chọn. File đã xuất gồm thông tin nguồn và tiêu đề bảng.", "Xuất tải sàn", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (count == 0) MessageBox.Show(this, "Không có bản ghi tải sàn trong phạm vi đã chọn. File đã xuất chỉ có tiêu đề ma trận tải.", "Xuất tải sàn", MessageBoxButton.OK, MessageBoxImage.Information);
             } catch (Exception ex) {
                 vm.Status = "Xuất tải sàn thất bại: " + ex.Message;
                 MessageBox.Show(this, vm.Status, "Xuất tải sàn", MessageBoxButton.OK, MessageBoxImage.Error);
