@@ -15,13 +15,14 @@ namespace QksExcelAddIn.Views
         }
         private void DisplayMenu_Click(object sender,RoutedEventArgs e)
         {
-            var menu=new ContextMenu{PlacementTarget=(UIElement)sender,Placement=PlacementMode.Bottom};
-            var text=new MenuItem{Header="Text · Cỡ chữ và màu RGB",Icon=new PackIcon{Kind=PackIconKind.FormatText,Width=18,Height=18}};
-            text.Click+=(_,__)=>{StopPlanePicking();new VisualWorkspaceTextView(vm){Owner=this}.ShowDialog();Canvas.Focus();};
-            var colors=new MenuItem{Header="Color Objects · Màu cấu kiện",Icon=new PackIcon{Kind=PackIconKind.PaletteOutline,Width=18,Height=18}};
-            colors.Click+=(_,__)=>{StopPlanePicking();new VisualWorkspaceObjectColorsView(vm){Owner=this}.ShowDialog();Canvas.Focus();};
-            var pane=new MenuItem{Header="Ẩn / hiện panel vùng xem"};pane.Click+=(_,args)=>ToggleDisplay_Click(sender,args);
-            menu.Items.Add(text);menu.Items.Add(colors);menu.Items.Add(pane);menu.IsOpen=true;
+            var dialog=new Window{Title="QKS · DISPLAY",Width=460,Height=280,MinWidth=360,MinHeight=240,Owner=this,WindowStartupLocation=WindowStartupLocation.CenterOwner,Background=new SolidColorBrush(Color.FromRgb(248,250,252))};
+            dialog.Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("pack://application:,,,/QksExcelAddIn;component/Views/Styles/VisualWorkspaceStyles.xaml")});
+            var panel=new StackPanel{Margin=new Thickness(14)};
+            void Entry(string title,Action action){var button=new Button{Content=title,Height=40,Margin=new Thickness(0,6,0,6)};button.Click+=(_,__)=>{dialog.Close();action();};panel.Children.Add(button);}
+            Entry("Text · Cỡ chữ và màu RGB",()=>new VisualWorkspaceTextView(vm){Owner=this}.ShowDialog());
+            Entry("Color Objects · Màu cấu kiện",()=>new VisualWorkspaceObjectColorsView(vm){Owner=this}.ShowDialog());
+            Entry("Ẩn / hiện panel vùng xem",()=>ToggleDisplay_Click(sender,e));
+            dialog.Content=panel;WorkspacePopupChrome.Attach(dialog);dialog.ShowDialog();Canvas.Focus();
         }
         private void OpenDisplaySettings()
         {

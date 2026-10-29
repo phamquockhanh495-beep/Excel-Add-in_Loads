@@ -26,6 +26,8 @@ namespace QksExcelAddIn.Views.Controls
             if(style.UseColor&&(load||!ReferenceEquals(brush,SelectionBrush)))brush=new SolidColorBrush(Color.FromRgb((byte)style.Red,(byte)style.Green,(byte)style.Blue));
             return Text(value,brush,style.Size);
         }
+        public static readonly DependencyProperty SlabRegionsProperty=Register(nameof(SlabRegions),typeof(IReadOnlyList<SlabLoadRegion>));
+        public IReadOnlyList<SlabLoadRegion>? SlabRegions {get=>(IReadOnlyList<SlabLoadRegion>?)GetValue(SlabRegionsProperty);set=>SetValue(SlabRegionsProperty,value);}
         private static readonly Brush SelectionBrush = new SolidColorBrush(Color.FromRgb(128,0,32));
         public static readonly DependencyProperty ExtrudeEnabledProperty=Register(nameof(ExtrudeEnabled),typeof(bool),true);
         public static readonly DependencyProperty CutStartProperty=Register(nameof(CutStart),typeof(Vec2?));
@@ -96,6 +98,7 @@ namespace QksExcelAddIn.Views.Controls
             if(Elevation)DrawStories(dc);
             bool openings=HasOpenings||items.Any(i=>i.Source.Kind==ElementKind.Opening);
             var viewport=new Box2(new Vec2(4,4),new Vec2(Math.Max(4,ActualWidth-4),Math.Max(4,ActualHeight-34)));
+            var slabColors=(SlabRegions??Array.Empty<SlabLoadRegion>()).ToDictionary(r=>r.ElementId);
             var labels=new List<(ProjectedElement Item,Brush Brush,Segment2[] Lines,Vec2[] Polygon)>();
             foreach(var item in items.OrderBy(i=>i.Source.Kind==ElementKind.Slab?0:i.Source.Kind==ElementKind.Wall?2:i.Source.Kind==ElementKind.Column?3:1).ThenBy(i=>selected.Contains(i.Source.Id)?1:0)) {
                 var screenLines=item.Segments.Select(s=>new Segment2(V(Screen(s.A)),V(Screen(s.B)))).ToArray();
@@ -103,11 +106,12 @@ namespace QksExcelAddIn.Views.Controls
                 if(!screenLines.Any(s=>ViewerSelection.Intersects(s,viewport))&&!(screenPolygon.Length>2&&ViewerSelection.Contains(screenPolygon,new Vec2(ActualWidth/2,ActualHeight/2)))&&!item.Faces.Any(f=>ViewerSelection.Contains(f,World(new Point(ActualWidth/2,ActualHeight/2)))))continue;
                 string key=item.Source.Kind+"|"+item.Source.Property;
                 string hex=ColorByProperty?ColorOverrides!=null&&ColorOverrides.TryGetValue(key,out var custom)?custom:PropertyColors.ForProperty(key):ObjectColors.ForKind(item.Source.Kind);
+                if(slabColors.TryGetValue(item.Source.Id,out var loadRegion))hex=loadRegion.Color;
                 var color=(Color)ColorConverter.ConvertFromString(hex);Brush brush=new SolidColorBrush(color);bool active=selected.Contains(item.Source.Id);
                 var pen=new Pen(active?SelectionBrush:brush,active?2.8:item.Faces.Count>0?1:1.2);if((item.IsCut&&item.Faces.Count==0)||item.Source.Kind==ElementKind.Opening)pen.DashStyle=DashStyles.Dash;
                 if(active)color=Color.FromRgb(128,0,32);
                 bool outlineOnly=(item.Source.Kind==ElementKind.Column||item.Source.Kind==ElementKind.Wall)&&(!ExtrudeEnabled||LabelSettings?.FirstOrDefault(s=>s.Kind==item.Source.Kind)?.Extrude==false);
-                var fill=new SolidColorBrush(Color.FromArgb(item.Source.Kind==ElementKind.Slab?(byte)48:(byte)110,color.R,color.G,color.B));
+                var fill=new SolidColorBrush(Color.FromArgb(item.Source.Kind==ElementKind.Slab?(loadRegion!=null?(byte)110:(byte)48):(byte)110,color.R,color.G,color.B));
                 if(!outlineOnly&&item.Faces.Count>0) foreach(var face in item.Faces) {
                     Geometry geometry=Path(face);foreach(var hole in item.Voids)geometry=new CombinedGeometry(GeometryCombineMode.Exclude,geometry,Path(hole));dc.DrawGeometry(fill,null,geometry);
                 }
@@ -129,7 +133,7 @@ namespace QksExcelAddIn.Views.Controls
                 labels.Add((item,active?SelectionBrush:new SolidColorBrush(Color.FromRgb(15,34,64)),endOn?screenLines:labelLines,screenPolygon));
             }
             var settings=LabelSettings?.ToDictionary(s=>s.Kind);
-            foreach(var entry in labels.OrderBy(e=>selected.Contains(e.Item.Source.Id)?0:1)) { string value=settings!=null&&settings.TryGetValue(entry.Item.Source.Kind,out var setting)?setting.Text(entry.Item.Source):ElementLabels.Text(entry.Item.Source,ShowLabels,ShowSections,ShowUniqueNames);if(value.Length>0)DrawLabel(dc,entry.Lines,entry.Polygon,(entry.Item.Polygon.Count>2&&(entry.Item.Source.Vertices.Count>2&&entry.Item.Source.Kind!=ElementKind.Wall||entry.Item.Source.Kind==ElementKind.Column&&!Elevation)),value,entry.Brush,viewport); }
+            foreach(var entry in labels.OrderBy(e=>selected.Contains(e.Item.Source.Id)?0:1)) { string value=settings!=null&&settings.TryGetValue(entry.Item.Source.Kind,out var setting)?setting.Text(entry.Item.Source):ElementLabels.Text(entry.Item.Source,ShowLabels,ShowSections,ShowUniqueNames);if(slabColors.TryGetValue(entry.Item.Source.Id,out var region))value=ShowLoadValues?region.Label:"";if(value.Length>0)DrawLabel(dc,entry.Lines,entry.Polygon,(entry.Item.Polygon.Count>2&&(entry.Item.Source.Vertices.Count>2&&entry.Item.Source.Kind!=ElementKind.Wall||entry.Item.Source.Kind==ElementKind.Column&&!Elevation)),value,entry.Brush,viewport,region!=null); }
             foreach(var overlay in DraftOverlays??Array.Empty<DraftOverlay>()) {
                 var pen=new Pen(Brushes.MediumPurple,3){DashStyle=DashStyles.Dash};foreach(var s in overlay.Geometry.Segments) { if(selected.Contains(overlay.ElementId))dc.DrawLine(new Pen(SelectionBrush,6),Screen(s.A),Screen(s.B));dc.DrawLine(pen,Screen(s.A),Screen(s.B)); }
                 if(ShowDraftValues)DrawLabel(dc,overlay.Geometry.Segments.Select(s=>new Segment2(V(Screen(s.A)),V(Screen(s.B)))).ToArray(),overlay.Geometry.Polygon.Select(p=>V(Screen(p))).ToArray(),overlay.Geometry.Source.Vertices.Count>2,overlay.Text,pen.Brush,viewport);

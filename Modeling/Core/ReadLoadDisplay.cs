@@ -16,7 +16,8 @@ namespace QksExcelAddIn.Modeling.Core
         public ViewPlane Plane { get; }
         public string UniformLoadSet=>LoadSetName(Load);
         public static string LoadSetName(ExistingLoad load)=>load.Kind.StartsWith("Area uniform set: ",StringComparison.Ordinal)?load.Kind.Substring("Area uniform set: ".Length):"";
-        public string Title => (UniformLoadSet.Length>0?UniformLoadSet+" · ":"")+Category+" · "+Geometry.Source.Name+" · "+Load.Pattern;
+        public bool NamesOnly { get; private set; }
+        public string Title => NamesOnly?UniformLoadSet: (UniformLoadSet.Length>0?UniformLoadSet+" · ":"")+Category+" · "+Geometry.Source.Name+" · "+Load.Pattern;
         public string DirectionText {
             get {
                 if(Category=="Joint") {
@@ -28,12 +29,12 @@ namespace QksExcelAddIn.Modeling.Core
                 return Load.Direction>0&&Load.Direction<directions.Length?directions[Load.Direction]:"Dir "+Load.Direction;
             }
         }
-        public string Text => (UniformLoadSet.Length>0?"["+UniformLoadSet+"] ":"")+Load.Pattern+": "+Values+" "+Load.Unit+" · "+Load.CoordinateSystem+" / "+DirectionText+(Category=="Joint"?" · step "+Load.Step:Category=="Frame"?" · r="+Load.Start.ToString("0.###",CultureInfo.CurrentCulture)+(Load.Start!=Load.End?"→"+Load.End.ToString("0.###",CultureInfo.CurrentCulture):""):"");
-        public string Detail => Text+"\n"+Load.Kind+(Category=="Frame"?" · I→J":"")+(LoadGlyphs.Direction(this).HasValue?"":" · chưa xác định hướng để vẽ");
+        public string Text => NamesOnly?UniformLoadSet: (UniformLoadSet.Length>0?"["+UniformLoadSet+"] ":"")+Load.Pattern+": "+Values+" "+Load.Unit+" · "+Load.CoordinateSystem+" / "+DirectionText+(Category=="Joint"?" · step "+Load.Step:Category=="Frame"?" · r="+Load.Start.ToString("0.###",CultureInfo.CurrentCulture)+(Load.Start!=Load.End?"→"+Load.End.ToString("0.###",CultureInfo.CurrentCulture):""):"");
+        public string Detail => NamesOnly?UniformLoadSet: Text+"\n"+Load.Kind+(Category=="Frame"?" · I→J":"")+(LoadGlyphs.Direction(this).HasValue?"":" · chưa xác định hướng để vẽ");
         private string Values => Load.Value1.ToString("0.###",CultureInfo.CurrentCulture)+(Load.Value1!=Load.Value2?" → "+Load.Value2.ToString("0.###",CultureInfo.CurrentCulture):"");
         private ReadLoadDisplay(string category,ExistingLoad load,ProjectedElement geometry,ModelElement source,ViewPlane plane) { Category=category;Load=load;Geometry=geometry;ElementId=load.ElementId;Source=source;Plane=plane; }
         public static IReadOnlyList<ReadLoadDisplay> Build(ModelSnapshot? snapshot,IReadOnlyList<ProjectedElement> scene,ViewPlane plane,string? pattern,
-            bool frames,bool shells,bool joints,bool onlySelected,IReadOnlyList<string> selected,bool showZero)
+            bool frames,bool shells,bool joints,bool onlySelected,IReadOnlyList<string> selected,bool showZero,bool namesOnly=false)
         {
             if(snapshot==null||(!frames&&!shells&&!joints))return Array.Empty<ReadLoadDisplay>();
             var visible=scene.ToDictionary(i=>i.Source.Id,StringComparer.Ordinal);var selectedSet=new HashSet<string>(selected,StringComparer.Ordinal);var result=new List<ReadLoadDisplay>();
@@ -47,7 +48,7 @@ namespace QksExcelAddIn.Modeling.Core
                     var points=load.Start==load.End?new[]{a+d*load.Start}:new[]{a+d*load.Start,a+d*load.End};
                     geometry=Projection.Build(new ModelElement(source.Id,source.Name,source.Label,source.Story,source.Property,source.Kind,points),plane);
                 }
-                if(geometry!=null)result.Add(new ReadLoadDisplay(category,load,geometry,item.Source,plane));
+                if(geometry!=null)result.Add(new ReadLoadDisplay(category,load,geometry,item.Source,plane){NamesOnly=namesOnly});
             }
             return result.OrderBy(r=>r.Category,StringComparer.Ordinal).ThenBy(r=>r.ElementId,StringComparer.Ordinal).ThenBy(r=>r.Load.Pattern,StringComparer.Ordinal).ThenBy(r=>r.Load.Step).ThenBy(r=>r.Load.Direction).ToArray();
         }

@@ -12,6 +12,7 @@ namespace QksExcelAddIn.Views.Controls
             var rows=ReadLoadItems??Array.Empty<ReadLoadDisplay>();
             var maxima=rows.GroupBy(LoadGlyphs.ScaleGroup).ToDictionary(g=>g.Key,g=>g.Max(r=>Math.Max(Math.Abs(r.Load.Value1),Math.Abs(r.Load.Value2))));
             foreach(var row in rows) {
+                if(row.Source.Kind==ElementKind.Slab)continue;
                 Brush brush=row.Category=="Frame"?Brushes.Firebrick:row.Category=="Shell"?Brushes.RoyalBlue:Brushes.DarkViolet;
                 var pen=new Pen(brush,1.4);var vector=LoadGlyphs.Direction(row);
                 // Plan wall loads are assignment-length strokes. Do not change point loads,

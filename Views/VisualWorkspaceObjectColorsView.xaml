@@ -23,7 +23,7 @@
       <TextBox Grid.Column="2" Text="{Binding Green, UpdateSourceTrigger=PropertyChanged}" Margin="3,0" ToolTip="Green: 0–255"/>
       <TextBox Grid.Column="3" Text="{Binding Blue, UpdateSourceTrigger=PropertyChanged}" Margin="3,0" ToolTip="Blue: 0–255"/>
       <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-       <Border Background="{Binding PreviewColor}" Width="32" Height="22" BorderBrush="#64748B" BorderThickness="1"/>
+       <Button Background="{Binding PreviewColor}" Width="32" Height="26" Padding="0" ToolTip="Chọn trực tiếp trên bảng màu" Click="PickColor_Click"/>
        <TextBlock Text="{Binding Hex}" VerticalAlignment="Center" Margin="8,0,0,0"/>
       </StackPanel>
      </Grid></Border>

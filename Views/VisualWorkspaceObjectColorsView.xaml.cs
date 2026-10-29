@@ -30,6 +30,13 @@ namespace QksExcelAddIn.Views
             if(ModeNote==null)return;
             ModeNote.Text=ModeBox.SelectedIndex==1?"Theo Property đang ưu tiên màu tiết diện. Màu Object vẫn được lưu để dùng khi chuyển lại chế độ theo loại.":"Chỉnh RGB từng loại bên dưới. Bấm Áp dụng để cập nhật hình và lưu trên máy này.";
         }
+        private void PickColor_Click(object sender,RoutedEventArgs e)
+        {
+            if(!(((FrameworkElement)sender).DataContext is ObjectColorRow row))return;
+            ObjectColor current;try{current=row.ToColor();}catch(ArgumentException){current=ObjectColor.Default(row.Kind);}
+            using(var picker=new System.Windows.Forms.ColorDialog{FullOpen=true,Color=System.Drawing.Color.FromArgb(current.Red,current.Green,current.Blue)})
+                if(picker.ShowDialog()==System.Windows.Forms.DialogResult.OK){row.Red=picker.Color.R.ToString();row.Green=picker.Color.G.ToString();row.Blue=picker.Color.B.ToString();}
+        }
         private void Apply_Click(object sender,RoutedEventArgs e)
         {
             try {
