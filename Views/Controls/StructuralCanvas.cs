@@ -77,6 +77,7 @@ namespace QksExcelAddIn.Views.Controls
         public StructuralCanvas() { ClipToBounds=true;Focusable=true; }
         private Point Screen(Vec2 p)=>new Point(ox+p.X*scale,oy-p.Y*scale);
         private Vec2 World(Point p)=>new Vec2((p.X-ox)/scale,(oy-p.Y)/scale);
+        public Box2 VisibleWorldBounds => new Box2(World(new Point(0,0)),World(new Point(ActualWidth,ActualHeight)));
         private static Vec2 V(Point p)=>new Vec2(p.X,p.Y);
         public void Fit()
         {

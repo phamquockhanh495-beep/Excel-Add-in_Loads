@@ -1,6 +1,6 @@
 # Kế hoạch xuất PDF mặt bằng tải trọng — Loading Case Plan
 
-Ngày lập: 29/10/2026. Trạng thái: kế hoạch triển khai; bản build đi kèm **chưa có nút xuất PDF**.
+Ngày lập: 29/10/2026. Trạng thái: đã triển khai P1–P4 và kiểm tra tự động của P5; nghiệm thu WPF/Excel/ETABS trên Windows còn cần thực hiện. Xem [hướng dẫn bản đã triển khai](QKS-2D-PDF-EXPORT.md). Lưới trục chưa có dữ liệu nguồn nên chưa đưa vào PDF.
 
 ## 1. Mục tiêu và phạm vi
 

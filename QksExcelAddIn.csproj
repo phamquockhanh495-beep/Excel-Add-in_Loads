@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="PDFsharp" Version="6.2.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="ExcelDna.AddIn" Version="1.9.0" />
     <PackageReference Include="MaterialDesignThemes" Version="5.3.2" />
@@ -35,6 +36,8 @@
 
   <ItemGroup>
     <Resource Include="Resources\*.png;Resources\*.ico" />
+    <EmbeddedResource Include="Resources/Fonts/*.ttf" LogicalName="Qks.Fonts.%(Filename)%(Extension)" />
+    <Resource Include="Resources/Fonts/*.ttf" />
     <EmbeddedResource Include="Resources\*.png;Resources\*.ico" />
   </ItemGroup>
 

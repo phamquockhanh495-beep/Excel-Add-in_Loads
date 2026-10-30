@@ -23,7 +23,7 @@ File cấu hình được kiểm tra trước khi dùng và ghi thay thế an to
 
 ## Xuất PDF
 
-Xem [kế hoạch Loading Case Plan](PLAN-LOADING-CASE-PLAN-PDF.md). Chưa triển khai xuất PDF trong bản build này.
+Xem [kế hoạch Loading Case Plan](PLAN-LOADING-CASE-PLAN-PDF.md). Chức năng đã triển khai; xem [hướng dẫn xuất PDF](QKS-2D-PDF-EXPORT.md).
 
 ## Kiểm tra trên máy sử dụng
 

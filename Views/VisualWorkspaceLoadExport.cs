@@ -9,6 +9,12 @@ namespace QksExcelAddIn.Views
 {
     public partial class VisualLoadWorkspaceView
     {
+        private void PrintPlan_Click(object sender, RoutedEventArgs e)
+        {
+            if(vm.Busy)return;
+            if(vm.Snapshot==null){vm.Status="Đọc mô hình trước khi xuất PDF.";return;}
+            new LoadingCasePlanView(vm,sectionModelPath,vm.Elevation?(Box2?)null:Canvas.VisibleWorldBounds){Owner=this}.ShowDialog();
+        }
         private async void ExportSlabCurrent_Click(object sender, RoutedEventArgs e) => await ExportSlabs(false);
         private async void ExportSlabAll_Click(object sender, RoutedEventArgs e) => await ExportSlabs(true);
         private async Task ExportSlabs(bool allStories)

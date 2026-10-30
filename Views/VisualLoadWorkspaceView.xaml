@@ -162,6 +162,7 @@
                 <CheckBox Content="Hiện nhãn tải (sàn: tên Pattern / Set)" IsChecked="{Binding ShowLoadValues}"/>
                 <CheckBox Content="Chỉ đối tượng đang chọn" IsChecked="{Binding OnlySelectedLoads}"/>
                 <CheckBox IsEnabled="{Binding PatternMode}" Content="Kể cả thành phần bằng 0" IsChecked="{Binding ShowZeroLoads}"/>
+                <Button Content="Xuất PDF · Loading Case Plan" Click="PrintPlan_Click" IsEnabled="{Binding CanRead}" Margin="0,8,0,4"/>
                 <Expander Header="XUẤT TẢI SÀN · .XLSX" Margin="0,6" IsEnabled="{Binding CanRead}"><StackPanel>
                     <TextBlock Text="Theo chế độ và Pattern / Set đang chọn. Gồm cả tải bằng 0; không lọc theo chọn/ẩn cấu kiện." TextWrapping="Wrap" FontSize="10.5" Foreground="#64748B" Margin="0,4"/>
                     <Button Content="Xuất tầng đang xem" Click="ExportSlabCurrent_Click" ToolTip="Trong Plan: xuất toàn bộ sàn thuộc tầng đang chọn"/>
