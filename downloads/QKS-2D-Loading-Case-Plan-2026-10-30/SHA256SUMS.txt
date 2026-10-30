@@ -1,0 +1,2 @@
+c0a479f3e3494c094aadab6d5955d5b658f593e63b2ef03f6d6afa5eb54a2535  QKS-2D-Loading-Case-Plan-2026-10-30.zip
+a3c088c70efb02698a5411c55e34c426c640d207e460b3208e1685314a66578b  Excel/QksExcelAddIn-AddIn64-packed.xll
