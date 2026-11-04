@@ -6,6 +6,9 @@ namespace QksExcelAddIn.Services
 {
     public class EtabsInstanceInfo
     {
+        public string Product { get; set; } = "ETABS";
+        public bool IsSafe => Product == "SAFE";
+        public object? NativeApi { get; set; }
         public int ProcessId { get; set; }
         public string DisplayName { get; set; } = string.Empty;
         public string ModelPath { get; set; } = string.Empty;
@@ -13,7 +16,7 @@ namespace QksExcelAddIn.Services
         public string Version { get; set; } = string.Empty;
         public cOAPI? EtabsObject { get; set; }
         public cSapModel? SapModel { get; set; }
-        public string WorkspaceDisplay => "[ETABS " + Version + "] " + (string.IsNullOrWhiteSpace(ModelPath) ? ModelFileName : System.IO.Path.GetFileName(ModelPath)) + " (PID: " + ProcessId + ")";
+        public string WorkspaceDisplay => "[" + Product + " " + Version + "] " + (string.IsNullOrWhiteSpace(ModelPath) ? ModelFileName : System.IO.Path.GetFileName(ModelPath)) + " (PID: " + ProcessId + ")";
     }
 
     public class AcadDocInfo
@@ -37,7 +40,7 @@ namespace QksExcelAddIn.Services
     public static class AppConnectionManager
     {
         private static EtabsInstanceInfo? _activeEtabs;
-        public static string ModelIdentity => _activeEtabs == null ? "" : _activeEtabs.ProcessId + "|" + _activeEtabs.ModelPath;
+        public static string ModelIdentity => _activeEtabs == null ? "" : _activeEtabs.Product + "|" + _activeEtabs.ProcessId + "|" + _activeEtabs.ModelPath;
         public static EtabsInstanceInfo? ActiveEtabs {
             get => _activeEtabs;
             set {
@@ -50,7 +53,7 @@ namespace QksExcelAddIn.Services
         public static AcadDocInfo? ActiveAutoCad { get; set; }
         public static ExcelWorkbookInfo? ActiveExcel { get; set; }
 
-        public static bool IsEtabsConnected => ActiveEtabs != null && ActiveEtabs.SapModel != null;
+        public static bool IsEtabsConnected => ActiveEtabs != null && !ActiveEtabs.IsSafe && ActiveEtabs.SapModel != null;
         public static bool IsAutoCadConnected => ActiveAutoCad != null && !string.IsNullOrEmpty(ActiveAutoCad.FileName);
         public static bool IsExcelConnected => ActiveExcel != null && !string.IsNullOrEmpty(ActiveExcel.Name);
 
@@ -78,10 +81,15 @@ namespace QksExcelAddIn.Services
 
         public static cSapModel? GetSapModel()
         {
+            if (ActiveEtabs?.IsSafe == true) throw new InvalidOperationException("SAFE được kết nối cho Model 2D và xuất báo cáo chỉ đọc. Chức năng này yêu cầu ETABS.");
+            return GetReadSapModel();
+        }
+        public static cSapModel? GetReadSapModel()
+        {
             var connection = ActiveEtabs;
             if (connection?.SapModel == null) return null;
             if (!Qks.Shared.Protocol.SamePath(connection.SapModel.GetModelFilename(), connection.ModelPath))
-                throw new InvalidOperationException("ETABS đã đổi mô hình. Hãy kết nối lại API.");
+                throw new InvalidOperationException("Mô hình CSI đã đổi. Hãy kết nối lại API.");
             return connection.SapModel;
         }
 
@@ -89,7 +97,7 @@ namespace QksExcelAddIn.Services
         {
             if (ActiveEtabs == null || ActiveEtabs.SapModel == null)
             {
-                return "Chưa kết nối ETABS";
+                return "Chưa kết nối ETABS / SAFE";
             }
             if (!string.IsNullOrEmpty(ActiveEtabs.ModelFileName))
             {

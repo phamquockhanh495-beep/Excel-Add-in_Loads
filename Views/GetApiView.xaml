@@ -173,7 +173,7 @@
                         </ToggleButton>
 
                         <!-- Row 1: CSI ETABS -->
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Model CSI ETABS :" VerticalAlignment="Center" 
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Model ETABS / SAFE :" VerticalAlignment="Center"
                                    FontFamily="Segoe UI" Foreground="#0F2240" FontWeight="Bold" Margin="4,0,0,0"/>
                         <ComboBox x:Name="CB_CSI" Grid.Row="1" Grid.Column="1" Margin="4,0,4,0" 
                                   SelectionChanged="CB_CSI_SelectionChanged"/>

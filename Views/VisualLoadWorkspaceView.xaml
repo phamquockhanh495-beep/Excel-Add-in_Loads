@@ -73,7 +73,7 @@
                     <TextBlock Text="Lưu riêng theo file ETABS trên máy này." Foreground="#64748B" TextWrapping="Wrap" FontSize="10.5"/>
                 </StackPanel>
                 <Separator Margin="0,6"/>
-                <TextBlock Text="SAFE 18–22: đang phát triển adapter" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
+                <TextBlock Text="SAFE 18–23 · Kết nối và đọc mô hình" TextWrapping="Wrap" Foreground="#64748B" Margin="0,5"/>
             </StackPanel></ScrollViewer></Border>
             <Grid Grid.Column="2">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>

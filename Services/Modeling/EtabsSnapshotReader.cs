@@ -16,7 +16,7 @@ namespace QksExcelAddIn.Services.Modeling
         public async Task<ModelSnapshot> ReadAsync(Action<string> progress, CancellationToken token, bool requireCompleteLoads = false)
         {
             if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA) throw new InvalidOperationException("Reader cần luồng STA.");
-            progress("Đang chờ lượt đọc ETABS…");
+            progress("Đang chờ lượt đọc mô hình CSI…");
             await Gate.WaitAsync(token);
             try { return await ReadCoreAsync(progress, token, requireCompleteLoads); }
             finally { Gate.Release(); }
@@ -34,10 +34,10 @@ namespace QksExcelAddIn.Services.Modeling
         }
         private async Task<ModelSnapshot> ReadCoreAsync(Action<string> progress, CancellationToken token, bool requireCompleteLoads)
         {
-            var connection = AppConnectionManager.ActiveEtabs ?? throw new InvalidOperationException("Hãy dùng Kết nối API để chọn ETABS trước.");
-            var sap = AppConnectionManager.GetSapModel() ?? throw new InvalidOperationException("ETABS chưa kết nối.");
+            var connection = AppConnectionManager.ActiveEtabs ?? throw new InvalidOperationException("Hãy dùng Kết nối API để chọn ETABS / SAFE trước.");
+            var sap = AppConnectionManager.GetReadSapModel() ?? throw new InvalidOperationException("Mô hình CSI chưa kết nối.");
             string identity = AppConnectionManager.ModelIdentity;
-            if (string.IsNullOrWhiteSpace(connection.ModelPath)) throw new InvalidOperationException("Hãy lưu mô hình ETABS trước khi đọc.");
+            if (string.IsNullOrWhiteSpace(connection.ModelPath)) throw new InvalidOperationException("Hãy lưu mô hình CSI trước khi đọc.");
             eForce force = default; eLength length = default; eTemperature temperature = default;
             Ok(sap.GetPresentUnits_2(ref force, ref length, ref temperature), "GetPresentUnits_2");
             var scale = new UnitScale(force.ToString(), length.ToString());
@@ -47,7 +47,7 @@ namespace QksExcelAddIn.Services.Modeling
                     !Qks.Shared.Protocol.SamePath(sap.GetModelFilename(), connection.ModelPath)) throw new InvalidOperationException("Kết nối/mô hình đã đổi. Hãy đọc lại.");
                 eForce f = default; eLength l = default; eTemperature t = default;
                 Ok(sap.GetPresentUnits_2(ref f, ref l, ref t), "GetPresentUnits_2");
-                if (f != force || l != length || t != temperature) throw new InvalidOperationException("Đơn vị ETABS đã đổi trong lúc đọc. Hãy đọc lại.");
+                if (f != force || l != length || t != temperature) throw new InvalidOperationException("Đơn vị mô hình đã đổi trong lúc đọc. Hãy đọc lại.");
             }
             async Task Yield(string message) {
                 progress(message); await Dispatcher.Yield(DispatcherPriority.Background); Guard();
@@ -83,7 +83,9 @@ namespace QksExcelAddIn.Services.Modeling
             var patterns = Names(patternCode, count, names, "LoadPatterns.GetNameList");
             count = 0; names = Array.Empty<string>();
             int rc = sap.Story.GetNameList(ref count, ref names);
-            foreach (string name in Names(rc, count, names, "Story.GetNameList")) {
+            if (connection.IsSafe && rc != 0) {
+                diagnostics.Add("SAFE không cung cấp Story; danh sách mặt bằng lấy theo cao độ hình học (m).");
+            } else foreach (string name in Names(rc, count, names, "Story.GetNameList")) {
                 double z = 0; Ok(sap.Story.GetElevation(name, ref z), "Story.GetElevation " + name); levels.Add(new ModelLevel(name, z * scale.LengthToMetres));
             }
             count = 0; names = Array.Empty<string>(); rc = sap.FrameObj.GetNameList(ref count, ref names);
@@ -101,6 +103,7 @@ namespace QksExcelAddIn.Services.Modeling
                 Optional(orientationResult, "Không đọc được design orientation frame " + name);
                 ElementKind kind = orientationResult != 0 ? ElementKind.Other : orientation == eFrameDesignOrientation.Beam ? ElementKind.Beam :
                     orientation == eFrameDesignOrientation.Column ? ElementKind.Column : orientation == eFrameDesignOrientation.Brace ? ElementKind.Brace : ElementKind.Other;
+                if(connection.IsSafe && orientationResult!=0) kind=SafeModelGeometry.Frame(pa,pb);
                 var element = new ModelElement("Frame:" + name, name, label, story, property, kind, new[] { pa, pb }, axisResult == 0 ? (double?)angle : null, advanced, sections.Read(property, kind, true));
                 if (advanced) Optional(-1, "Extrude frame " + name + ": advanced local axes chưa hỗ trợ; giữ đường trục.");
                 elements.Add(element);
@@ -124,6 +127,7 @@ namespace QksExcelAddIn.Services.Modeling
                 Optional(orientationResult, "Không đọc được design orientation area " + name);
                 ElementKind kind = opening ? ElementKind.Opening : orientationResult != 0 ? ElementKind.Other :
                     orientation == eAreaDesignOrientation.Floor ? ElementKind.Slab : orientation == eAreaDesignOrientation.Wall ? ElementKind.Wall : ElementKind.Other;
+                if(connection.IsSafe && !opening && orientationResult!=0) kind=SafeModelGeometry.Area(vertices);
                 var element = new ModelElement("Area:" + name, name, label, story, property, kind, vertices, section: sections.Read(property, kind, false));
                 elements.Add(element); ReadAreaLoads(sap, element, scale, loads, LoadError);
                 ReadUniformToFrame(sap,element,scale,loads,LoadError);
@@ -140,12 +144,16 @@ namespace QksExcelAddIn.Services.Modeling
                 if(++axesRead%25==0)await Yield("Đọc hướng local của đối tượng có tải…");
             }
             Guard();
-            if (levels.Count == 0) levels.AddRange(points.Values.Select(p => p.Z).Distinct().OrderBy(z => z).Select(z => new ModelLevel("Z=" + z.ToString("0.###"), z)));
+            if (levels.Count == 0) levels.AddRange(SafeModelGeometry.Levels(elements));
+            if(connection.IsSafe) {
+                SafeModelGeometry.AssignLevels(elements,levels);
+                diagnostics.Add("SAFE: đọc bằng SDK của phiên bản đang chạy. Phương thức không có / chữ ký khác trả cảnh báo -32001, không coi tải chưa đọc là 0. Khi thiếu design orientation, phân loại theo hình học; không suy đoán local axes hoặc kích thước tiết diện.");
+            }
             string version = ""; double versionNumber = 0;
-            Optional(sap.GetVersion(ref version, ref versionNumber), "Không đọc được phiên bản ETABS");
+            Optional(sap.GetVersion(ref version, ref versionNumber), "Không đọc được phiên bản CSI");
             if (optionalErrorCount > 0) diagnostics.Add("Tổng số lỗi/không hỗ trợ metadata hoặc tải tùy chọn: " + optionalErrorCount + ". Giới hạn 197 thông báo chi tiết; không coi tải thiếu là 0.");
             progress("Đọc xong " + elements.Count + " đối tượng.");
-            return new ModelSnapshot(1, "ETABS", version, identity, force + "/" + length + "/" + temperature,
+            return new ModelSnapshot(1, connection.Product, version, identity, force + "/" + length + "/" + temperature,
                 DateTime.UtcNow, elements, levels.OrderBy(l => l.Elevation), loads, diagnostics, patterns);
         }
         internal static void ReadFrameLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional)

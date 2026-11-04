@@ -36,6 +36,7 @@ namespace QksExcelAddIn.Views
                     LoadEtabsInstances();
                     LoadAutoCadDocuments();
                     ForceSetConnections();
+                    if(!string.IsNullOrEmpty(SafeConnectionService.ScanWarning)){lblStatus.Text="SAFE: xem chi tiết kết nối khi rê chuột.";lblStatus.ToolTip=SafeConnectionService.ScanWarning;}
                 }
                 catch (Exception ex)
                 {
@@ -117,7 +118,7 @@ namespace QksExcelAddIn.Views
 
             try
             {
-                var instances = EtabsService.GetRunningEtabsInstances();
+                var instances = SafeConnectionService.GetRunningModels();
                 foreach (var inst in instances)
                 {
                     _etabsInstances.Add(inst);
@@ -131,28 +132,17 @@ namespace QksExcelAddIn.Views
 
             if (CB_CSI.Items.Count > 0)
             {
-                int selectedIdx = 0;
-                int targetPid = AppConnectionManager.ActiveEtabs?.ProcessId ?? 0;
-                string targetFile = AppConnectionManager.ActiveEtabs?.ModelFileName ?? "";
-
-                for (int i = 0; i < _etabsInstances.Count; i++)
-                {
-                    if (targetPid > 0 && _etabsInstances[i].ProcessId == targetPid)
-                    {
-                        selectedIdx = i;
-                        break;
-                    }
-                    if (!string.IsNullOrEmpty(targetFile) && _etabsInstances[i].ModelFileName.Equals(targetFile, StringComparison.OrdinalIgnoreCase))
-                    {
-                        selectedIdx = i;
-                        break;
-                    }
+                var active=AppConnectionManager.ActiveEtabs;
+                int selectedIdx=active==null?0:-1;
+                for(int i=0;i<_etabsInstances.Count;i++) {
+                    var candidate=_etabsInstances[i];
+                    if(active!=null&&candidate.Product==active.Product&&candidate.ProcessId==active.ProcessId&&Qks.Shared.Protocol.SamePath(candidate.ModelPath,active.ModelPath)) {selectedIdx=i;break;}
                 }
                 CB_CSI.SelectedIndex = selectedIdx;
             }
             else
             {
-                CB_CSI.Items.Add("Không phát hiện model CSI ETABS đang mở");
+                CB_CSI.Items.Add("Không phát hiện model ETABS / SAFE đang mở");
                 CB_CSI.SelectedIndex = 0;
             }
         }
@@ -279,13 +269,22 @@ namespace QksExcelAddIn.Views
         {
             var ofd = new Microsoft.Win32.OpenFileDialog
             {
-                Filter = "Model ETABS (*.edb)|*.edb|All files (*.*)|*.*",
-                Title = "Chọn file mô hình ETABS (.edb)"
+                Filter = "Model CSI (*.edb;*.fdb)|*.edb;*.fdb|ETABS (*.edb)|*.edb|SAFE (*.fdb)|*.fdb",
+                Title = "Chọn file mô hình ETABS / SAFE"
             };
 
             if (ofd.ShowDialog() == true)
             {
                 string filePath = ofd.FileName;
+                if (string.Equals(Path.GetExtension(filePath), ".fdb", StringComparison.OrdinalIgnoreCase)) {
+                    try {
+                        _loading=true;LoadEtabsInstances();
+                        int index=_etabsInstances.FindIndex(x=>x.IsSafe&&Qks.Shared.Protocol.SamePath(x.ModelPath,filePath));
+                        if(index>=0){CB_CSI.SelectedIndex=index;ForceSetConnections();lblStatus.Text="Đã chọn mô hình SAFE đang mở.";}
+                        else{SafeConnectionService.OpenModelFile(filePath);lblStatus.Text="Đang mở SAFE. Khi mô hình nạp xong, bấm Quét lại và chọn đúng phiên SAFE.";}
+                    }catch(Exception ex){CustomMessageBox.Show(ex.Message,"Kết nối SAFE",CustomMessageBox.IconType.ErrorType);}
+                    finally{_loading=false;}return;
+                }
                 try
                 {
                     lblStatus.Text = "Đang khởi chạy ETABS và nạp mô hình...";
@@ -391,7 +390,8 @@ namespace QksExcelAddIn.Views
                 LoadEtabsInstances();
                 LoadAutoCadDocuments();
                 ForceSetConnections();
-                lblStatus.Text = "Đã làm mới danh sách tài liệu.";
+                lblStatus.Text = string.IsNullOrEmpty(SafeConnectionService.ScanWarning)?"Đã làm mới danh sách tài liệu.":"SAFE chưa kết nối được một số phiên — xem chi tiết khi rê chuột.";
+                lblStatus.ToolTip=SafeConnectionService.ScanWarning;
                 lblStatus.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(16, 124, 65));
             }
             finally
@@ -405,7 +405,7 @@ namespace QksExcelAddIn.Views
             ForceSetConnections();
 
             string msg = "Đã lưu thiết lập kết nối thành công!\n\n" +
-                         $"• ETABS: {AppConnectionManager.GetEtabsDisplayName()}\n" +
+                         $"• ETABS / SAFE: {AppConnectionManager.GetEtabsDisplayName()}\n" +
                          $"• AutoCAD: {AppConnectionManager.GetAutoCadDisplayName()}\n" +
                          $"• Excel: {AppConnectionManager.GetExcelDisplayName()}";
 

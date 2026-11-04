@@ -23,7 +23,7 @@ namespace QksExcelAddIn.Views
         {
             updatingModels = true;
             try {
-                if (scan) modelChoices = EtabsService.GetRunningEtabsInstances();
+                if (scan) modelChoices = SafeConnectionService.GetRunningModels();
                 var active = AppConnectionManager.ActiveEtabs;
                 if (scan && active != null) {
                     bool valid;
@@ -37,7 +37,7 @@ namespace QksExcelAddIn.Views
                 ConnectedModelBox.ItemsSource = modelChoices.ToArray(); ConnectedModelBox.SelectedItem = active;
                 ConnectedFileText.Text = AppConnectionManager.GetExcelDisplayName();
                 ConnectedFileText.ToolTip = AppConnectionManager.ActiveExcel?.FullPath;
-            } catch (Exception ex) { vm.Status = "Không quét được ETABS: " + ex.GetBaseException().Message; }
+            } catch (Exception ex) { vm.Status = "Không quét được ETABS / SAFE: " + ex.GetBaseException().Message; }
             finally { updatingModels = false; }
         }
         private void ConnectionChanged()

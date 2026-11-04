@@ -74,6 +74,7 @@ internal static partial class Program
         SlabReportTests();
         ViewerPreferencesTests();
         PrintPlanTests();
+        SafeConnectionTests();
         ObjectColorTests();
         DraftTests();
         LayoutTests();

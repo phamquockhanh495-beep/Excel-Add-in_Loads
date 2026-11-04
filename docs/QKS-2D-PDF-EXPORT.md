@@ -5,7 +5,9 @@
 1. Cập nhật XLL, kết nối API và đọc mô hình. Mở **Quản lý tải trọng → Xuất PDF · Loading Case Plan**.
 2. Chọn **Load Pattern** hoặc **Load Sets**, tầng đang xem / các tầng / toàn bộ tầng. Ctrl hoặc Shift để chọn nhiều Pattern/Set và nhiều tầng.
 3. Mặc định mỗi tổ hợp tầng × Pattern/Set là một mặt bằng. Bật **Gộp các Pattern/Set** nếu muốn hiển thị đồng thời trên một mặt bằng.
-4. Cài giấy, margin, header/footer và nội dung bản vẽ. Bấm **Cập nhật xem trước**, kiểm tra danh sách trang, zoom và cảnh báo.
+4. Dùng các nút **2. Giấy, margin và tỷ lệ**, **3. Header / Footer**, **4. Nội dung bản vẽ** để mở popup thiết lập riêng; Áp dụng để nhận thay đổi hoặc Hủy để giữ bản cũ. Cài giấy, margin, header/footer và nội dung bản vẽ. Bấm **Cập nhật xem trước**, kiểm tra danh sách trang, zoom và cảnh báo.
+Trang preview tự vừa cửa sổ; có nút **Vừa trang** và zoom thủ công. Thông tin dữ liệu đã đọc không chiếm vùng preview; cảnh báo còn ở nút **Cảnh báo** khi cần.
+
 5. Bấm **Xuất PDF**. Có thể xuất một file nhiều trang hoặc tách file theo tầng vào thư mục. Các file tách có tên `QKS_<tầng>.pdf`; file cùng tên được thay sau khi hoàn tất.
 
 Dữ liệu in lấy từ lần đọc API tại lúc mở hộp thoại. Đổi bộ lọc in không đổi workspace gốc. Muốn dùng mô hình hoặc màu/cỡ chữ Display mới, đóng hộp thoại, cập nhật rồi mở lại.
