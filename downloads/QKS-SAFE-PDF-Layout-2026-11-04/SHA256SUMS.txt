@@ -1,0 +1,2 @@
+61ef263dacef7ea46b041b857f45e17e316995fa93dd5e3fcb818353d803e30b  QKS-SAFE-PDF-Layout-2026-11-04.zip
+a4aee8116e29456f693a957c1af43c957baa857debb550f40e938a60078b6b31  Excel/QksExcelAddIn-AddIn64-packed.xll
