@@ -75,6 +75,7 @@ internal static partial class Program
         ViewerPreferencesTests();
         PrintPlanTests();
         SafeConnectionTests();
+        GridStoryTests();
         ObjectColorTests();
         DraftTests();
         LayoutTests();

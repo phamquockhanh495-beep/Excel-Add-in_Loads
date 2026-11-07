@@ -9,8 +9,16 @@ namespace QksExcelAddIn.Modeling.Core
     {
         public static ProjectedElement? Clip(ProjectedElement? item, ViewPlane plane)
         {
-            if(item==null || !plane.MinU.HasValue || !plane.MaxU.HasValue)return item;
-            double min=plane.MinU.Value,max=plane.MaxU.Value;
+            if(plane.MinU.HasValue)item=ClipAxis(item,plane.MinU.Value,plane.MaxU!.Value,false);
+            if(plane.MinV.HasValue)item=ClipAxis(item,plane.MinV.Value,plane.MaxV!.Value,true);
+            return item;
+        }
+        private static ProjectedElement? ClipAxis(ProjectedElement? source,double min,double max,bool vertical)
+        {
+            if(source==null)return null;
+            Vec2 Swap(Vec2 p)=>vertical?new Vec2(p.Y,p.X):p;
+            ProjectedElement Map(ProjectedElement e)=>new ProjectedElement(e.Source,e.Segments.Select(s=>new Segment2(Swap(s.A),Swap(s.B))).ToList(),e.Polygon.Select(Swap).ToArray(),e.IsCut,e.Faces.Select(f=>f.Select(Swap).ToArray()).ToArray(),e.AxisSegments.Select(s=>new Segment2(Swap(s.A),Swap(s.B))).ToArray(),e.Voids.Select(f=>f.Select(Swap).ToArray()).ToArray());
+            var item=Map(source);
             Segment2? Line(Segment2 s) {
                 double dx=s.B.X-s.A.X,lo=0,hi=1;
                 if(Math.Abs(dx)<1e-12)return s.A.X>=min-1e-9&&s.A.X<=max+1e-9?(Segment2?)s:null;
@@ -32,7 +40,7 @@ namespace QksExcelAddIn.Modeling.Core
             var segments=faces.Length>0?faces.SelectMany(Edges).ToList():polygon.Length>2?Edges(polygon).ToList():Lines(item.Segments).ToList();
             if(segments.Count==0)return null;
             bool cut=item.IsCut||item.Segments.Any(s=>s.A.X<min||s.A.X>max||s.B.X<min||s.B.X>max);
-            return new ProjectedElement(item.Source,segments,polygon,cut,faces,Lines(item.AxisSegments),item.Voids.Select(Polygon).Where(p=>p.Length>2).ToArray());
+            return Map(new ProjectedElement(item.Source,segments,polygon,cut,faces,Lines(item.AxisSegments),item.Voids.Select(Polygon).Where(p=>p.Length>2).ToArray()));
         }
     }
 }

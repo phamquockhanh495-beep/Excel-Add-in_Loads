@@ -53,6 +53,7 @@ namespace QksExcelAddIn.Modeling.Printing
         public double LegendSize { get; set; } = 45;
         public double LegendFont { get; set; } = 8;
         public bool Labels { get; set; } = true;
+        public bool Grids { get; set; } = true;
         public bool MemberNames { get; set; } = true;
         public bool Extrude { get; set; } = true;
         public bool Frames { get; set; } = true;

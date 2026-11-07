@@ -19,6 +19,7 @@ namespace QksExcelAddIn.Modeling.Printing
         public static PrintDocument Build(PrintRequest request,CancellationToken token,Action<string>? progress=null)
         {
             var p=request.Profile;p.Validate();var layout=new PrintLayout(p);var pages=new List<PrintPage>();var warnings=new List<string>(request.Model.Diagnostics);
+            if(p.Grids&&request.Model.GridLines.Count==0)warnings.Add("Không có lưới trục đã đọc trong nguồn. Kiểm tra dữ liệu GridSys / đọc lại mô hình nếu cần trục trong PDF.");
             var views=new List<View>();var chosen=new HashSet<string>(request.Cases,StringComparer.Ordinal);var ids=request.VisibleIds==null?null:new HashSet<string>(request.VisibleIds,StringComparer.Ordinal);
             double depth=double.Parse(request.Display.HalfDepth.Replace(',','.'),CultureInfo.InvariantCulture);
             foreach(var story in request.Stories) {

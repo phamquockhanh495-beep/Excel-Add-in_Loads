@@ -50,7 +50,7 @@ Giới hạn lô: 300 mặt bằng, 500 trang sau dàn trang. Với mô hình r�
 
 ## Phạm vi và kiểm chứng
 
-Đã triển khai xuất **Plan**; chưa xuất mặt cắt. Lưới trục ETABS chưa có trong dữ liệu mô hình đang đọc nên **chưa đưa lưới trục vào PDF**; giao diện có ghi rõ giới hạn này. PDF không chứa panel/menu WPF. Đường nét và chữ là vector, font được nhúng; logo là ảnh.
+Đã triển khai xuất **Plan**; chưa xuất mặt cắt. Lưới trục được đọc từ GridSys và có thể bật/tắt tại **4. Nội dung bản vẽ → Hiện lưới trục**. Cần Đọc lại model sau khi nâng cấp để có dữ liệu trục. API không hỗ trợ hoặc đọc thiếu được thông báo; không tự tạo trục thay thế. PDF không chứa panel/menu WPF. Đường nét và chữ là vector, font được nhúng; logo là ảnh.
 
 Kiểm tra cloud: build net48 WPF, core/view-model, thông số giấy, tỷ lệ đoạn tải, lỗ mở, nhãn Unicode, Pattern/Set, trang tiếp chú giải, hủy và rollback. PDF mẫu được mở, trích text, kiểm tra kích thước trang/font và raster hóa bằng PyMuPDF độc lập. PDF mẫu dùng **dữ liệu minh họa**, không phải mô hình thực của người dùng.
 

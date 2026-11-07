@@ -10,7 +10,7 @@ namespace QksExcelAddIn.ViewModels
         {
             return new ViewerPreferences {
                 Labels = LabelSettings.Select(l => new ViewerLabelPreference {Kind=l.Kind, Visible=l.Visible, Extrude=l.Extrude, Label=l.Label, UniqueName=l.UniqueName, Section=l.Section}).ToArray(),
-                Extrude=Extrude, ColorByProperty=ColorByProperty, Kind=Kind, HalfDepth=HalfDepth, Reverse=Reverse,
+                ShowGrids=ShowGrids, IsolateStory=IsolateStory, Extrude=Extrude, ColorByProperty=ColorByProperty, Kind=Kind, HalfDepth=HalfDepth, Reverse=Reverse,
                 LoadSetsMode=LoadSetsMode, FrameLoads=ShowFrameLoads, ShellLoads=ShowShellLoads, JointLoads=ShowJointLoads,
                 LoadValues=ShowLoadValues, ZeroLoads=ShowZeroLoads,
                 LastModelPath=modelPath, LastStory=Level?.Name??"", LastPattern=ReadPattern, LastSet=UniformLoadSet
@@ -23,6 +23,7 @@ namespace QksExcelAddIn.ViewModels
                 var row=LabelSettings.First(l=>l.Kind==saved.Kind);
                 row.Visible=saved.Visible; row.Extrude=saved.Extrude; row.Label=saved.Label; row.UniqueName=saved.UniqueName; row.Section=saved.Section;
             }
+            showGrids=profile.ShowGrids;isolateStory=profile.IsolateStory;Changed(nameof(ShowGrids));Changed(nameof(IsolateStory));
             extrude=profile.Extrude; ColorByProperty=profile.ColorByProperty; kind=profile.Kind;
             HalfDepth=profile.HalfDepth; reverse=profile.Reverse; loadSetsMode=profile.LoadSetsMode;
             showFrameLoads=profile.FrameLoads; showShellLoads=profile.ShellLoads; showJointLoads=profile.JointLoads;

@@ -21,7 +21,7 @@ namespace QksExcelAddIn.ViewModels
         private HashSet<string> displayIds = new HashSet<string>(StringComparer.Ordinal);
         public IEnumerable<ExistingLoad> VisibleLoads => Snapshot?.Loads.Where(l => displayIds.Contains(l.ElementId) && !workspaceRemovedIds.Contains(l.ElementId) && (SelectedIds.Count == 0 || selectedIdSet.Contains(l.ElementId))) ?? Enumerable.Empty<ExistingLoad>();
         public string[] Kinds { get; } = new[] { "Tất cả" }.Concat(Enum.GetNames(typeof(ElementKind))).ToArray();
-        private string status = "Kết nối API rồi mở workspace để tự đọc ETABS. SAFE 18–22 đang chờ kiểm chứng API.";
+        private string status = "Kết nối API rồi mở workspace để tự đọc ETABS. SAFE 18–23 cần nghiệm thu API trên máy thực.";
         public string Status { get => status; set { status = value; Changed(); } }
         public string SourceText { get; private set; } = "Chưa đọc mô hình";
         public string Diagnostics => Snapshot == null ? "Chưa đọc dữ liệu." : string.Join(Environment.NewLine + Environment.NewLine, Snapshot.Diagnostics);
@@ -92,14 +92,26 @@ namespace QksExcelAddIn.ViewModels
             if (!double.TryParse(value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double result) || !Number.Finite(result)) throw new ArgumentException("Giá trị phải là số hữu hạn, dùng dấu thập phân . hoặc ,.");
             return result;
         }
-        public ViewPlane CurrentPlane() => Elevation ? CutStart.HasValue && CutEnd.HasValue ? ViewPlane.ElevationThrough(CutStart.Value,CutEnd.Value,Parse(HalfDepth),Reverse) : ViewPlane.Elevation(Parse(OriginX),Parse(OriginY),Parse(Angle),Parse(HalfDepth),Reverse) : ViewPlane.Plan(Level?.Elevation??0,Parse(HalfDepth));
+        private bool showGrids=true,isolateStory;
+        public bool ShowGrids {get=>showGrids;set{showGrids=value;Changed();Refresh();}}
+        public bool IsolateStory {get=>isolateStory;set{isolateStory=value;Changed();Refresh();}}
+        public IReadOnlyList<GridDrawing> GridScene {get;private set;}=Array.Empty<GridDrawing>();
+        public IReadOnlyList<ModelLevel> DisplayLevels {get;private set;}=Array.Empty<ModelLevel>();
+        public ViewPlane CurrentPlane()
+        {
+            var plane=Elevation ? CutStart.HasValue && CutEnd.HasValue ? ViewPlane.ElevationThrough(CutStart.Value,CutEnd.Value,Parse(HalfDepth),Reverse) : ViewPlane.Elevation(Parse(OriginX),Parse(OriginY),Parse(Angle),Parse(HalfDepth),Reverse) : ViewPlane.Plan(Level?.Elevation??0,Parse(HalfDepth));
+            var band=Elevation&&IsolateStory?StoryBand.For(Snapshot,Level):null;
+            return band==null?plane:plane.WithVerticalRange(band.Bottom,band.Top);
+        }
         public void Refresh()
         {
             try {
                 double depth = Parse(HalfDepth);
                 var plane = CurrentPlane();
+                var band=Elevation&&IsolateStory?StoryBand.For(Snapshot,Level):null;
                 var scene = new List<ProjectedElement>();
                 foreach (var element in DisplayElements) {
+                    if(band!=null&&!band.Includes(element))continue;
                     if (workspaceRemovedIds.Contains(element.Id)||isolatedIds!=null&&!isolatedIds.Contains(element.Id)) continue;
                     var settings = LabelSettings.FirstOrDefault(s => s.Kind == element.Kind);
                     if (settings?.Visible == false) continue;
@@ -107,13 +119,23 @@ namespace QksExcelAddIn.ViewModels
                     if (!string.IsNullOrWhiteSpace(Search) && (element.Id + " " + element.Label + " " + element.Property + " " + element.Story).IndexOf(Search, StringComparison.OrdinalIgnoreCase) < 0) continue;
                     var projected = (element.Kind==ElementKind.Column || element.Kind==ElementKind.Wall || Extrude && settings?.Extrude != false) ? SectionExtrusion.Build(element, plane) : Projection.Build(element, plane); if (projected != null) scene.Add(projected);
                 }
-                var openings = DisplayElements.Where(e => e.Kind == ElementKind.Opening).Select(e => Projection.Build(e, plane)).Where(e => e != null).Cast<ProjectedElement>().ToArray();
+                var openings = DisplayElements.Where(e => e.Kind == ElementKind.Opening && (band==null||band.Includes(e))).Select(e => Projection.Build(e, plane)).Where(e => e != null).Cast<ProjectedElement>().ToArray();
                 if (openings.Length > 0) scene = scene.Select(e => SectionExtrusion.WithOpenings(e, openings)).ToList();
                 Scene = scene.AsReadOnly(); VisibleElements = scene.Select(e => e.Source).ToArray();
+                DisplayLevels=band==null?Levels:Levels.Where(l=>l.Elevation>=band.Bottom-1e-6&&l.Elevation<=band.Top+1e-6).ToArray();
+                var points=scene.SelectMany(e=>e.Segments).SelectMany(s=>new[]{s.A,s.B}).ToArray();
+                GridScene=Array.Empty<GridDrawing>();
+                if(ShowGrids&&Snapshot!=null&&points.Length>0){
+                    double minX=points.Min(p=>p.X),maxX=points.Max(p=>p.X),minY=points.Min(p=>p.Y),maxY=points.Max(p=>p.Y);
+                    double margin=Math.Max(.5,Math.Max(maxX-minX,maxY-minY)*.06);
+                    GridScene=Elevation?GridGeometry.Elevation(Snapshot.GridLines,plane,band?.Bottom??Math.Min(minY,Levels.Select(l=>l.Elevation).DefaultIfEmpty(minY).Min()),band?.Top??Math.Max(maxY,Levels.Select(l=>l.Elevation).DefaultIfEmpty(maxY).Max())):
+                        GridGeometry.Plan(Snapshot.GridLines,new Box2(new Vec2(minX-margin,minY-margin),new Vec2(maxX+margin,maxY+margin)),Level?.Elevation??0);
+                }
+                Changed(nameof(GridScene));Changed(nameof(DisplayLevels));
                 UpdateDraftOverlays(plane);
                 RefreshReadLoads();
                 Changed(nameof(Scene)); Changed(nameof(VisibleElements)); Changed(nameof(Counts));
-                if (!Busy) Status = Elevation ? "Elevation · " + (plane.MinU.HasValue ? "A–B: " + (plane.MaxU!.Value-plane.MinU.Value).ToString("0.###") + " m · " : "") + "U ngang, V = +Z · dải ±" + depth + " m. Nét đứt: đối tượng bị cắt bởi dải xem." : "Plan · XY · Z=" + (Level?.Elevation ?? 0) + " m · dải ±" + depth + " m.";
+                if (!Busy) Status = Elevation ? "Elevation · " + (band!=null?"Chỉ tầng "+Level?.Name+" · ":"") + (plane.MinU.HasValue ? "A–B: " + (plane.MaxU!.Value-plane.MinU.Value).ToString("0.###") + " m · " : "") + "U ngang, V = +Z · dải ±" + depth + " m. Nét đứt: đối tượng bị cắt bởi dải xem." : "Plan · XY · Z=" + (Level?.Elevation ?? 0) + " m · dải ±" + depth + " m.";
             }
             catch (Exception ex) { Status = "Không cập nhật hình: " + ex.Message; }
         }

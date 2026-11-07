@@ -82,6 +82,7 @@ namespace QksExcelAddIn.Views.Controls
         public void Fit()
         {
             var points=Items?.SelectMany(i=>i.Segments).SelectMany(s=>new[]{s.A,s.B}).ToArray();
+            if(GridItems?.Count>0)points=(points??Array.Empty<Vec2>()).Concat(GridItems.SelectMany(g=>g.Lines).SelectMany(s=>new[]{s.A,s.B})).ToArray();
             if((points==null||points.Length==0)&&Elevation&&Levels?.Count>0)points=Levels.Select(l=>new Vec2(0,l.Elevation)).ToArray();
             if(points==null||points.Length==0||ActualWidth<10||ActualHeight<10)return;
             double minX=points.Min(p=>p.X),maxX=points.Max(p=>p.X),minY=points.Min(p=>p.Y),maxY=points.Max(p=>p.Y);
@@ -96,6 +97,7 @@ namespace QksExcelAddIn.Views.Controls
         {
             dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(237,244,248)),null,new Rect(RenderSize));if(!fitted&&Items?.Count>0)Fit();
             var items=Items??Array.Empty<ProjectedElement>();var selected=new HashSet<string>(SelectedIds??Array.Empty<string>(),StringComparer.Ordinal);
+            DrawGridLines(dc);
             if(Elevation)DrawStories(dc);
             bool openings=HasOpenings||items.Any(i=>i.Source.Kind==ElementKind.Opening);
             var viewport=new Box2(new Vec2(4,4),new Vec2(Math.Max(4,ActualWidth-4),Math.Max(4,ActualHeight-34)));
@@ -140,6 +142,7 @@ namespace QksExcelAddIn.Views.Controls
                 if(ShowDraftValues)DrawLabel(dc,overlay.Geometry.Segments.Select(s=>new Segment2(V(Screen(s.A)),V(Screen(s.B)))).ToArray(),overlay.Geometry.Polygon.Select(p=>V(Screen(p))).ToArray(),overlay.Geometry.Source.Vertices.Count>2,overlay.Text,pen.Brush,viewport);
             }
             DrawReadLoads(dc,viewport);
+            DrawGridBubbles(dc);
             if(selectionStart.HasValue&&selectionEnd.HasValue&&dragged) { var rect=new Rect(selectionStart.Value,selectionEnd.Value);bool crossing=selectionEnd.Value.X<selectionStart.Value.X;var color=crossing?Colors.SeaGreen:Colors.RoyalBlue;var pen=new Pen(new SolidColorBrush(color),1){DashStyle=crossing?DashStyles.Dash:DashStyles.Solid};dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(25,color.R,color.G,color.B)),pen,rect); }
             DrawCutGuide(dc);
             if(FirstPlanePoint.HasValue)dc.DrawEllipse(Brushes.White,new Pen(Brushes.Teal,2),Screen(FirstPlanePoint.Value),5,5);

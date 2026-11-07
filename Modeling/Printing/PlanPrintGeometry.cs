@@ -13,6 +13,9 @@ namespace QksExcelAddIn.Modeling.Printing
             Vec2 Map(Vec2 p)=>new Vec2(ox+p.X*scale,oy-p.Y*scale);
             var viewport=new Box2(new Vec2(rect.X,rect.Y),new Vec2(rect.X+rect.Width,rect.Y+rect.Height));
             page.Rectangle(rect,"#FFFFFF");page.Marks.Add(new PrintMark{Kind=PrintMarkKind.Clip,Rect=rect});
+            var gridBox=new Box2(new Vec2((rect.X+22-ox)/scale,(oy-rect.Y-rect.Height+22)/scale),new Vec2((rect.X+rect.Width-22-ox)/scale,(oy-rect.Y-22)/scale));
+            var grids=request.Profile.Grids?GridGeometry.Plan(request.Model.GridLines,gridBox,view.Level.Elevation):Array.Empty<GridDrawing>();
+            foreach(var grid in grids)foreach(var s in grid.Lines)page.Line(Map(s.A),Map(s.B),"#8494A7",.45,true);
             var slabs=view.Regions.ToDictionary(r=>r.ElementId);var loadedIds=new HashSet<string>(view.Loads.Select(r=>r.ElementId),StringComparer.Ordinal);var labels=new List<Action>();
             var settings=request.Display.Labels.ToDictionary(l=>l.Kind);
             foreach(var item in view.Scene.OrderBy(i=>i.Source.Kind==ElementKind.Slab?0:i.Source.Kind==ElementKind.Wall?1:2)){
@@ -53,6 +56,7 @@ namespace QksExcelAddIn.Modeling.Printing
                 if(!direction.HasValue)warnings.Add("Chưa xác định hướng tải: "+row.ElementId+" / "+row.Load.Pattern+". PDF chỉ ghi giá trị, không suy diễn mũi tên.");
                 if(request.Profile.Labels&&label.HasValue)page.TextAt(row.Text+(direction.HasValue?"":" · chưa xác định hướng"),label.Value.X+5,label.Value.Y-12,request.Text.Loads.Size*.75,textColor);
             }
+            foreach(var grid in grids)foreach(var p in grid.Bubbles){var c=Map(p);double width=PrintFonts.Measure(grid.Label,7),radius=Math.Max(7,width/2+3);var ring=Enumerable.Range(0,48).Select(i=>new Vec2(c.X+radius*Math.Cos(i*Math.PI/24),c.Y+radius*Math.Sin(i*Math.PI/24))).ToArray();page.Marks.Add(new PrintMark{Kind=PrintMarkKind.Polygon,Points=ring,Fill="#FFFFFF",Color="#64748B",Width=.55});page.TextAt(grid.Label,c.X-width/2,c.Y-4.5,7,"#334155");}
             page.Marks.Add(new PrintMark{Kind=PrintMarkKind.Restore});
         }
         private static void Label(PrintPage page,IReadOnlyList<Segment2> lines,IReadOnlyList<Vec2> polygon,bool area,string text,double size,string color,Box2 viewport,List<string> warnings,bool below=false)

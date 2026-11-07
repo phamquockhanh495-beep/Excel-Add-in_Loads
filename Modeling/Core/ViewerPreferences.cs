@@ -24,6 +24,8 @@ namespace QksExcelAddIn.Modeling.Core
         public string Kind { get; set; } = "Tất cả";
         public string HalfDepth { get; set; } = "0.15";
         public bool Reverse { get; set; }
+        public bool ShowGrids { get; set; } = true;
+        public bool IsolateStory { get; set; }
         public bool LoadSetsMode { get; set; }
         public bool FrameLoads { get; set; }
         public bool ShellLoads { get; set; }

@@ -55,7 +55,7 @@ namespace QksExcelAddIn.Services.Modeling
             var diagnostics = new List<string> {
                 "Phạm vi tải: frame distributed/point, area uniform/uniform-to-frame + Uniform Load Sets, joint force/moment. Chưa gồm temperature, surface pressure, area nonuniform hoặc tải sinh tự động. Joint giữ riêng load step; không cộng các pattern/step.",
                 "Ảnh chụp dữ liệu chỉ đọc; không chỉnh mô hình/đơn vị trong khi đọc. API không cung cấp revision để phát hiện mọi thay đổi hình học cùng file.",
-                "Mặt đứng dựng từ hai điểm có snap, hiển thị mốc Story/cao độ đã đọc; lưới XY/named elevation chưa nhập. Extrude: tiết diện chữ nhật/tròn và chiều dày sàn/vách phẳng; cote mô hình là đỉnh dầm/sàn, chiều dày xuống dưới; cột/vách đặt giữa trục/mặt phân tích. Chưa xét insertion/end offsets. Sàn/vách nghiêng so với vùng xem giữ đường biên."
+                "Mặt đứng dựng từ hai điểm có snap, hiển thị mốc Story/cao độ đã đọc; named elevation chưa nhập. Extrude: tiết diện chữ nhật/tròn và chiều dày sàn/vách phẳng; cote mô hình là đỉnh dầm/sàn, chiều dày xuống dưới; cột/vách đặt giữa trục/mặt phân tích. Chưa xét insertion/end offsets. Sàn/vách nghiêng so với vùng xem giữ đường biên."
             };
             int optionalErrorCount = 0;
             void Optional(int code, string message) {
@@ -149,12 +149,13 @@ namespace QksExcelAddIn.Services.Modeling
                 SafeModelGeometry.AssignLevels(elements,levels);
                 diagnostics.Add("SAFE: đọc bằng SDK của phiên bản đang chạy. Phương thức không có / chữ ký khác trả cảnh báo -32001, không coi tải chưa đọc là 0. Khi thiếu design orientation, phân loại theo hình học; không suy đoán local axes hoặc kích thước tiết diện.");
             }
+            var grids=ReadGrids(sap,scale.LengthToMetres,levels,Optional,token); Guard();
             string version = ""; double versionNumber = 0;
             Optional(sap.GetVersion(ref version, ref versionNumber), "Không đọc được phiên bản CSI");
             if (optionalErrorCount > 0) diagnostics.Add("Tổng số lỗi/không hỗ trợ metadata hoặc tải tùy chọn: " + optionalErrorCount + ". Giới hạn 197 thông báo chi tiết; không coi tải thiếu là 0.");
             progress("Đọc xong " + elements.Count + " đối tượng.");
             return new ModelSnapshot(1, connection.Product, version, identity, force + "/" + length + "/" + temperature,
-                DateTime.UtcNow, elements, levels.OrderBy(l => l.Elevation), loads, diagnostics, patterns);
+                DateTime.UtcNow, elements, levels.OrderBy(l => l.Elevation), loads, diagnostics, patterns, grids);
         }
         internal static void ReadFrameLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional)
         {

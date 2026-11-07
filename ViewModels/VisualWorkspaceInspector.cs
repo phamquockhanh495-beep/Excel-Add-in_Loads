@@ -49,7 +49,7 @@ namespace QksExcelAddIn.ViewModels
 
         public bool MovePlanLevel(int direction)
         {
-            if(Busy || Elevation || Snapshot==null || Level==null || direction==0)return false;
+            if(Busy || (Elevation&&!IsolateStory) || Snapshot==null || Level==null || direction==0)return false;
             // Use physical elevation, not story name or the order returned by an adapter.
             var next=direction>0 ? Levels.Where(l=>l.Elevation>Level.Elevation+1e-8).OrderBy(l=>l.Elevation).FirstOrDefault() :
                 Levels.Where(l=>l.Elevation<Level.Elevation-1e-8).OrderByDescending(l=>l.Elevation).FirstOrDefault();

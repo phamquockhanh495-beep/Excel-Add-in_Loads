@@ -38,6 +38,8 @@ namespace QksExcelAddIn.Views
             Canvas.ViewContextRequested += OpenViewContextMenu;
             vm.PropertyChanged += (_, e) => {
                 if (e.PropertyName == nameof(vm.Elevation) && vm.Elevation && Canvas.PickingPlanePoints) StopPlanePicking();
+                if(e.PropertyName==nameof(vm.ShowGrids))Dispatcher.BeginInvoke(new Action(Canvas.Fit));
+                if ((e.PropertyName==nameof(vm.IsolateStory)||e.PropertyName==nameof(vm.Level))&&vm.Elevation)Dispatcher.BeginInvoke(new Action(Canvas.Fit));
                 if (e.PropertyName == nameof(vm.Busy) && !vm.Busy) ScheduleConnectedRead();
             };
             PreviewKeyDown += Window_KeyDown;
@@ -107,7 +109,7 @@ namespace QksExcelAddIn.Views
                 if(key==Key.H){StopPlanePicking();vm.RemoveSelectedFromWorkspace();e.Handled=true;return;}
                 if(key==Key.A){StopPlanePicking();vm.ShowAllObjects();e.Handled=true;return;}
             }
-            if ((e.Key == Key.PageUp || e.Key == Key.PageDown) && Keyboard.Modifiers == ModifierKeys.None && !vm.Elevation) {
+            if ((e.Key == Key.PageUp || e.Key == Key.PageDown) && Keyboard.Modifiers == ModifierKeys.None && (!vm.Elevation||vm.IsolateStory)) {
                 if (Keyboard.FocusedElement is ComboBoxItem || Keyboard.FocusedElement is ComboBox list && (list.IsDropDownOpen || list.IsEditable)) return;
                 if (vm.MovePlanLevel(e.Key == Key.PageUp ? 1 : -1)) StopPlanePicking();
                 e.Handled = true; return;

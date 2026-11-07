@@ -21,6 +21,8 @@ namespace QksExcelAddIn.Modeling.Core
         public double HalfDepth { get; }
         public double? MinU { get; private set; }
         public double? MaxU { get; private set; }
+        public double? MinV { get; private set; }
+        public double? MaxV { get; private set; }
         private ViewPlane(Vec3 origin, Vec3 u, Vec3 v, double halfDepth)
         {
             if (!origin.IsFinite || !Number.Finite(halfDepth) || halfDepth < .000001) throw new ArgumentException("Dải xem phải lớn hơn 0.");
@@ -41,7 +43,8 @@ namespace QksExcelAddIn.Modeling.Core
             double length = Math.Sqrt(dx*dx+dy*dy);
             plane.MinU = reverse ? -length : 0; plane.MaxU = reverse ? 0 : length; return plane;
         }
-        internal ViewPlane WithoutRange() => MinU.HasValue ? new ViewPlane(Origin,U,V,HalfDepth) : this;
+        public ViewPlane WithVerticalRange(double min,double max) {if(!Number.Finite(min)||!Number.Finite(max)||min>=max)throw new ArgumentException("Khoảng cao độ không hợp lệ.");return new ViewPlane(Origin,U,V,HalfDepth){MinU=MinU,MaxU=MaxU,MinV=min,MaxV=max};}
+        internal ViewPlane WithoutRange() => MinU.HasValue||MinV.HasValue ? new ViewPlane(Origin,U,V,HalfDepth) : this;
         public Vec2 Project(Vec3 p) { var d = p - Origin; return new Vec2(d.Dot(U), d.Dot(V)); }
         public double Depth(Vec3 p) => (p - Origin).Dot(Normal);
         public Vec3 Unproject(Vec2 p) => Origin + U * p.X + V * p.Y;

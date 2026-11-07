@@ -92,10 +92,12 @@ namespace QksExcelAddIn.Modeling.Core
         public IReadOnlyList<ExistingLoad> Loads { get; }
         public IReadOnlyList<string> Diagnostics { get; }
         public IReadOnlyList<string> LoadPatterns { get; }
+        public IReadOnlyList<ModelGridLine> GridLines { get; }
         public ModelSnapshot(int schemaVersion, string source, string version, string identity, string sourceUnits,
             DateTime capturedUtc, IEnumerable<ModelElement> elements, IEnumerable<ModelLevel> levels,
-            IEnumerable<ExistingLoad> loads, IEnumerable<string> diagnostics, IEnumerable<string>? loadPatterns = null)
+            IEnumerable<ExistingLoad> loads, IEnumerable<string> diagnostics, IEnumerable<string>? loadPatterns = null, IEnumerable<ModelGridLine>? gridLines = null)
         {
+            GridLines = Array.AsReadOnly((gridLines ?? Array.Empty<ModelGridLine>()).ToArray());
             SchemaVersion = schemaVersion; Source = source; Version = version; Identity = identity;
             SourceUnits = sourceUnits; CapturedUtc = capturedUtc;
             Elements = new ReadOnlyCollection<ModelElement>(elements.ToArray());
