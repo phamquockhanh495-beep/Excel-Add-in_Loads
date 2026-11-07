@@ -1,0 +1,2 @@
+73de539c8b55b9f75ba4174e170f45e547a55705f83388f906686d5486ed3b98  QKS-Grids-Story-Elevation-2026-11-07.zip
+ba558cce932752ad2bd8c719f1e05ca220afb22c7344df4d9474e0bb60039503  Excel/QksExcelAddIn-AddIn64-packed.xll
