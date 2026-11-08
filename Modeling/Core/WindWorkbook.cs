@@ -25,18 +25,18 @@ namespace QksExcelAddIn.Modeling.Core
                     for(int i=1;i<=3;i++) { content.Add(new XElement(types+"Override",new XAttribute("PartName","/xl/worksheets/sheet"+i+".xml"),new XAttribute("ContentType","application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml")));sheetList.Add(new XElement(main+"sheet",new XAttribute("name",sheetNames[i-1]),new XAttribute("sheetId",i),new XAttribute(rel+"id","rId"+i)));relationships.Add(new XElement(package+"Relationship",new XAttribute("Id","rId"+i),new XAttribute("Type",rel.NamespaceName+"/worksheet"),new XAttribute("Target","worksheets/sheet"+i+".xml"))); }
                     Entry("[Content_Types].xml",new XDocument(content));Entry("_rels/.rels",new XDocument(new XElement(package+"Relationships",new XElement(package+"Relationship",new XAttribute("Id","rId1"),new XAttribute("Type",rel.NamespaceName+"/officeDocument"),new XAttribute("Target","xl/workbook.xml")))));Entry("xl/workbook.xml",new XDocument(new XElement(main+"workbook",new XAttribute(XNamespace.Xmlns+"r",rel),sheetList)));Entry("xl/_rels/workbook.xml.rels",new XDocument(relationships));
                     void Sheet(int index,IEnumerable<string[]> values) { var data=new XElement(main+"sheetData");int r=0;foreach(var row in values) { r++;var element=new XElement(main+"row",new XAttribute("r",r));for(int c=0;c<row.Length;c++)element.Add(new XElement(main+"c",new XAttribute("r",((char)('A'+c)).ToString()+r),new XAttribute("t","inlineStr"),new XElement(main+"is",new XElement(main+"t",row[c]))));data.Add(element); }Entry("xl/worksheets/sheet"+index+".xml",new XDocument(new XElement(main+"worksheet",data))); }
-                    Sheet(1,new[]{new[]{"Target","Story","Pattern","UniqueName","Direction","q1_kN_m","q2_kN_m","Action"}}.Concat(levels.Select(l=>new[]{"Beam",l.Name,defaultPattern,"","Global-X","","","ReplaceMatching"})));
+                    Sheet(1,new[]{new[]{"Target","Story","Pattern","UniqueName","Direction","q1_kN_m","q2_kN_m","Action","r1","r2"}}.Concat(levels.Select(l=>new[]{"Beam",l.Name,defaultPattern,"","Global-X","","","ReplaceMatching","0","1"})));
                     Sheet(2,new[]{new[]{"Target","Story","Pattern","DiaphragmKey","Fx_kN","Fy_kN","Mz_kNm","X_m","Y_m"}}.Concat(levels.Select(l=>new[]{"UserLoads",l.Name,defaultPattern,"","","","","",""})));
                     Sheet(3,new[]{new[]{"QKS - Nhap truc tiep gia tri tai gio theo Story; khong quy doi"},new[]{"Dien q1/q2 [kN/m] hoac Fx/Fy [kN], Mz [kN.m], X/Y [m]. O rong khong tu thanh 0."},new[]{"UniqueName de trong: chi gan NHAP cho dam dang chon thuoc Story. Nhap UniqueName o dinh dang Text."},new[]{"User Loads: doc khoa diaphragm tu ETABS truoc va tu doi chieu dung Story. Moi lan sua mot User Loads pattern."},new[]{"Gia tri formula dung cache da luu: mo Excel, tinh va luu workbook truoc khi nhap. Khong co tai mau tu dong."}});
                 }
                 if(File.Exists(full))File.Replace(temp,full,null);else File.Move(temp,full);
             } finally { if(File.Exists(temp))File.Delete(temp); }
         }
-        public static IReadOnlyList<StoryWindInput> Read(string path,string defaultPattern="")
+        public static IReadOnlyList<StoryWindInput> Read(string path,string defaultPattern="",bool userSets=false)
         {
             if(new FileInfo(path).Length>64L*1024*1024)throw new InvalidDataException("File vượt 64 MiB.");
             string extension=Path.GetExtension(path).ToLowerInvariant();
-            if(extension==".csv")return WindInputTable.Parse(Csv(File.ReadAllText(path)),defaultPattern);
+            if(extension==".csv")return WindInputTable.Parse(Csv(File.ReadAllText(path)),defaultPattern,userSets);
             if(extension!=".xlsx"&&extension!=".xlsm")throw new InvalidDataException("Dùng .xlsx/.xlsm/CSV; file .xls có thể lấy qua vùng chọn Excel đang mở.");
             using(var archive=ZipFile.OpenRead(path)) {
                 long totalXmlBytes=0;
@@ -72,7 +72,7 @@ namespace QksExcelAddIn.Modeling.Core
                         int width=cells.Count==0?0:cells.Keys.Max()+1;var values=new string[width];for(int c=0;c<width;c++)values[c]=cells.TryGetValue(c,out var value)?value:"";data.Add(values);
                         if(data.Count>10020)throw new InvalidDataException("Worksheet vượt 10.000 dòng dữ liệu.");
                     }
-                    try { result.AddRange(WindInputTable.Parse(data,defaultPattern)); }
+                    try { result.AddRange(WindInputTable.Parse(data,defaultPattern,userSets)); }
                     catch(ArgumentException ex) when(named.Length==0&&ex.Message.StartsWith("Không tìm thấy heading",StringComparison.Ordinal)) { errors.Add(sheet.Attribute("name")?.Value+": "+ex.Message); }
                     if(result.Count>10000)throw new InvalidDataException("Workbook vượt 10.000 dòng tải.");
                 }

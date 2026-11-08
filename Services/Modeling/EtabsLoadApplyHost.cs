@@ -148,6 +148,7 @@ namespace QksExcelAddIn.Services.Modeling
         }
         public void SaveJournal(ApplyReport report) => WriteJournal(report);
         public void SaveUserWindJournal(UserWindReport report) => WriteJournal(report);
+        public void SaveWindTableJournal(WindTableReport report) => WriteJournal(report);
         private void WriteJournal(object report)
         {
             if (string.IsNullOrWhiteSpace(journalPath)) throw new IOException("Chưa có đường dẫn journal.");

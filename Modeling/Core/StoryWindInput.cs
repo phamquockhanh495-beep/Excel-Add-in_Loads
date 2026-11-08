@@ -17,12 +17,17 @@ namespace QksExcelAddIn.Modeling.Core
         public string Direction { get; set; }="Global-X";
         public string Q1 { get; set; }="";
         public string Q2 { get; set; }="";
+        public string R1 { get; set; }="0";
+        public string R2 { get; set; }="1";
         public string Fx { get; set; }="";
         public string Fy { get; set; }="";
         public string Mz { get; set; }="";
         public string X { get; set; }="";
         public string Y { get; set; }="";
         public string Action { get; set; }="ReplaceMatching";
+        public string UserLoadSet { get; set; }="";
+        public string UserSetCount { get; set; }="";
+        public string UserReversible { get; set; }="";
         public bool HasInput=>new[]{UniqueName,DiaphragmKey,Q1,Q2,Fx,Fy,Mz,X,Y}.Any(v=>!string.IsNullOrWhiteSpace(v));
     }
     public sealed class StoryWindPlan
@@ -41,7 +46,7 @@ namespace QksExcelAddIn.Modeling.Core
             var namedBeams=beams.ToLookup(e=>(e.Story,e.Name));var selectedBeams=beams.Where(e=>selected.Contains(e.Id)).ToLookup(e=>e.Story,StringComparer.Ordinal);
             var knownKeys=new HashSet<string>(userBaseline?.Rows.Select(r=>r.DiaphragmKey)??Array.Empty<string>(),StringComparer.Ordinal);
             var draft=workspace.Loads.ToList();var user=new List<UserWindRow>();var stories=new Dictionary<string,string>(StringComparer.Ordinal);
-            var scopes=new HashSet<(string,string,int)>();var userKeys=new HashSet<string>(StringComparer.Ordinal);
+            var scopes=new HashSet<(string,string,int,double,double)>();var userKeys=new HashSet<string>(StringComparer.Ordinal);
             for(int i=0;i<rows.Length;i++) {
                 var row=rows[i];string story=(row.Story??"").Trim(),pattern=(row.Pattern??"").Trim();
                 if(!levels.Contains(story))throw new ArgumentException("Dòng "+(i+1)+": Story không có trong mô hình: "+story);
@@ -50,14 +55,15 @@ namespace QksExcelAddIn.Modeling.Core
                     if(new[]{row.Fx,row.Fy,row.Mz,row.X,row.Y,row.DiaphragmKey}.Any(v=>!string.IsNullOrWhiteSpace(v)))throw new ArgumentException("Dòng dầm chỉ nhận q1/q2 (kN/m), không nhận lực/áp lực tầng.");
                     int direction=row.Direction=="Global-X"?4:row.Direction=="Global-Y"?5:throw new ArgumentException("Gió dầm cần Global-X hoặc Global-Y.");
                     double q1=NumberValue(row.Q1,"q1"),q2=string.IsNullOrWhiteSpace(row.Q2)?q1:NumberValue(row.Q2,"q2");
+                    double r1=NumberValue(row.R1,"r1"),r2=NumberValue(row.R2,"r2");
                     var action=row.Action=="Add"?DraftAction.Add:row.Action=="ReplaceMatching"?DraftAction.ReplaceMatching:throw new ArgumentException("Action cần Add hoặc ReplaceMatching.");
                     var targets=(string.IsNullOrWhiteSpace(row.UniqueName)?selectedBeams[story]:namedBeams[(story,row.UniqueName.Trim())]).ToArray();
                     if(targets.Length==0)throw new ArgumentException("Không có dầm "+row.UniqueName+" thuộc Story "+story+". Nếu để trống UniqueName, phải chọn dầm biên trên view trước.");
                     foreach(var beam in targets) {
-                        if(!scopes.Add((beam.Id,pattern,direction)))throw new ArgumentException("Trùng dòng dầm/pattern/hướng trong dữ liệu nhập: "+beam.Name);
-                        var old=draft.Where(d=>d.Kind==DraftKind.WindLine&&d.ElementId==beam.Id&&d.Pattern==pattern&&d.Direction==direction).ToArray();
+                        if(!scopes.Add((beam.Id,pattern,direction,r1,r2)))throw new ArgumentException("Trùng dòng dầm/pattern/hướng/đoạn trong dữ liệu nhập: "+beam.Name);
+                        var old=draft.Where(d=>d.Kind==DraftKind.WindLine&&d.ElementId==beam.Id&&d.Pattern==pattern&&d.Direction==direction&&d.Start==r1&&d.End==r2).ToArray();
                         draft.RemoveAll(d=>old.Contains(d));
-                        draft.Add(new DraftLoad(old.FirstOrDefault()?.Id??Guid.NewGuid().ToString("N"),beam.Id,DraftKind.WindLine,pattern,direction,0,1,q1,q2,action,basis));
+                        draft.Add(new DraftLoad(old.FirstOrDefault()?.Id??Guid.NewGuid().ToString("N"),beam.Id,DraftKind.WindLine,pattern,direction,r1,r2,q1,q2,action,basis));
                     }
                 } else if(string.Equals(row.Target,"UserLoads",StringComparison.OrdinalIgnoreCase)) {
                     if(!string.IsNullOrWhiteSpace(row.Q1)||!string.IsNullOrWhiteSpace(row.Q2)||!string.IsNullOrWhiteSpace(row.UniqueName))throw new ArgumentException("Dòng User Loads nhận Fx/Fy/Mz/X/Y, không nhận q hoặc UniqueName dầm.");
@@ -86,7 +92,7 @@ namespace QksExcelAddIn.Modeling.Core
         {
             var text=new StringBuilder();foreach(char c in value.ToLowerInvariant().Replace('đ','d').Normalize(NormalizationForm.FormD))if(char.IsLetterOrDigit(c)&&CharUnicodeInfo.GetUnicodeCategory(c)!=UnicodeCategory.NonSpacingMark)text.Append(c);return text.ToString();
         }
-        public static IReadOnlyList<StoryWindInput> Parse(IReadOnlyList<string[]> table,string defaultPattern="")
+        public static IReadOnlyList<StoryWindInput> Parse(IReadOnlyList<string[]> table,string defaultPattern="",bool userSets=false)
         {
             int header=-1;Dictionary<string,int>? columns=null;
             for(int r=0;r<Math.Min(20,table.Count);r++) {
@@ -98,6 +104,8 @@ namespace QksExcelAddIn.Modeling.Core
                 }
             }
             if(columns==null)throw new ArgumentException("Không tìm thấy heading Story và q1 hoặc Fx/Fy. Dùng file mẫu WindBeams/WindStories.");
+            if(!userSets&&new[]{"loadset","loadsets","loadsetid","loadsetnumber","numberofloadsets","reversible","loadsarereversibleforcombos"}.Any(columns.ContainsKey))
+                throw new ArgumentException("File có Load Set/Reversible: SDK hiện chưa xác minh các trường này. Không bỏ qua chúng để ghi nhầm set; dùng khóa API đã đọc hoặc thiết lập trong ETABS.");
             foreach(var aliases in new[]{new[]{"story","tang"},new[]{"pattern","loadpattern","loadpat"},new[]{"uniquename","uniqueid","beam"},new[]{"diaphragmkey","diaphragm"},new[]{"direction","phuong","huong"},new[]{"target","method"},new[]{"action","thaotac"},new[]{"q1knm","q1","qknm"},new[]{"q2knm","q2"},new[]{"fxkn","fx"},new[]{"fykn","fy"},new[]{"mzknm","mz"},new[]{"xm","x"},new[]{"ym","y"}})
                 if(aliases.Count(columns.ContainsKey)>1)throw new ArgumentException("Nhiều cột cùng thuộc tính tải: "+aliases[0]);
             string Get(string[] row,params string[] aliases) { foreach(string alias in aliases)if(columns.TryGetValue(alias,out int index)&&index<row.Length)return row[index].Trim();return ""; }
@@ -113,6 +121,8 @@ namespace QksExcelAddIn.Modeling.Core
                     target=force?"UserLoads":"Beam";
                 }
                 input.Target=target;
+                if(userSets){input.UserLoadSet=Get(row,"loadset");input.UserSetCount=Get(row,"numberofloadsets");input.UserReversible=Get(row,"reversible");}
+                string r1=Get(row,"r1"),r2=Get(row,"r2");if(r1.Length>0)input.R1=r1;if(r2.Length>0)input.R2=r2;
                 string direction=Get(row,"direction","phuong","huong");if(direction.Length>0)input.Direction=direction;
                 string action=Get(row,"action","thaotac");if(action.Length>0)input.Action=action;
                 result.Add(input);if(result.Count>10000)throw new ArgumentException("File vượt 10.000 dòng tải.");

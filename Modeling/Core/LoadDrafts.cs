@@ -197,7 +197,18 @@ namespace QksExcelAddIn.Modeling.Core
             var rows = Snapshot.Loads.Select(l => new LoadComparison("Trước", "Snapshot", l)).ToList();
             var replacements = current.Where(d => d.Action == DraftAction.ReplaceMatching).Select(d => d.AsLoad())
                 .ToLookup(l => new { l.ElementId, l.Pattern, l.Direction, l.Kind, CoordinateSystem = l.CoordinateSystem.ToUpperInvariant() });
-            rows.AddRange(Snapshot.Loads.Where(l => !replacements.Contains(new { l.ElementId, l.Pattern, l.Direction, l.Kind, CoordinateSystem = (l.CoordinateSystem ?? "").ToUpperInvariant() })).Select(l => new LoadComparison("Sau", "Giữ từ snapshot", l)));
+            foreach(var load in Snapshot.Loads) {
+                var scope=new { load.ElementId, load.Pattern, load.Direction, load.Kind, CoordinateSystem=(load.CoordinateSystem??"").ToUpperInvariant() };
+                if(!replacements.Contains(scope)) { rows.Add(new LoadComparison("Sau","Giữ từ snapshot",load));continue; }
+                // Wind's partial-segment editor replaces only its declared intervals. Preserve
+                // the linear continuation outside them, including sign-changing loads.
+                var matching=current.Where(d=>d.Action==DraftAction.ReplaceMatching&&d.ElementId==load.ElementId&&d.Pattern==load.Pattern&&d.Direction==load.Direction&&d.AsLoad().Kind==load.Kind&&string.Equals(d.CoordinateSystem,load.CoordinateSystem,StringComparison.OrdinalIgnoreCase)).ToArray();
+                if(matching.All(d=>d.Kind==DraftKind.WindLine)) {
+                    var remaining=new List<ExistingLoad>{load};
+                    foreach(var cut in matching)remaining=remaining.SelectMany(l=>WindBeamEditing.Outside(l,cut.Start,cut.End)).ToList();
+                    rows.AddRange(remaining.Select(l=>new LoadComparison("Sau","Giữ ngoài đoạn gió",l)));
+                }
+            }
             rows.AddRange(current.Select(l => new LoadComparison("Sau", l.Action == DraftAction.Add ? "Nháp · thêm" : "Nháp · thay cùng phạm vi", l.AsLoad())));
             return rows.AsReadOnly();
         }

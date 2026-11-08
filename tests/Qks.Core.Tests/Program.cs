@@ -81,6 +81,8 @@ internal static partial class Program
         LayoutTests();
         ApplyTests();
         WindTests();
+        WindWorkspaceTests();
+        WindUserTableTests();
         InteractionTests();
         StoryWindTests();
         WorkspaceUpdateTests();

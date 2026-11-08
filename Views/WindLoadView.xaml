@@ -1,326 +1,76 @@
-﻿<Window x:Class="QksExcelAddIn.Views.WindLoadView"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        mc:Ignorable="d"
-        Title="QKS - Gán Tải Trọng Gió" Height="680" Width="960"
-        WindowStartupLocation="CenterScreen"
-        WindowStyle="None"
-        ResizeMode="NoResize"
-        FontSize="12"
-        FontFamily="Segoe UI"
-        Topmost="True">
-
-    <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/QksExcelAddIn;component/MaterialDesignResources.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-
-            <!-- Custom GroupBox Style with Solid Navy Border and Underlined Header -->
-            <Style x:Key="CustomGroupBoxStyle" TargetType="GroupBox">
-                <Setter Property="BorderBrush" Value="#0F2240"/>
-                <Setter Property="BorderThickness" Value="0.5"/>
-                <Setter Property="Margin" Value="4,3,4,3"/>
-                <Setter Property="Padding" Value="6,4"/>
-                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="GroupBox">
-                            <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" CornerRadius="2">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-
-                                    <!-- GroupBox Header (Underlined with Navy brush) -->
-                                    <Border Grid.Row="0" Background="Transparent" Padding="8,4,8,4" BorderBrush="#0F2240" BorderThickness="0,0,0,0.5">
-                                        <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/>
-                                    </Border>
-
-                                    <!-- GroupBox Content -->
-                                    <Border Grid.Row="1" BorderThickness="0" Background="Transparent" Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter/>
-                                    </Border>
-                                </Grid>
-                            </Border>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-                <Setter Property="HeaderTemplate">
-                    <Setter.Value>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding}" FontFamily="Segoe UI" FontWeight="Bold" FontSize="11.5" Foreground="#0F2240"/>
-                        </DataTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
-            <!-- Custom ComboBox Style -->
-            <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignComboBox}">
-                <Setter Property="HorizontalContentAlignment" Value="Left"/>
-                <Setter Property="VerticalContentAlignment" Value="Center"/>
-                <Setter Property="Height" Value="25"/>
-                <Setter Property="FontSize" Value="11.5"/>
-                <Setter Property="FontFamily" Value="Segoe UI"/>
-            </Style>
-        </ResourceDictionary>
-    </Window.Resources>
-
-    <Border BorderThickness="1" BorderBrush="#0F2240" Background="White">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="35"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <!-- Headbar (Navy #0F2240) -->
-            <Grid Grid.Row="0" Background="#0F2240" MouseDown="TitleBar_MouseDown">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="35"/>
-                    <ColumnDefinition Width="35"/>
-                </Grid.ColumnDefinitions>
-
-<StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,6,0">
-                    <Image Source="pack://application:,,,/QksExcelAddIn;component/Resources/windload.png" Width="18" Height="18" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="QKS" Foreground="#38BDF8" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
-                    <TextBlock Text=" | " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" Margin="3,0,3,0"/>
-                </StackPanel>
-                <TextBlock Grid.Column="1" Text="TÍNH TOÁN &amp; GÁN TẢI TRỌNG GIÓ VÀO ETABS" Foreground="White" 
-                           FontFamily="Segoe UI" FontSize="11.5" FontWeight="Bold" 
-                           VerticalAlignment="Center" Margin="2,0,0,0"/>
-
-                <!-- Minimize Button -->
-                <Button Grid.Column="2" Content="—" Foreground="White" Background="Transparent" 
-                        BorderThickness="0" FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"
-                        Click="MinimizeButton_Click" Cursor="Hand">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="border" Background="{TemplateBinding Background}">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="border" Property="Background" Value="#10B981"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                </Button>
-
-                <!-- Close Button -->
-                <Button Grid.Column="3" Content="✕" Foreground="White" Background="Transparent" 
-                        BorderThickness="0" FontFamily="Segoe UI" FontSize="12" FontWeight="Bold"
-                        Click="CloseButton_Click" Cursor="Hand">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="border" Background="{TemplateBinding Background}">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="border" Property="Background" Value="#DC3232"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                </Button>
-            </Grid>
-
-            <!-- Main Workspace -->
-            <Grid Grid.Row="1" Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="260"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Left Panel -->
-                <Grid Grid.Column="0" Margin="0,0,6,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Connection Status -->
-                    <GroupBox Header="TRẠNG THÁI KẾT NỐI (API)" Grid.Row="0" Style="{StaticResource CustomGroupBoxStyle}">
-                        <StackPanel Margin="2,4">
-                            <Grid Margin="0,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Ellipse x:Name="dotEtabs" Width="9" Height="9" Fill="#B71C1C" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock x:Name="lblEtabsStatus" Text="ETABS: Chưa kết nối" Grid.Column="1" VerticalAlignment="Center" FontFamily="Segoe UI" FontWeight="SemiBold" Foreground="#B71C1C"/>
-                            </Grid>
-                            <TextBlock x:Name="lblModelName" Text="Chưa chọn mô hình (Kết Nối API từ Ribbon)" FontFamily="Segoe UI" FontSize="11" Margin="15,0,0,3" Foreground="#B71C1C" TextTrimming="CharacterEllipsis"/>
-                            <Grid Margin="0,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Ellipse x:Name="dotCad" Width="9" Height="9" Fill="#B71C1C" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock x:Name="lblCadStatus" Text="AutoCAD: Chưa kết nối" Grid.Column="1" VerticalAlignment="Center" FontFamily="Segoe UI" FontWeight="SemiBold" Foreground="#B71C1C"/>
-                            </Grid>
-                        </StackPanel>
-                    </GroupBox>
-
-                    <!-- Section Selection -->
-                    <GroupBox Header="DANH SÁCH TIẾT DIỆN DẦM BIÊN" Grid.Row="1" Style="{StaticResource CustomGroupBoxStyle}">
-                        <Grid Margin="2">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <TextBox x:Name="txtSearchSection" Margin="0,0,0,4" 
-                                     Style="{StaticResource MaterialDesignTextBox}" 
-                                     materialDesign:HintAssist.Hint="Tìm kiếm tiết diện..."/>
-                            <ScrollViewer Grid.Row="1">
-                                <StackPanel x:Name="pnlSections">
-                                    <CheckBox Content="B20X35" IsChecked="True" Style="{StaticResource MaterialDesignCheckBox}" Margin="2"/>
-                                    <CheckBox Content="B25X35" IsChecked="True" Style="{StaticResource MaterialDesignCheckBox}" Margin="2"/>
-                                    <CheckBox Content="B30X30" Style="{StaticResource MaterialDesignCheckBox}" Margin="2"/>
-                                    <CheckBox Content="B30X60" Style="{StaticResource MaterialDesignCheckBox}" Margin="2"/>
-                                    <CheckBox Content="B40X60" Style="{StaticResource MaterialDesignCheckBox}" Margin="2"/>
-                                    <CheckBox Content="DMB" Style="{StaticResource MaterialDesignCheckBox}" Margin="2"/>
-                                    <CheckBox Content="T10" Style="{StaticResource MaterialDesignCheckBox}" Margin="2"/>
-                                    <CheckBox Content="T20" Style="{StaticResource MaterialDesignCheckBox}" Margin="2"/>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </Grid>
-                    </GroupBox>
-
-                    <!-- Quick Actions -->
-                    <GroupBox Header="THAO TÁC AUTOCAD" Grid.Row="2" Style="{StaticResource CustomGroupBoxStyle}">
-                        <StackPanel Margin="2">
-                            <Button Margin="0,2" Cursor="Hand"
-                                    Style="{StaticResource MaterialDesignOutlinedButton}" 
-                                    Foreground="#0F2240" BorderBrush="#0F2240" Height="28" Padding="6,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="SelectAll" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="#0F2240"/>
-                                    <TextBlock Text="Lấy ID Cấu Kiện Chọn" VerticalAlignment="Center" FontFamily="Segoe UI" FontWeight="Bold" FontSize="11" Foreground="#0F2240"/>
-                                </StackPanel>
-                            </Button>
-                            <Button Margin="0,2" Cursor="Hand"
-                                    Style="{StaticResource MaterialDesignOutlinedButton}" 
-                                    Foreground="#0F2240" BorderBrush="#0F2240" Height="28" Padding="6,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="CheckCircleOutline" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="#0F2240"/>
-                                    <TextBlock Text="Kiểm Tra Mặt Bằng" VerticalAlignment="Center" FontFamily="Segoe UI" FontWeight="Bold" FontSize="11" Foreground="#0F2240"/>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </GroupBox>
-                </Grid>
-
-                <!-- Right Main Panel -->
-                <Grid Grid.Column="1" Margin="6,0,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Top Controls -->
-                    <Grid Grid.Row="0" Margin="0,2,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="BẢNG TÍNH TẢI GIÓ THEO TẦNG" FontFamily="Segoe UI" FontSize="14" FontWeight="Bold" 
-                                       VerticalAlignment="Center" Foreground="#0F2240"/>
-                            <TextBlock Text=" (Đọc dữ liệu hình học tầng &amp; dầm biên)" FontFamily="Segoe UI" FontSize="11.5" 
-                                       Foreground="#666666" VerticalAlignment="Center" Margin="6,0,0,0"/>
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <TextBlock Text="Hướng Gió:" VerticalAlignment="Center" Margin="10,0,6,0" FontFamily="Segoe UI" FontWeight="SemiBold" Foreground="#333333"/>
-                            <ComboBox Width="95" SelectedIndex="0">
-                                <ComboBoxItem Content="Phương X"/>
-                                <ComboBoxItem Content="Phương Y"/>
-                            </ComboBox>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- DataGrid -->
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding WindRows}" AutoGenerateColumns="False" CanUserAddRows="False" 
-                              Style="{StaticResource MaterialDesignDataGrid}" 
-                              RowStyle="{StaticResource QksDataGridRowStyle}"
-                              CellStyle="{StaticResource QksDataGridCellStyle}"
-                              ColumnHeaderStyle="{StaticResource QksDataGridColumnHeaderCenterStyle}"
-                              FontFamily="Segoe UI" FontSize="11.5" BorderBrush="#0F2240" BorderThickness="0.5">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Tên Tầng" Binding="{Binding Name}" Width="85" IsReadOnly="True" ElementStyle="{StaticResource QksDataGridElementCenterStyle}"/>
-                            <DataGridTextColumn Header="Chiều Cao (m)" Binding="{Binding Height}" Width="100" ElementStyle="{StaticResource QksDataGridElementCenterStyle}" EditingElementStyle="{StaticResource QksDataGridEditingStyle}"/>
-                            <DataGridTextColumn Header="Cao Độ (m)" Binding="{Binding Elevation}" Width="95" IsReadOnly="True" ElementStyle="{StaticResource QksDataGridElementCenterStyle}"/>
-                            <DataGridTextColumn Header="Gió Đẩy X (kN/m)" Binding="{Binding WxPush}" Width="110" ElementStyle="{StaticResource QksDataGridElementCenterStyle}" EditingElementStyle="{StaticResource QksDataGridEditingStyle}"/>
-                            <DataGridTextColumn Header="Gió Hút X (kN/m)" Binding="{Binding WxPull}" Width="110" ElementStyle="{StaticResource QksDataGridElementCenterStyle}" EditingElementStyle="{StaticResource QksDataGridEditingStyle}"/>
-                            <DataGridTextColumn Header="Gió Hút Y (kN/m)" Binding="{Binding WyPull}" Width="110" ElementStyle="{StaticResource QksDataGridElementCenterStyle}" EditingElementStyle="{StaticResource QksDataGridEditingStyle}"/>
-                            <DataGridTextColumn Header="Gió Đẩy Y (kN/m)" Binding="{Binding WyPush}" Width="110" ElementStyle="{StaticResource QksDataGridElementCenterStyle}" EditingElementStyle="{StaticResource QksDataGridEditingStyle}"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-
-                    <!-- Bottom Controls -->
-                    <Grid Grid.Row="2" Margin="0,10,0,2">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock x:Name="lblStatus" Text="Sẵn sàng gán tải trọng gió." VerticalAlignment="Center" Foreground="#107C41" FontFamily="Segoe UI" FontSize="11" FontStyle="Italic" FontWeight="Medium"/>
-
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <Button Style="{StaticResource MaterialDesignOutlinedButton}" 
-                                    Foreground="#0F2240" BorderBrush="#0F2240" Height="32" Padding="12,0" Margin="0,0,8,0"
-                                    Cursor="Hand" Click="OnDocTangEtabsClick">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="LayersOutline" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="#0F2240"/>
-                                    <TextBlock Text="ĐỌC TẦNG TỪ ETABS" VerticalAlignment="Center" FontFamily="Segoe UI" FontWeight="Bold" FontSize="11" Foreground="#0F2240"/>
-                                </StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource MaterialDesignOutlinedButton}" 
-                                    Foreground="#0F2240" BorderBrush="#0F2240" Height="32" Padding="12,0" Margin="0,0,8,0"
-                                    Cursor="Hand" Click="OnDocFileAutoCadClick">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="FileCad" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="#0F2240"/>
-                                    <TextBlock Text="ĐỌC TỪ AUTOCAD" VerticalAlignment="Center" FontFamily="Segoe UI" FontWeight="Bold" FontSize="11" Foreground="#0F2240"/>
-                                </StackPanel>
-                            </Button>
-                            <Button Height="32" Padding="16,0" Cursor="Hand"
-                                    Background="#0F2240" BorderBrush="#0F2240" Foreground="White"
-                                    Style="{StaticResource MaterialDesignRaisedButton}" 
-                                    materialDesign:ButtonProgressAssist.Value="-1"
-                                    materialDesign:ButtonProgressAssist.IsIndicatorVisible="True"
-                                    materialDesign:ButtonProgressAssist.IsIndeterminate="True"
-                                    Click="OnGanTaiGioClick">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="WeatherWindy" Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="White"/>
-                                    <TextBlock Text="GÁN TẢI GIÓ" VerticalAlignment="Center" FontFamily="Segoe UI" FontWeight="Bold" FontSize="11.5" Foreground="White"/>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
-                </Grid>
-            </Grid>
-        </Grid>
-    </Border>
+<Window x:Class="QksExcelAddIn.Views.WindLoadView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:controls="clr-namespace:QksExcelAddIn.Views.Controls"
+ Title="QKS | TẢI GIÓ · DIAPHRAGMS / DẦM BIÊN" Width="1440" Height="900" MinWidth="980" MinHeight="620"
+ WindowStartupLocation="CenterScreen" Background="#F8FAFC" FontFamily="Segoe UI" FontSize="12" Foreground="#0F2240">
+ <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="Styles/VisualWorkspaceStyles.xaml"/></ResourceDictionary.MergedDictionaries>
+ <Style x:Key="WindHeading" TargetType="TextBlock"><Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Margin" Value="0,8,0,8"/></Style>
+ </ResourceDictionary></Window.Resources>
+ <Grid Margin="10"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <DockPanel Margin="0,0,0,8">
+   <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Content="Kết nối API" Click="ConnectClick" IsEnabled="{Binding Viewer.CanRead}"/><Button Content="Đọc lại ETABS" Click="ReadClick" IsEnabled="{Binding Viewer.CanRead}"/><Button Content="Hủy tác vụ" Click="CancelClick" IsEnabled="{Binding Busy}"/></StackPanel>
+   <TextBlock x:Name="ModelText" Text="Chưa đọc mô hình ETABS" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8"/>
+  </DockPanel>
+  <Grid Grid.Row="1"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+   <WrapPanel IsEnabled="{Binding CanEdit}" Margin="0,0,0,6">
+    <Button Content="Nhập Excel / CSV" Click="ImportClick"/><Button Content="Lấy vùng Excel" Click="ExcelClick"/><Button Content="Xuất mẫu" Click="TemplateClick"/>
+    <Button Content="Mở bộ gió" Click="OpenClick"/><Button Content="Xuất Excel bộ soạn" Click="ExportClick"/><Button Content="Thông tin API" Click="ProbeClick"/>
+    <TextBlock Text="Giá trị đã tính · kN / m · không tự quy đổi áp lực" VerticalAlignment="Center" Margin="12,0" Foreground="#64748B"/>
+   </WrapPanel>
+   <TabControl Grid.Row="1" SelectedIndex="{Binding Tab}" IsEnabled="{Binding CanEdit}">
+    <TabItem Header="1. DIAPHRAGMS · USER LOADS">
+     <Grid Margin="10"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <DockPanel><Button DockPanel.Dock="Right" Content="Story / Load Sets…" Click="UserSettingsClick"/><Button DockPanel.Dock="Right" Content="Đọc User Loads" Click="ReadUsersClick"/><TextBlock Text="Load Pattern (Wind / User Loads)" VerticalAlignment="Center" Margin="0,0,12,0"/><ComboBox ItemsSource="{Binding Patterns}" SelectedItem="{Binding UserPattern}" MinWidth="180" MaxWidth="420" HorizontalAlignment="Left"/></DockPanel>
+      <Border Grid.Row="1" Background="#EFF5FB" Padding="10" Margin="0,8"><TextBlock TextWrapping="Wrap" Text="Sửa các khóa User Loads đã đọc từ ETABS. Story là thông tin đối chiếu: API hiện không trả Story/Load Set riêng. Dùng Story / Load Sets để mở bảng nâng cao khi schema host có đủ trường; nếu không, thiết lập các mục này trong ETABS."/></Border>
+      <DataGrid x:Name="UserGrid" Grid.Row="2" ItemsSource="{Binding UserRows}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" EnableRowVirtualization="True" EnableColumnVirtualization="True" SelectionUnit="CellOrRowHeader" SelectionMode="Extended" ClipboardCopyMode="IncludeHeader" PreviewKeyDown="UserGridKeyDown"/>
+      <CheckBox Grid.Row="3" Margin="0,10" Content="Tôi đã đối chiếu từng khóa API với Story/Diaphragm trong ETABS; chỉ sửa giá trị các khóa hiện hữu." IsChecked="{Binding MappingConfirmed}"/>
+      <DockPanel Grid.Row="4"><Button DockPanel.Dock="Right" Content="Hoàn nguyên giá trị đã đọc" Click="ResetUsersClick"/><Button DockPanel.Dock="Right" Content="Redo" Click="RedoUsersClick"/><Button DockPanel.Dock="Right" Content="Undo" Click="UndoUsersClick"/><TextBlock Text="{Binding UserSummary}" VerticalAlignment="Center" FontWeight="SemiBold" TextWrapping="Wrap"/></DockPanel>
+     </Grid>
+    </TabItem>
+    <TabItem Header="2. DẦM BIÊN · MODEL 2D">
+     <Grid Margin="8"><Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="5"/><ColumnDefinition/><ColumnDefinition Width="5"/><ColumnDefinition Width="255"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="5"/><RowDefinition Height="180"/></Grid.RowDefinitions>
+      <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,0,8,0">
+       <TextBlock Text="TẦNG VÀ HIỂN THỊ" Style="{StaticResource WindHeading}"/>
+       <ComboBox ItemsSource="{Binding Viewer.Levels}" SelectedItem="{Binding Viewer.Level}"/>
+       <TextBlock Text="Page Up / Down: chuyển tầng" FontSize="11" Foreground="#64748B" Margin="0,6"/>
+       <Button Content="Select theo thuộc tính…" Click="SelectClick"/><Button Content="Vừa khung" Click="FitClick"/><Button Content="Bỏ chọn" Click="ClearSelectionClick"/>
+       <Button Content="Chỉ hiện đối tượng chọn" Click="IsolateClick"/><Button Content="Hiện lại tất cả" Click="ShowAllClick"/>
+       <CheckBox Content="Lưới trục" IsChecked="{Binding Viewer.ShowGrids}" Margin="0,8"/>
+       <CheckBox Content="Extrude" IsChecked="{Binding Viewer.Extrude}" Margin="0,8"/>
+       <Button Content="Text / màu chữ…" Click="TextClick"/><Button Content="Color Objects…" Click="ColorsClick"/>
+       <Button Content="Chọn 2 điểm mặt cắt" Click="SectionClick"/><Button Content="Về mặt bằng" Click="PlanClick"/>
+       <CheckBox Content="Elevation: cô lập tầng" IsChecked="{Binding Viewer.IsolateStory}" Margin="0,8"/>
+       <CheckBox x:Name="ShowExisting" Content="Hiện tải đã đọc" IsChecked="False" Checked="LoadModeChanged" Unchecked="LoadModeChanged"/>
+       <TextBlock Text="{Binding SelectionSummary}" TextWrapping="Wrap" Margin="0,10"/>
+       <TextBlock Text="Xem trước: nét tím đứt và mũi tên. Gán theo trục Global, giữ thứ tự I → J. Không tự chọn toàn bộ dầm trong tầng." TextWrapping="Wrap" Foreground="#64748B"/>
+      </StackPanel></ScrollViewer>
+      <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"/>
+      <controls:StructuralCanvas x:Name="Canvas" Grid.Column="2" Items="{Binding Viewer.Scene}" SelectedIds="{Binding Viewer.SelectedIds}" GridItems="{Binding Viewer.GridScene}" Levels="{Binding Viewer.DisplayLevels}" Elevation="{Binding Viewer.Elevation}" ExtrudeEnabled="{Binding Viewer.Extrude}" LabelSettings="{Binding Viewer.LabelSettings}" ObjectColors="{Binding Viewer.ObjectColors}" StructureText="{Binding Viewer.StructureText}" LoadText="{Binding Viewer.LoadText}" DraftOverlays="{Binding BeamOverlays}" ShowDraftValues="False" ReadLoadItems="{Binding PreviewLoads}"/>
+      <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"/>
+      <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto"><StackPanel Margin="8,0,0,0">
+       <TextBlock Text="THIẾT LẬP TẢI ĐƯỜNG" Style="{StaticResource WindHeading}"/>
+       <TextBlock Text="Load Pattern đích (Wind)"/><ComboBox ItemsSource="{Binding Patterns}" SelectedItem="{Binding BeamPattern}"/>
+       <TextBlock Text="Hướng tải" Margin="0,8,0,0"/><ComboBox ItemsSource="{Binding Directions}" SelectedItem="{Binding Direction}"/>
+       <TextBlock Text="q1 tại I / đầu đoạn (kN/m)" Margin="0,8,0,0"/><TextBox Text="{Binding Q1,UpdateSourceTrigger=PropertyChanged}"/>
+       <TextBlock Text="q2 tại J / cuối đoạn (trống = q1)" Margin="0,8,0,0"/><TextBox Text="{Binding Q2,UpdateSourceTrigger=PropertyChanged}"/>
+       <CheckBox Content="Đoạn theo tỷ lệ r (0 → 1)" IsChecked="{Binding Relative}" Margin="0,10"/>
+       <TextBlock Text="Bắt đầu / Kết thúc (r; bỏ tick: m)"/><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding Start,UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/><TextBox Grid.Column="1" Text="{Binding End,UpdateSourceTrigger=PropertyChanged}"/></Grid>
+       <CheckBox Content="Cộng thêm vào tải hiện hữu" IsChecked="{Binding Append}" Margin="0,10"/>
+       <TextBlock Text="Không tick: thay tải cùng hướng trong đoạn đã chọn; giữ phần tải ngoài đoạn." TextWrapping="Wrap" Foreground="#64748B"/>
+       <Button Content="Đưa vào bộ gán / Cập nhật" Click="StageClick" Margin="0,12,0,4"/>
+       <Button Content="PDF tải đã đọc từ ETABS…" Click="PdfClick"/>
+       <TextBlock Text="{Binding BeamSummary}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,10"/>
+      </StackPanel></ScrollViewer>
+      <GridSplitter Grid.Row="1" Grid.ColumnSpan="5" Height="5" HorizontalAlignment="Stretch"/>
+      <DockPanel Grid.Row="2" Grid.ColumnSpan="5"><StackPanel DockPanel.Dock="Top" Orientation="Horizontal"><TextBlock Text="BỘ TẢI CHUẨN BỊ GÁN" FontWeight="SemiBold" Margin="0,6,14,6"/><Button Content="Xóa dòng chọn" Click="DeleteBeamClick"/><Button Content="Undo" Click="UndoClick"/><Button Content="Redo" Click="RedoClick"/></StackPanel>
+       <DataGrid x:Name="BeamGrid" ItemsSource="{Binding BeamRows}" IsReadOnly="True" AutoGenerateColumns="False" SelectionMode="Extended" SelectionChanged="BeamSelected">
+        <DataGrid.Columns><DataGridTextColumn Header="Unique ID" Binding="{Binding ElementId}" Width="*"/><DataGridTextColumn Header="Pattern" Binding="{Binding Pattern}" Width="*"/><DataGridTextColumn Header="Hướng" Binding="{Binding DirectionName}" Width="*"/><DataGridTextColumn Header="r1" Binding="{Binding Start}"/><DataGridTextColumn Header="r2" Binding="{Binding End}"/><DataGridTextColumn Header="q1 (kN/m)" Binding="{Binding Value1}"/><DataGridTextColumn Header="q2 (kN/m)" Binding="{Binding Value2}"/><DataGridTextColumn Header="Action" Binding="{Binding Action}"/></DataGrid.Columns>
+       </DataGrid>
+      </DockPanel>
+     </Grid>
+    </TabItem>
+   </TabControl>
+  </Grid>
+  <DockPanel Grid.Row="2" Margin="0,8,0,0"><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Content="Lưu bộ gió" Click="SaveClick" IsEnabled="{Binding Viewer.CanRead}"/><Button Content="Kiểm tra / Xem trước" Click="ReviewClick" IsEnabled="{Binding CanEdit}"/><Button Content="Gán ETABS" Click="ApplyClick" IsEnabled="{Binding CanApply}"/><Button Content="Đóng" Click="CloseClick" IsEnabled="{Binding Viewer.CanRead}"/></StackPanel><TextBlock Text="{Binding Status}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="4,0,12,0"/></DockPanel>
+ </Grid>
 </Window>
