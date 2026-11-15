@@ -1,0 +1,2 @@
+a749937d6164f66df8a6e2a6186a81298514aa3e91dc3a3486f6c29f8edd5509  QKS-Model-Performance-2026-11-15.zip
+cc3d4bdcd932d098c260419c635fb57be4d5260d5bdd3508a0bcf06de2c2aed7  Excel/QksExcelAddIn-AddIn64-packed.xll
