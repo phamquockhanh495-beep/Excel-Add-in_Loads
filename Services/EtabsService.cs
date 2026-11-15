@@ -627,6 +627,7 @@ namespace QksExcelAddIn.Services
             {
                 // CSiAPIv1.cFrameObj.SetLoadDistributed
                 // (string Name, string LoadPat, int MyType, int Dir, double Dist1, double Dist2, double Val1, double Val2, string CSys, bool RelDist, bool Replace, eItemType ItemType)
+                Modeling.WorkspaceModelReads.NotifyModelChanged();
                 int ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPat, 1, direction, 0.0, 1.0, value, value, LoadDirections.CoordinateSystem(direction), true, replace);
 
                 if (ret == 0) VerifyFrame(frameName, loadPat, direction, 0, 1, value, value, true);
@@ -666,6 +667,7 @@ namespace QksExcelAddIn.Services
                 }
 
                 // Dist1 = s, Dist2 = e (mét), RelDist = false, Replace = replace
+                Modeling.WorkspaceModelReads.NotifyModelChanged();
                 int ret = sapModel.FrameObj.SetLoadDistributed(frameName, loadPat, 1, direction, s, e, value, value, LoadDirections.CoordinateSystem(direction), false, replace);
 
                 if (ret == 0) VerifyFrame(frameName, loadPat, direction, s, e, value, value, false);
@@ -1470,6 +1472,7 @@ namespace QksExcelAddIn.Services
 
                     // CSiAPIv1.cFrameObj.SetLoadDistributed:
                     // (string Name, string LoadPat, int MyType, int Dir, double Dist1, double Dist2, double Val1, double Val2, string CSys, bool RelDist, bool Replace, eItemType ItemType)
+                    Modeling.WorkspaceModelReads.NotifyModelChanged();
                     int ret = sapModel.FrameObj.SetLoadDistributed(
                         frameName,
                         loadPattern,
@@ -1513,6 +1516,7 @@ namespace QksExcelAddIn.Services
             try
             {
                 // CSiAPIv1.cFrameObj.DeleteLoadDistributed
+                Modeling.WorkspaceModelReads.NotifyModelChanged();
                 int ret = sapModel.FrameObj.DeleteLoadDistributed(frameName, loadPattern);
                 return ret == 0;
             }
@@ -2451,6 +2455,7 @@ namespace QksExcelAddIn.Services
                     {
                         foreach (var load in targetSet.Loads)
                         {
+                            Modeling.WorkspaceModelReads.NotifyModelChanged();
                             if (sapModel.AreaObj.SetLoadUniform(slab.Name, load.LoadPattern, load.LoadValue, 10, true, "Global", eItemType.Objects) != 0) throw new InvalidOperationException("Gán load set thất bại tại sàn " + slab.Name);
                             VerifyUniform(slab.Name, load.LoadPattern, load.LoadValue, 10);
                         }
@@ -2491,6 +2496,7 @@ namespace QksExcelAddIn.Services
 
                     foreach (var slab in targetSlabs)
                     {
+                        Modeling.WorkspaceModelReads.NotifyModelChanged();
                         int ret = sapModel.AreaObj.SetLoadUniform(slab.Name, loadPattern, value, direction, replaceExisting, LoadDirections.CoordinateSystem(direction), eItemType.Objects);
 
 
@@ -2559,6 +2565,7 @@ namespace QksExcelAddIn.Services
                     {
                         foreach (var load in row.loads)
                         {
+                            Modeling.WorkspaceModelReads.NotifyModelChanged();
                             int result = sapModel.AreaObj.SetLoadUniform(row.area, load.Pattern, load.Value, direction, true, LoadDirections.CoordinateSystem(direction), eItemType.Objects);
                             if (result != 0) throw new InvalidOperationException($"Gán tải lỗi {result} tại {row.area}/{load.Pattern}; đã hoàn tất {updated}/{plan.Count} sàn. Kiểm tra bản sao lưu trước khi chạy lại.");
                             VerifyUniform(row.area, load.Pattern, load.Value, direction);

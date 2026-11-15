@@ -60,6 +60,7 @@ namespace QksExcelAddIn.Modeling.Core
         { Identity = snapshot.Identity; Fingerprint = SnapshotFingerprint.Of(snapshot); DraftCount = draftCount; Groups = groups; }
         public static ApplyPlan Create(ModelSnapshot fresh, DraftDocument document, ApplyCapabilities capabilities)
         {
+            if(fresh.CatalogOnly||!fresh.LoadBaselineComplete)throw new InvalidOperationException("Chưa đọc đủ hình học/baseline tải để gán.");
             var workspace = new DraftWorkspace(fresh); workspace.Import(document);
             if (document.Loads.Count == 0) throw new InvalidOperationException("Bộ nháp chưa có dòng tải.");
             var elements = fresh.Elements.ToDictionary(e => e.Id, StringComparer.Ordinal);

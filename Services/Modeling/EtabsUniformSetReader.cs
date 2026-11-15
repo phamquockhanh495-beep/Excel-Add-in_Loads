@@ -7,18 +7,18 @@ namespace QksExcelAddIn.Services.Modeling
 {
     public sealed partial class EtabsSnapshotReader
     {
-        private static void ReadUniformToFrame(cSapModel sap,ModelElement e,UnitScale scale,List<ExistingLoad> loads,Action<int,string> error)
+        private static void ReadUniformToFrame(cSapModel sap,ModelElement e,UnitScale scale,List<ExistingLoad> loads,Action<int,string> error, bool all = false)
         {
             int n=0;string[] names=Array.Empty<string>(),patterns=Array.Empty<string>(),systems=Array.Empty<string>();
             int[] directions=Array.Empty<int>(),distribution=Array.Empty<int>();double[] values=Array.Empty<double>();
-            int rc=sap.AreaObj.GetLoadUniformToFrame(e.Name,ref n,ref names,ref patterns,ref systems,ref directions,ref values,ref distribution,eItemType.Objects);
+            int rc=sap.AreaObj.GetLoadUniformToFrame(e.Name,ref n,ref names,ref patterns,ref systems,ref directions,ref values,ref distribution,all ? eItemType.Group : eItemType.Objects);
             if(rc!=0){error(rc,"Chưa xác nhận uniform-to-frame "+e.Id);return;}
             Arrays(n,names,patterns,systems,directions,values,distribution);
             for(int i=0;i<n;i++) {
-                if(names[i]!=e.Name)throw new InvalidOperationException("Uniform-to-frame thuộc area khác: "+e.Id);
+                if(!all&&names[i]!=e.Name)throw new InvalidOperationException("Uniform-to-frame thuộc area khác: "+e.Id);
                 double value=values[i]*scale.Pressure;
                 // Show the original shell pressure, never invent calculated transferred frame loads.
-                loads.Add(new ExistingLoad(e.Id,patterns[i],"Area uniform to frame (DistType "+distribution[i]+")",systems[i],directions[i],0,1,value,value,"kN/m²"));
+                loads.Add(new ExistingLoad(all ? "Area:"+names[i] : e.Id,patterns[i],"Area uniform to frame (DistType "+distribution[i]+")",systems[i],directions[i],0,1,value,value,"kN/m²"));
             }
         }
         private static void ReadUniformSets(cSapModel sap,UnitScale scale,List<ModelElement> elements,List<ExistingLoad> loads,Action<int,string> error)

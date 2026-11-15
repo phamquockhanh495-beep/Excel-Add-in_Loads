@@ -13,12 +13,12 @@ namespace QksExcelAddIn.Services.Modeling
     public sealed partial class EtabsSnapshotReader
     {
         private static readonly SemaphoreSlim Gate = new SemaphoreSlim(1, 1);
-        public async Task<ModelSnapshot> ReadAsync(Action<string> progress, CancellationToken token, bool requireCompleteLoads = false)
+        public async Task<ModelSnapshot> ReadAsync(Action<string> progress, CancellationToken token, bool requireCompleteLoads = false, bool catalogOnly = false)
         {
             if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA) throw new InvalidOperationException("Reader cần luồng STA.");
             progress("Đang chờ lượt đọc mô hình CSI…");
             await Gate.WaitAsync(token);
-            try { return await ReadCoreAsync(progress, token, requireCompleteLoads); }
+            try { return await ReadCoreAsync(progress, token, requireCompleteLoads, catalogOnly); }
             finally { Gate.Release(); }
         }
         private static void Ok(int code, string call) { if (code != 0) throw new InvalidOperationException(call + " trả mã " + code); }
@@ -32,7 +32,7 @@ namespace QksExcelAddIn.Services.Modeling
         {
             if (count < 0 || arrays.Any(a => a == null ? count != 0 : a.Length < count)) throw new InvalidOperationException("API trả mảng tải không đồng bộ.");
         }
-        private async Task<ModelSnapshot> ReadCoreAsync(Action<string> progress, CancellationToken token, bool requireCompleteLoads)
+        private async Task<ModelSnapshot> ReadCoreAsync(Action<string> progress, CancellationToken token, bool requireCompleteLoads, bool catalogOnly)
         {
             var connection = AppConnectionManager.ActiveEtabs ?? throw new InvalidOperationException("Hãy dùng Kết nối API để chọn ETABS / SAFE trước.");
             var sap = AppConnectionManager.GetReadSapModel() ?? throw new InvalidOperationException("Mô hình CSI chưa kết nối.");
@@ -63,7 +63,9 @@ namespace QksExcelAddIn.Services.Modeling
                 optionalErrorCount++;
                 if (diagnostics.Count < 200) diagnostics.Add(message + " (API " + code + ")");
             }
+            bool loadBaselineComplete=true;
             void LoadError(int code, string message) {
+                if(code!=0)loadBaselineComplete=false;
                 if (requireCompleteLoads && code != 0) throw new InvalidOperationException(message + " (API " + code + "); không thể Apply khi thiếu baseline tải.");
                 Optional(code, message);
             }
@@ -88,8 +90,19 @@ namespace QksExcelAddIn.Services.Modeling
             } else foreach (string name in Names(rc, count, names, "Story.GetNameList")) {
                 double z = 0; Ok(sap.Story.GetElevation(name, ref z), "Story.GetElevation " + name); levels.Add(new ModelLevel(name, z * scale.LengthToMetres));
             }
+            if(catalogOnly) {
+                if(connection.IsSafe)throw new InvalidOperationException("Danh mục gió chỉ hỗ trợ ETABS.");
+                Guard();string catalogVersion="";double catalogNumber=0;
+                Ok(sap.GetVersion(ref catalogVersion,ref catalogNumber),"GetVersion");
+                return new ModelSnapshot(1,connection.Product,catalogVersion,identity,force+"/"+length+"/"+temperature,
+                    DateTime.UtcNow,Array.Empty<ModelElement>(),levels.OrderBy(l=>l.Elevation),Array.Empty<ExistingLoad>(),
+                    new[]{"Chỉ đọc tầng/pattern. Hình học và tải cấu kiện chưa được đọc."},patterns,catalogOnly:true);
+            }
             count = 0; names = Array.Empty<string>(); rc = sap.FrameObj.GetNameList(ref count, ref names);
             var frames = Names(rc, count, names, "FrameObj.GetNameList");
+            ReadPointsBulk(sap,scale,points,diagnostics);Guard();
+            bool frameBulk=TryLoadBatch(sap,"Frame:",frames,scale,loads,diagnostics,ReadFrameLoads);
+            bool pointBulk=TryLoadBatch(sap,"Frame:",frames,scale,loads,diagnostics,ReadFramePointLoads);Guard();
             for (int i = 0; i < frames.Length; i++) {
                 Guard(); string name = frames[i], a = "", b = "", property = "", auto = "", label = "", story = "";
                 Ok(sap.FrameObj.GetPoints(name, ref a, ref b), "FrameObj.GetPoints " + name);
@@ -107,12 +120,14 @@ namespace QksExcelAddIn.Services.Modeling
                 var element = new ModelElement("Frame:" + name, name, label, story, property, kind, new[] { pa, pb }, axisResult == 0 ? (double?)angle : null, advanced, sections.Read(property, kind, true));
                 if (advanced) Optional(-1, "Extrude frame " + name + ": advanced local axes chưa hỗ trợ; giữ đường trục.");
                 elements.Add(element);
-                ReadFrameLoads(sap, element, scale, loads, LoadError);
-                ReadFramePointLoads(sap, element, scale, loads, LoadError);
+                if(!frameBulk)ReadFrameLoads(sap, element, scale, loads, LoadError);
+                if(!pointBulk)ReadFramePointLoads(sap, element, scale, loads, LoadError);
                 if (i % 25 == 0) await Yield("Đọc frame " + (i + 1) + "/" + frames.Length);
             }
             count = 0; names = Array.Empty<string>(); rc = sap.AreaObj.GetNameList(ref count, ref names);
             var areas = Names(rc, count, names, "AreaObj.GetNameList");
+            bool areaBulk=TryLoadBatch(sap,"Area:",areas,scale,loads,diagnostics,ReadAreaLoads);
+            bool transferBulk=TryLoadBatch(sap,"Area:",areas,scale,loads,diagnostics,ReadUniformToFrame);Guard();
             for (int i = 0; i < areas.Length; i++) {
                 Guard(); string name = areas[i], property = "", label = "", story = "";
                 int n = 0; string[] corners = Array.Empty<string>(); bool opening = false;
@@ -129,8 +144,8 @@ namespace QksExcelAddIn.Services.Modeling
                     orientation == eAreaDesignOrientation.Floor ? ElementKind.Slab : orientation == eAreaDesignOrientation.Wall ? ElementKind.Wall : ElementKind.Other;
                 if(connection.IsSafe && !opening && orientationResult!=0) kind=SafeModelGeometry.Area(vertices);
                 var element = new ModelElement("Area:" + name, name, label, story, property, kind, vertices, section: sections.Read(property, kind, false));
-                elements.Add(element); ReadAreaLoads(sap, element, scale, loads, LoadError);
-                ReadUniformToFrame(sap,element,scale,loads,LoadError);
+                elements.Add(element); if(!areaBulk)ReadAreaLoads(sap, element, scale, loads, LoadError);
+                if(!transferBulk)ReadUniformToFrame(sap,element,scale,loads,LoadError);
                 if (i % 25 == 0) await Yield("Đọc area " + (i + 1) + "/" + areas.Length);
             }
             ReadUniformSets(sap,scale,elements,loads,LoadError);
@@ -155,34 +170,34 @@ namespace QksExcelAddIn.Services.Modeling
             if (optionalErrorCount > 0) diagnostics.Add("Tổng số lỗi/không hỗ trợ metadata hoặc tải tùy chọn: " + optionalErrorCount + ". Giới hạn 197 thông báo chi tiết; không coi tải thiếu là 0.");
             progress("Đọc xong " + elements.Count + " đối tượng.");
             return new ModelSnapshot(1, connection.Product, version, identity, force + "/" + length + "/" + temperature,
-                DateTime.UtcNow, elements, levels.OrderBy(l => l.Elevation), loads, diagnostics, patterns, grids);
+                DateTime.UtcNow, elements, levels.OrderBy(l => l.Elevation), loads, diagnostics, patterns, grids, loadBaselineComplete:loadBaselineComplete);
         }
-        internal static void ReadFrameLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional)
+        internal static void ReadFrameLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional, bool all = false)
         {
             int n = 0; string[] names = Array.Empty<string>(), patterns = Array.Empty<string>(), systems = Array.Empty<string>();
             int[] types = Array.Empty<int>(), directions = Array.Empty<int>();
             double[] r1 = Array.Empty<double>(), r2 = Array.Empty<double>(), d1 = Array.Empty<double>(), d2 = Array.Empty<double>(), v1 = Array.Empty<double>(), v2 = Array.Empty<double>();
-            int rc = sap.FrameObj.GetLoadDistributed(e.Name, ref n, ref names, ref patterns, ref types, ref systems, ref directions, ref r1, ref r2, ref d1, ref d2, ref v1, ref v2, eItemType.Objects);
+            int rc = sap.FrameObj.GetLoadDistributed(e.Name, ref n, ref names, ref patterns, ref types, ref systems, ref directions, ref r1, ref r2, ref d1, ref d2, ref v1, ref v2, all ? eItemType.Group : eItemType.Objects);
             if (rc != 0) { optional(rc, "Chưa xác nhận tải distributed " + e.Id); return; }
             Arrays(n, names, patterns, types, systems, directions, r1, r2, d1, d2, v1, v2);
             for (int i = 0; i < n; i++) {
-                if (!string.Equals(names[i], e.Name, StringComparison.Ordinal)) throw new InvalidOperationException("API trả tải của frame khác: " + e.Id);
+                if (!all && !string.Equals(names[i], e.Name, StringComparison.Ordinal)) throw new InvalidOperationException("API trả tải của frame khác: " + e.Id);
                 if (types[i] != 1 && types[i] != 2) { optional(-1, "Loại tải distributed chưa hỗ trợ " + e.Id); continue; }
                 // Type 2 is distributed moment: force*length / length = force.
                 double factor = scale.DistributedFactor(types[i]);
-                loads.Add(new ExistingLoad(e.Id, patterns[i], types[i] == 1 ? "Frame force/length" : "Frame moment/length", systems[i], directions[i], r1[i], r2[i], v1[i] * factor, v2[i] * factor, types[i] == 1 ? "kN/m" : "kN·m/m"));
+                loads.Add(new ExistingLoad(all ? "Frame:"+names[i] : e.Id, patterns[i], types[i] == 1 ? "Frame force/length" : "Frame moment/length", systems[i], directions[i], r1[i], r2[i], v1[i] * factor, v2[i] * factor, types[i] == 1 ? "kN/m" : "kN·m/m"));
             }
         }
-        internal static void ReadAreaLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional)
+        internal static void ReadAreaLoads(cSapModel sap, ModelElement e, UnitScale scale, List<ExistingLoad> loads, Action<int, string> optional, bool all = false)
         {
             int n = 0; string[] names = Array.Empty<string>(), patterns = Array.Empty<string>(), systems = Array.Empty<string>();
             int[] directions = Array.Empty<int>(); double[] values = Array.Empty<double>();
-            int rc = sap.AreaObj.GetLoadUniform(e.Name, ref n, ref names, ref patterns, ref systems, ref directions, ref values, eItemType.Objects);
+            int rc = sap.AreaObj.GetLoadUniform(e.Name, ref n, ref names, ref patterns, ref systems, ref directions, ref values, all ? eItemType.Group : eItemType.Objects);
             if (rc != 0) { optional(rc, "Chưa xác nhận tải uniform " + e.Id); return; }
             Arrays(n, names, patterns, systems, directions, values);
             for (int i = 0; i < n; i++) {
-                if (!string.Equals(names[i], e.Name, StringComparison.Ordinal)) throw new InvalidOperationException("API trả tải của area khác: " + e.Id);
-                loads.Add(new ExistingLoad(e.Id, patterns[i], "Area uniform", systems[i], directions[i], 0, 1, values[i] * scale.Pressure, values[i] * scale.Pressure, "kN/m²"));
+                if (!all && !string.Equals(names[i], e.Name, StringComparison.Ordinal)) throw new InvalidOperationException("API trả tải của area khác: " + e.Id);
+                loads.Add(new ExistingLoad(all ? "Area:"+names[i] : e.Id, patterns[i], "Area uniform", systems[i], directions[i], 0, 1, values[i] * scale.Pressure, values[i] * scale.Pressure, "kN/m²"));
             }
         }
     }

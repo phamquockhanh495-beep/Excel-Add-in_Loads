@@ -14,6 +14,7 @@ namespace QksExcelAddIn.ViewModels
         public event PropertyChangedEventHandler? PropertyChanged;
         private void Changed([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         public ModelSnapshot? Snapshot { get; private set; }
+        private ModelElevationIndex elevationIndex = new ModelElevationIndex(Array.Empty<ModelElement>());
         public IReadOnlyList<ProjectedElement> Scene { get; private set; } = Array.Empty<ProjectedElement>();
         public IReadOnlyList<ModelElement> VisibleElements { get; private set; } = Array.Empty<ModelElement>();
         public IReadOnlyList<ModelLevel> Levels { get; private set; } = Array.Empty<ModelLevel>();
@@ -78,6 +79,7 @@ namespace QksExcelAddIn.ViewModels
             snapshot?.Validate(); LoadSections(Array.Empty<SavedSection>()); CutStart=null; CutEnd=null; Changed(nameof(CutStart)); Changed(nameof(CutEnd)); Snapshot = snapshot; Offline = offline; applyNeedsRead = false;
             workspaceRemovedIds.Clear();isolatedIds=null;NotifyWorkspaceVisibility();
             DisplayElements = snapshot?.Elements.ToArray() ?? Array.Empty<ModelElement>();
+            elevationIndex = snapshot==null ? new ModelElevationIndex(DisplayElements) : ModelElevationIndex.For(snapshot);
             displayIds = new HashSet<string>(DisplayElements.Select(e => e.Id), StringComparer.Ordinal);
             displayById=DisplayElements.ToDictionary(e=>e.Id,StringComparer.Ordinal);
             Levels = snapshot?.Levels ?? Array.Empty<ModelLevel>();
@@ -110,7 +112,8 @@ namespace QksExcelAddIn.ViewModels
                 var plane = CurrentPlane();
                 var band=Elevation&&IsolateStory?StoryBand.For(Snapshot,Level):null;
                 var scene = new List<ProjectedElement>();
-                foreach (var element in DisplayElements) {
+                var candidates = !Elevation ? elevationIndex.Query((Level?.Elevation??0)-depth-1e-6,(Level?.Elevation??0)+depth+1e-6) : band!=null ? elevationIndex.Query(band.Bottom-1e-6,band.Top+1e-6) : DisplayElements;
+                foreach (var element in candidates) {
                     if(band!=null&&!band.Includes(element))continue;
                     if (workspaceRemovedIds.Contains(element.Id)||isolatedIds!=null&&!isolatedIds.Contains(element.Id)) continue;
                     var settings = LabelSettings.FirstOrDefault(s => s.Kind == element.Kind);
@@ -119,7 +122,7 @@ namespace QksExcelAddIn.ViewModels
                     if (!string.IsNullOrWhiteSpace(Search) && (element.Id + " " + element.Label + " " + element.Property + " " + element.Story).IndexOf(Search, StringComparison.OrdinalIgnoreCase) < 0) continue;
                     var projected = (element.Kind==ElementKind.Column || element.Kind==ElementKind.Wall || Extrude && settings?.Extrude != false) ? SectionExtrusion.Build(element, plane) : Projection.Build(element, plane); if (projected != null) scene.Add(projected);
                 }
-                var openings = DisplayElements.Where(e => e.Kind == ElementKind.Opening && (band==null||band.Includes(e))).Select(e => Projection.Build(e, plane)).Where(e => e != null).Cast<ProjectedElement>().ToArray();
+                var openings = candidates.Where(e => e.Kind == ElementKind.Opening && (band==null||band.Includes(e))).Select(e => Projection.Build(e, plane)).Where(e => e != null).Cast<ProjectedElement>().ToArray();
                 if (openings.Length > 0) scene = scene.Select(e => SectionExtrusion.WithOpenings(e, openings)).ToList();
                 Scene = scene.AsReadOnly(); VisibleElements = scene.Select(e => e.Source).ToArray();
                 DisplayLevels=band==null?Levels:Levels.Where(l=>l.Elevation>=band.Bottom-1e-6&&l.Elevation<=band.Top+1e-6).ToArray();

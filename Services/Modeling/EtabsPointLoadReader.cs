@@ -9,18 +9,18 @@ namespace QksExcelAddIn.Services.Modeling
 {
     public sealed partial class EtabsSnapshotReader
     {
-        private static void ReadFramePointLoads(cSapModel sap,ModelElement e,UnitScale scale,List<ExistingLoad> loads,Action<int,string> error)
+        private static void ReadFramePointLoads(cSapModel sap,ModelElement e,UnitScale scale,List<ExistingLoad> loads,Action<int,string> error, bool all = false)
         {
             int n=0;string[] names=Array.Empty<string>(),patterns=Array.Empty<string>(),systems=Array.Empty<string>();
             int[] types=Array.Empty<int>(),directions=Array.Empty<int>();double[] relative=Array.Empty<double>(),distance=Array.Empty<double>(),values=Array.Empty<double>();
-            int rc=sap.FrameObj.GetLoadPoint(e.Name,ref n,ref names,ref patterns,ref types,ref systems,ref directions,ref relative,ref distance,ref values,eItemType.Objects);
+            int rc=sap.FrameObj.GetLoadPoint(e.Name,ref n,ref names,ref patterns,ref types,ref systems,ref directions,ref relative,ref distance,ref values,all ? eItemType.Group : eItemType.Objects);
             if(rc!=0){error(rc,"Chưa xác nhận tải tập trung frame "+e.Name);return;}
             Arrays(n,names,patterns,types,systems,directions,relative,distance,values);
             for(int i=0;i<n;i++) {
-                if(names[i]!=e.Name)throw new InvalidOperationException("Tải point thuộc frame khác: "+e.Name);
+                if(!all&&names[i]!=e.Name)throw new InvalidOperationException("Tải point thuộc frame khác: "+e.Name);
                 if(types[i]!=1&&types[i]!=2){error(-1,"Loại tải point chưa hỗ trợ: "+e.Name);continue;}
                 double value=values[i]*scale.PointFactor(types[i]==2);
-                loads.Add(new ExistingLoad(e.Id,patterns[i],types[i]==1?"Frame point force":"Frame point moment",systems[i],directions[i],relative[i],relative[i],value,value,types[i]==1?"kN":"kN·m"));
+                loads.Add(new ExistingLoad(all ? "Frame:"+names[i] : e.Id,patterns[i],types[i]==1?"Frame point force":"Frame point moment",systems[i],directions[i],relative[i],relative[i],value,value,types[i]==1?"kN":"kN·m"));
             }
         }
         private static async Task ReadJointLoadsAsync(cSapModel sap,UnitScale scale,List<ModelElement> elements,List<ExistingLoad> loads,

@@ -81,6 +81,8 @@ namespace QksExcelAddIn.Modeling.Core
     }
     public sealed class ModelSnapshot
     {
+        public bool CatalogOnly { get; }
+        public bool LoadBaselineComplete { get; }
         public int SchemaVersion { get; }
         public string Source { get; }
         public string Version { get; }
@@ -95,8 +97,9 @@ namespace QksExcelAddIn.Modeling.Core
         public IReadOnlyList<ModelGridLine> GridLines { get; }
         public ModelSnapshot(int schemaVersion, string source, string version, string identity, string sourceUnits,
             DateTime capturedUtc, IEnumerable<ModelElement> elements, IEnumerable<ModelLevel> levels,
-            IEnumerable<ExistingLoad> loads, IEnumerable<string> diagnostics, IEnumerable<string>? loadPatterns = null, IEnumerable<ModelGridLine>? gridLines = null)
+            IEnumerable<ExistingLoad> loads, IEnumerable<string> diagnostics, IEnumerable<string>? loadPatterns = null, IEnumerable<ModelGridLine>? gridLines = null, bool catalogOnly = false, bool loadBaselineComplete = true)
         {
+            CatalogOnly = catalogOnly; LoadBaselineComplete = !catalogOnly && loadBaselineComplete;
             GridLines = Array.AsReadOnly((gridLines ?? Array.Empty<ModelGridLine>()).ToArray());
             SchemaVersion = schemaVersion; Source = source; Version = version; Identity = identity;
             SourceUnits = sourceUnits; CapturedUtc = capturedUtc;
@@ -110,6 +113,7 @@ namespace QksExcelAddIn.Modeling.Core
         public void Validate()
         {
             if (SchemaVersion != 1 || string.IsNullOrWhiteSpace(Identity)) throw new ArgumentException("Snapshot version/identity không hợp lệ.");
+            if (CatalogOnly && (Elements.Count != 0 || Loads.Count != 0 || GridLines.Count != 0)) throw new ArgumentException("Danh mục tầng/pattern không chứa hình học hoặc tải.");
             var ids = new HashSet<string>(StringComparer.Ordinal);
             foreach (var e in Elements)
                 if (string.IsNullOrWhiteSpace(e.Id) || !ids.Add(e.Id) || (e.Kind == ElementKind.Joint ? e.Vertices.Count != 1 : e.Vertices.Count < 2) ||

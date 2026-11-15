@@ -91,10 +91,16 @@ namespace QksExcelAddIn.ViewModels
             if(!Patterns.Contains(BeamPattern))BeamPattern=Patterns.FirstOrDefault()??"";
             Changed(nameof(Patterns));Changed(nameof(CanEdit));NotifyBeams();Changed(nameof(UserSummary));
         }
+        public void InstallGeometry(ModelSnapshot snapshot)
+        {
+            if(Snapshot==null||snapshot.CatalogOnly||!snapshot.LoadBaselineComplete||!WindBaseline.Matches(snapshot,WindBaseline.Of(Snapshot)))
+                throw new InvalidOperationException("Tầng/pattern đã đổi. Đọc lại ETABS trước khi mở mô hình dầm.");
+            var story=Viewer.Level?.Name;Viewer.SetSnapshot(snapshot,false);Viewer.Level=Viewer.Levels.FirstOrDefault(l=>l.Name==story)??Viewer.Level;Beams=new DraftWorkspace(snapshot);NotifyBeams();
+        }
         public void SetUserBaseline(UserWindState state)
         {
             if(Snapshot==null)throw new InvalidOperationException("Đọc mô hình trước.");
-            UserBaseline=state;UserFingerprint=SnapshotFingerprint.Of(Snapshot);UserPattern=state.Pattern;UserRows.Clear();MappingConfirmed=false;
+            UserBaseline=state;UserFingerprint=WindBaseline.Of(Snapshot);UserPattern=state.Pattern;UserRows.Clear();MappingConfirmed=false;
             foreach(var load in state.Rows){var row=new WindUserEditorRow(load);row.PropertyChanged+=(_,e)=>{if(e.PropertyName==nameof(row.Story))MappingConfirmed=false;if(!restoringUsers){userUndo.Push(lastUsers);userRedo.Clear();TrimHistory();lastUsers=CaptureUsers();}Invalidate();Changed(nameof(UserSummary));};UserRows.Add(row);}
             userUndo.Clear();userRedo.Clear();lastUsers=CaptureUsers();
             Invalidate();Changed(nameof(UserSummary));
@@ -111,7 +117,7 @@ namespace QksExcelAddIn.ViewModels
         public void RedoUsers(){RequireReady();if(userRedo.Count==0)return;userUndo.Push(CaptureUsers());SetUserValues(userRedo.Pop());}
         public void StageSelected()
         {
-            RequireReady();var visible=new HashSet<string>(Viewer.VisibleElements.Select(e=>e.Id));
+            RequireReady();if(Snapshot!.CatalogOnly)throw new InvalidOperationException("Chưa đọc hình học dầm.");var visible=new HashSet<string>(Viewer.VisibleElements.Select(e=>e.Id));
             if(Viewer.SelectedIds.Any(id=>!visible.Contains(id)))throw new InvalidOperationException("Có đối tượng chọn ngoài vùng xem. Bỏ chọn rồi chọn lại dầm hiện trên mặt bằng.");
             var q=StoryWindPlan.NumberValue(Q1,"q1");
             var candidate=new DraftWorkspace(Snapshot!);candidate.ReplaceLoads(Beams!.Loads.Where(l=>l.Id!=editingBeamId));
@@ -151,7 +157,7 @@ namespace QksExcelAddIn.ViewModels
             var doc=new UserWindDocument(Snapshot!.Identity,UserFingerprint,UserBaseline,changed,"QKS Wind · giá trị nhập trực tiếp; ánh xạ tầng do người dùng đối chiếu",storyAssignments:UserRows.ToDictionary(r=>r.Key,r=>r.Story));
             doc.Expected();if(changed.Length==0)throw new InvalidOperationException("Không có giá trị User Loads thay đổi.");return doc;
         }
-        public DraftDocument BeamDocument(){RequireReady();if(Beams==null||BeamRows.Count==0)throw new InvalidOperationException("Chưa có tải dầm chuẩn bị gán.");return Beams.Document();}
+        public DraftDocument BeamDocument(){RequireReady();if(Snapshot!.CatalogOnly||Beams==null||BeamRows.Count==0)throw new InvalidOperationException("Chưa có tải dầm chuẩn bị gán.");return Beams.Document();}
         private string Signature()=>JsonCodec.Serialize(new{Tab,UserPattern,BeamPattern,MappingConfirmed,UserFingerprint,User=UserRows.Select(r=>r.Input(UserPattern)).ToArray(),Beams=Beams?.Document()});
         public void AcceptReview(){reviewedTab=Tab.ToString();reviewed=Signature();Changed(nameof(CanApply));}
         public void AssertReviewed(){if(!CanApply||reviewedTab!=Tab.ToString())throw new InvalidOperationException("Dữ liệu đã đổi. Kiểm tra và xem trước lại.");}
@@ -165,12 +171,12 @@ namespace QksExcelAddIn.ViewModels
             else {Beams!.ReplaceLoads(plan.DraftLoads);NotifyBeams();}
             Invalidate();Status="Đã nhập dữ liệu; chưa ghi ETABS.";
         }
-        public WindProject Project()=>new WindProject{Identity=Snapshot?.Identity??"",Beams=Beams?.Document(),UserBaseline=UserBaseline,UserRows=CaptureUsers(),UserFingerprint=UserFingerprint};
+        public WindProject Project()=>new WindProject{Identity=Snapshot?.Identity??"",Beams=Snapshot?.CatalogOnly==true?null:Beams?.Document(),UserBaseline=UserBaseline,UserRows=CaptureUsers(),UserFingerprint=UserFingerprint};
         public void Restore(WindProject project)
         {
             RequireReady();if(project.Version!=1||project.Identity!=Snapshot!.Identity)throw new ArgumentException("File gió không thuộc model đang đọc hoặc version chưa hỗ trợ.");
             var candidate=new DraftWorkspace(Snapshot);if(project.Beams!=null)candidate.Import(project.Beams);
-            if(project.UserBaseline!=null&&project.UserFingerprint!=SnapshotFingerprint.Of(Snapshot))throw new ArgumentException("Nguồn đã đổi; chưa thể khôi phục User Loads từ bộ cũ.");
+            if(project.UserBaseline!=null&&!WindBaseline.Matches(Snapshot,project.UserFingerprint))throw new ArgumentException("Nguồn đã đổi; chưa thể khôi phục User Loads từ bộ cũ.");
             if(project.UserBaseline!=null){
                 if(project.UserRows.Length!=project.UserBaseline.Rows.Count||project.UserRows.Any(r=>r.Pattern!=project.UserBaseline.Pattern||r.Target!="UserLoads")||project.UserRows.Select(r=>r.DiaphragmKey).Distinct(StringComparer.Ordinal).Count()!=project.UserRows.Length||project.UserRows.Any(r=>!project.UserBaseline.Rows.Any(b=>b.DiaphragmKey==r.DiaphragmKey)))throw new ArgumentException("Danh sách khóa User Loads trong file không khớp baseline.");
                 // Invalid/blank editing cells are retained on reopen, but cannot pass UserDocument validation.

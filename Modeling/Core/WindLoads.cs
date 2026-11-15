@@ -106,7 +106,7 @@ namespace QksExcelAddIn.Modeling.Core
                 var expected = document.Expected(); var model = host.Model; model.Guard();
                 if (!model.Capabilities.UserWind || model.IsLocked) throw new InvalidOperationException("Host không cho phép ghi User Loads hoặc model đang khóa.");
                 var fresh = await model.ReadSnapshotAsync(token);
-                if (fresh.Identity != document.Identity || SnapshotFingerprint.Of(fresh) != document.ModelFingerprint) throw new InvalidOperationException("Nguồn hình học/tải đã đổi. Đọc lại User Loads.");
+                if (fresh.Identity != document.Identity || fresh.CatalogOnly || !fresh.LoadBaselineComplete || !WindBaseline.Matches(fresh, document.ModelFingerprint)) throw new InvalidOperationException("Nguồn hình học/tải đã đổi. Đọc lại User Loads.");
                 if (!fresh.LoadPatterns.Contains(document.Before.Pattern, StringComparer.Ordinal)) throw new InvalidOperationException("Pattern User Loads chưa có trong nguồn.");
                 if(document.StoryAssignments.Values.Any(story=>!fresh.Levels.Any(l=>l.Name==story)))throw new InvalidOperationException("Story của dữ liệu gió không có trong mô hình hiện tại.");
                 if (fresh.Loads.Any(l => l.Pattern == document.Before.Pattern && (l.Value1 != 0 || l.Value2 != 0)))

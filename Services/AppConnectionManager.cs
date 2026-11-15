@@ -45,6 +45,7 @@ namespace QksExcelAddIn.Services
             get => _activeEtabs;
             set {
                 lock (EtabsService.EtabsLock) {
+                    if (!ReferenceEquals(_activeEtabs,value)) Modeling.WorkspaceModelReads.Invalidate();
                     _activeEtabs = value;
                     EtabsService.ResetSessionCaches();
                 }

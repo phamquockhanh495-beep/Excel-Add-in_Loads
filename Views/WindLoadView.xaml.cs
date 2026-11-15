@@ -26,7 +26,7 @@ namespace QksExcelAddIn.Views
         private CancellationTokenSource? cancellation;
         private EtabsInstanceInfo? sourceConnection;
         private string savedProject="",baselineProject="";
-        private bool closed;
+        private bool closed,applying;
         private Vec2? sectionStart;
         private WindUiSettings settings=new WindUiSettings();
         private static string SettingsFile=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"QKS","Wind","ui.json");
@@ -34,6 +34,7 @@ namespace QksExcelAddIn.Views
         {
             InitializeComponent();DataContext=vm;WorkspacePopupChrome.Attach(this);WorkspaceWindowPlacement.Attach(this);
             BuildUserColumns();
+            vm.PropertyChanged+=async(_,e)=>{if(e.PropertyName==nameof(vm.Tab)&&vm.Tab==1&&!vm.Busy)await EnsureGeometry();};
             Canvas.SelectionRequested+=(ids,change)=>vm.Viewer.SelectElements(ids.Where(id=>vm.Snapshot?.Elements.Any(e=>e.Id==id&&e.Kind==ElementKind.Beam)==true).ToArray(),change);
             Canvas.ViewContextRequested+=OpenCanvasMenu;
             Canvas.PlanePointPicked+=point=>{
@@ -43,12 +44,13 @@ namespace QksExcelAddIn.Views
             vm.Viewer.PropertyChanged+=(_,e)=>{if(e.PropertyName==nameof(vm.Viewer.Level)||e.PropertyName==nameof(vm.Viewer.IsolateStory))Dispatcher.BeginInvoke(new Action(Canvas.Fit));};
             PreviewKeyDown+=Keys;
             AppConnectionManager.ConnectionChanged+=ConnectionChanged;
+            WorkspaceModelReads.ModelChanged+=ModelDataChanged;
             Closing+=(_,e)=>{
                 if(vm.Busy){e.Cancel=true;vm.Status="Hủy hoặc chờ tác vụ kết thúc trước khi đóng.";return;}
                 if(IsDirty()&&MessageBox.Show(this,"Bộ gió đã thay đổi. Đóng mà không lưu?","QKS Wind",MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes){e.Cancel=true;return;}
                 Try(SaveSettings);
             };
-            Closed+=(_,__)=>{closed=true;cancellation?.Cancel();AppConnectionManager.ConnectionChanged-=ConnectionChanged;};
+            Closed+=(_,__)=>{closed=true;cancellation?.Cancel();AppConnectionManager.ConnectionChanged-=ConnectionChanged;WorkspaceModelReads.ModelChanged-=ModelDataChanged;};
             Loaded+=async(_,__)=>{Try(LoadSettings);if(AppConnectionManager.IsEtabsConnected)await ReadModel();};
         }
         private void BuildUserColumns()
@@ -58,6 +60,12 @@ namespace QksExcelAddIn.Views
             foreach(var c in new[]{("Fx (kN)","Fx"),("Fy (kN)","Fy"),("Mz (kN·m)","Mz"),("X (m)","X"),("Y (m)","Y")})UserGrid.Columns.Add(new DataGridTextColumn{Header=c.Item1,Binding=new Binding(c.Item2){UpdateSourceTrigger=UpdateSourceTrigger.PropertyChanged,ValidatesOnDataErrors=true},Width=new DataGridLength(1,DataGridLengthUnitType.Star),MinWidth=95});
         }
         private void ConnectionChanged()=>Dispatcher.BeginInvoke(new Action(()=>{if(closed)return;cancellation?.Cancel();vm.MarkStale();ModelText.Text="Kết nối đã thay đổi · Đọc lại ETABS";}));
+        private void ModelDataChanged()
+        {
+            // This window already reports its own Apply result and marks itself stale.
+            if(Dispatcher.CheckAccess()&&applying)return;
+            Dispatcher.BeginInvoke(new Action(()=>{if(!closed&&vm.Snapshot!=null)vm.MarkStale();}));
+        }
         private void GuardSource()
         {
             if(sourceConnection==null||!ReferenceEquals(sourceConnection,AppConnectionManager.ActiveEtabs))throw new InvalidOperationException("Kết nối đã đổi. Đọc lại ETABS.");
@@ -71,22 +79,42 @@ namespace QksExcelAddIn.Views
             finally{cancellation.Dispose();cancellation=null;vm.Viewer.Busy=false;vm.Busy=false;}
         }
         private bool IsDirty()=>vm.Snapshot!=null&&JsonCodec.Serialize(vm.Project())!=(savedProject.Length>0?savedProject:baselineProject);
-        private async Task ReadModel()
+        private async Task ReadModel(bool refresh = false)
         {
+            int requestedTab=vm.Tab;bool preserveTab=vm.Snapshot!=null;
             if(IsDirty()&&MessageBox.Show(this,"Đọc lại sẽ thay bộ dữ liệu đang soạn. Tiếp tục? Lưu bộ gió trước nếu cần giữ lại.","QKS Wind",MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return;
+            if(refresh&&vm.Snapshot!=null)vm.MarkStale();
             await Run(async()=>{
                 if(!AppConnectionManager.IsEtabsConnected)throw new InvalidOperationException("Chọn ETABS trong Kết nối API. Module gán gió chưa hỗ trợ SAFE.");
                 var connection=AppConnectionManager.ActiveEtabs;
-                var snapshot=await new EtabsSnapshotReader().ReadAsync(s=>vm.Status=s,cancellation!.Token,true);
+                string readStatus="";
+                var read=await WorkspaceModelReads.ReadAsync(ModelReadScope.Catalog,refresh,s=>{readStatus=s;vm.Status=s;},cancellation!.Token);
+                var snapshot=read.Snapshot;
                 if(!ReferenceEquals(connection,AppConnectionManager.ActiveEtabs))throw new InvalidOperationException("Kết nối đã đổi trong khi đọc.");
                 var patterns=WindHostInspection.Patterns();vm.SetSnapshot(snapshot,patterns);sourceConnection=connection;
                 ((DataGridComboBoxColumn)UserGrid.Columns[0]).ItemsSource=snapshot.Levels.OrderByDescending(l=>l.Elevation).Select(l=>l.Name).ToArray();
-                ModelText.Text=AppConnectionManager.GetEtabsDisplayName();ApplySettings();
+                ModelText.Text=AppConnectionManager.GetEtabsDisplayName();ModelText.ToolTip=readStatus;ApplySettings();if(preserveTab)vm.Tab=requestedTab;
                 savedProject="";baselineProject=JsonCodec.Serialize(vm.Project());Canvas.Fit();
-                vm.Status=patterns.Length==0?"Model chưa có Load Pattern loại Wind. Tạo pattern trong ETABS rồi đọc lại.":"Đã đọc model. Chọn pattern và nhập giá trị gió đã tính.";
+                vm.Status=patterns.Length==0?"Model chưa có Load Pattern loại Wind. Tạo pattern trong ETABS rồi đọc lại.":readStatus+" · Chọn pattern và Đọc User Loads. Hình học được đọc khi mở tab dầm biên.";
             });
+            if(vm.Tab==1)await EnsureGeometry();
         }
-        private async void ReadClick(object sender,RoutedEventArgs e)=>await ReadModel();
+        private async void ReadClick(object sender,RoutedEventArgs e)=>await ReadModel(true);
+        private async Task EnsureGeometry()
+        {
+            if(vm.Busy||vm.Snapshot==null||!vm.Snapshot.CatalogOnly)return;
+            bool dirty=IsDirty();string? error=null;
+            await Run(async()=>{
+                try {
+                    GuardSource();string readStatus="";
+                    var read=await WorkspaceModelReads.ReadAsync(ModelReadScope.Verified,false,s=>{readStatus=s;vm.Status=s;},cancellation!.Token);
+                    GuardSource();var viewWatch=System.Diagnostics.Stopwatch.StartNew();vm.InstallGeometry(read.Snapshot);Canvas.Fit();
+                    WorkspaceModelReads.RecordViewDuration("Wind",viewWatch.Elapsed,vm.Viewer.Scene.Count);vm.Status=readStatus;ModelText.ToolTip=readStatus;
+                    if(!dirty){savedProject="";baselineProject=JsonCodec.Serialize(vm.Project());}
+                }catch(Exception ex){error=ex.GetBaseException().Message;throw;}
+            });
+            if(error!=null){vm.Tab=0;vm.Status=error+" · Chuyển lại tab dầm biên để thử lại.";}
+        }
         private void ConnectClick(object sender,RoutedEventArgs e)=>new GetApiView().Show();
         private void CancelClick(object sender,RoutedEventArgs e)=>cancellation?.Cancel();
         private void ReadUsersClick(object sender,RoutedEventArgs e)=>Try(()=>{
@@ -126,15 +154,15 @@ namespace QksExcelAddIn.Views
             // Freeze the reviewed document before Busy disables the editor.
             UserWindDocument? user=null;DraftDocument? beams=null;
             try{if(vm.Tab==0)user=vm.UserDocument();else beams=vm.BeamDocument();}catch(Exception ex){vm.Status=ex.Message;return;}
-            vm.Invalidate();
-            await Run(async()=>{
+            vm.Invalidate();applying=true;
+            try { await Run(async()=>{
                 GuardSource();var host=new EtabsLoadApplyHost(s=>vm.Status=s);
                 string outcome,error,backup;bool changed,restored;
                 if(user!=null){var result=await UserWindApply.ExecuteAsync(user,host,cancellation!.Token);outcome=result.Outcome;error=result.Error;backup=result.BackupPath;changed=result.MayHaveChanges;restored=result.UnitsRestored;}
                 else{var result=await LoadApply.ExecuteAsync(beams!,host,cancellation!.Token);outcome=result.Outcome;error=result.Error;backup=result.BackupPath;changed=result.MayHaveChanges;restored=result.UnitsRestored;}
                 if(changed||!restored)vm.MarkStale();
                 vm.Status=outcome+" · "+error+(backup.Length>0?" · Backup: "+backup:"")+(changed?" · Đọc lại ETABS trước lần ghi tiếp.":"");
-            });
+            }); } finally { applying=false; }
         }
         private void StageClick(object sender,RoutedEventArgs e)=>Try(vm.StageSelected);
         private void DeleteBeamClick(object sender,RoutedEventArgs e)=>Try(()=>{var ids=new HashSet<string>(BeamGrid.SelectedItems.Cast<DraftLoad>().Select(l=>l.Id));vm.Beams!.ReplaceLoads(vm.BeamRows.Where(l=>!ids.Contains(l.Id)).ToArray());vm.NotifyBeams();});
@@ -194,13 +222,20 @@ namespace QksExcelAddIn.Views
             if(!CommitGrid()||vm.Snapshot==null)return;var dialog=new SaveFileDialog{Filter="QKS Wind|*.qkswind.json",FileName="QKS-Wind.qkswind.json"};if(dialog.ShowDialog(this)!=true)return;
             string json=JsonCodec.Serialize(vm.Project());WriteFile(dialog.FileName,json);savedProject=json;SaveSettings();vm.Status="Đã lưu bộ gió; không ghi ETABS.";
         });
-        private void OpenClick(object sender,RoutedEventArgs e)=>Try(()=>{
-            if(IsDirty()&&MessageBox.Show(this,"Thay bộ gió đang soạn bằng file đã lưu?","QKS Wind",MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return;
-            var dialog=new OpenFileDialog{Filter="QKS Wind|*.qkswind.json"};if(dialog.ShowDialog(this)!=true)return;
-            var project=JsonCodec.Deserialize<WindProject>(JsonCodec.Read(dialog.FileName));
-            if(project.UserBaseline!=null){GuardSource();var fresh=new EtabsLoadApplyHost(s=>vm.Status=s).ReadUserWind(project.UserBaseline.Pattern);if(!UserWindApply.Same(fresh,project.UserBaseline))throw new InvalidOperationException("User Loads trong ETABS đã đổi so với file. Đọc lại và nhập lại giá trị cần sửa.");}
-            vm.Restore(project);savedProject=JsonCodec.Serialize(vm.Project());vm.Status="Đã mở bộ gió. Đối chiếu lại và xem trước trước khi gán.";
-        });
+        private async void OpenClick(object sender,RoutedEventArgs e)
+        {
+            try {
+                if(IsDirty()&&MessageBox.Show(this,"Thay bộ gió đang soạn bằng file đã lưu?","QKS Wind",MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return;
+                var dialog=new OpenFileDialog{Filter="QKS Wind|*.qkswind.json"};if(dialog.ShowDialog(this)!=true)return;
+                var project=JsonCodec.Deserialize<WindProject>(JsonCodec.Read(dialog.FileName));
+                // A new Tab-1-only file needs no frame/area read; older/full projects do.
+                if(project.Beams!=null&&vm.Snapshot?.CatalogOnly==true) {
+                    await EnsureGeometry();if(vm.Snapshot?.CatalogOnly==true)return;
+                }
+                if(project.UserBaseline!=null){GuardSource();var fresh=new EtabsLoadApplyHost(s=>vm.Status=s).ReadUserWind(project.UserBaseline.Pattern);if(!UserWindApply.Same(fresh,project.UserBaseline))throw new InvalidOperationException("User Loads trong ETABS đã đổi so với file. Đọc lại và nhập lại giá trị cần sửa.");}
+                vm.Restore(project);savedProject=JsonCodec.Serialize(vm.Project());vm.Status="Đã mở bộ gió. Đối chiếu lại và xem trước trước khi gán.";
+            }catch(Exception ex){vm.Status=ex.GetBaseException().Message;}
+        }
         private void ProbeClick(object sender,RoutedEventArgs e)=>Try(()=>{
             GuardSource();var data=WindHostInspection.Probe();var dialog=new SaveFileDialog{Filter="JSON|*.json",FileName="QKS-ETABS-UserWind-Schema.json"};if(dialog.ShowDialog(this)==true){WriteFile(dialog.FileName,JsonCodec.Serialize(data));vm.Status="Đã xuất schema và dữ liệu User Wind từ host; không thay đổi ETABS.";}
         });

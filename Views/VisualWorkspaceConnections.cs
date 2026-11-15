@@ -40,6 +40,10 @@ namespace QksExcelAddIn.Views
             } catch (Exception ex) { vm.Status = "Không quét được ETABS / SAFE: " + ex.GetBaseException().Message; }
             finally { updatingModels = false; }
         }
+        private void ModelDataChanged()=>Dispatcher.BeginInvoke(new Action(()=>{
+            if(closed||vm.Snapshot==null)return;
+            vm.Status="QKS vừa thay đổi tải trong CSI. Bấm Đọc lại để đồng bộ mặt bằng và báo cáo.";
+        }));
         private void ConnectionChanged()
         {
             Dispatcher.BeginInvoke(new Action(() => {
@@ -63,16 +67,18 @@ namespace QksExcelAddIn.Views
             if (closed || !IsLoaded || vm.Busy || !readLifecycle.Pending || readStartPending) return; readStartPending = true;
             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(async () => { readStartPending = false; if (!closed) await ReadConnectedModelAsync(); }));
         }
-        private async Task ReadConnectedModelAsync()
+        private async Task ReadConnectedModelAsync(bool refresh = false)
         {
             if (!readLifecycle.TryBegin(vm.Busy, out long ticket)) return;
             bool Current() => readLifecycle.Accept(ticket, AppConnectionManager.ActiveEtabs, AppConnectionManager.ModelIdentity);
             if (!Current()) { ConnectionChanged(); return; }
-            StopPlanePicking(); vm.SetSnapshot(null, false); vm.Busy = true;
+            StopPlanePicking(); vm.Busy = true;
             var reading = new CancellationTokenSource(); cancellation = reading;
             try {
-                var snapshot = await new EtabsSnapshotReader().ReadAsync(message => { if (Current() && !closed) vm.Status = message; }, reading.Token);
-                if (!closed && Current() && !reading.IsCancellationRequested) { vm.SetSnapshot(snapshot, false); LoadSectionFile(); RestoreViewerModelPreferences(); Canvas.Fit(); }
+                string readStatus="";
+                var read = await WorkspaceModelReads.ReadAsync(ModelReadScope.Viewer, refresh, message => { readStatus=message; if (Current() && !closed) vm.Status = message; }, reading.Token);
+                var snapshot=read.Snapshot;
+                if (!closed && Current() && !reading.IsCancellationRequested) { var viewWatch=System.Diagnostics.Stopwatch.StartNew(); vm.SetSnapshot(snapshot, false); LoadSectionFile(); RestoreViewerModelPreferences(); Canvas.Fit(); WorkspaceModelReads.RecordViewDuration("Model2D",viewWatch.Elapsed,vm.Scene.Count); vm.Status=readStatus; ConnectedModelBox.ToolTip=readStatus; }
             } catch (OperationCanceledException) { if (Current() && !closed) vm.Status = "Đã hủy đọc; bấm Đọc lại khi cần."; }
             catch (Exception ex) { if (Current() && !closed) vm.Status = "Đọc không thành công: " + ex.GetBaseException().Message; }
             finally { if (ReferenceEquals(cancellation, reading)) cancellation = null; reading.Dispose(); vm.Busy = false; }

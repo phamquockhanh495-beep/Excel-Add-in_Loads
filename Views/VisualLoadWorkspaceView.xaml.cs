@@ -45,7 +45,8 @@ namespace QksExcelAddIn.Views
             PreviewKeyDown += Window_KeyDown;
             Closing += (_, e) => { if (vm.Busy) { e.Cancel = true; vm.Status = "Chờ tác vụ kết thúc hoặc Hủy đọc trước khi đóng."; return; } SaveViewerPreferences(); };
             AppConnectionManager.ConnectionChanged += ConnectionChanged;
-            Closed += (_, __) => { closed = true; cancellation?.Cancel(); AppConnectionManager.ConnectionChanged -= ConnectionChanged; };
+            WorkspaceModelReads.ModelChanged += ModelDataChanged;
+            Closed += (_, __) => { closed = true; cancellation?.Cancel(); AppConnectionManager.ConnectionChanged -= ConnectionChanged; WorkspaceModelReads.ModelChanged -= ModelDataChanged; };
             try {if(File.Exists(VisualWorkspaceObjectColorsView.ProfileFile))vm.ApplyObjectColors(JsonCodec.Deserialize<ObjectColorProfile>(JsonCodec.Read(VisualWorkspaceObjectColorsView.ProfileFile)));}
             catch(Exception ex){vm.Status="Không đọc được Color Objects: "+ex.Message;}
             try { if(File.Exists(VisualWorkspaceTextView.ProfileFile))vm.ApplyTextProfile(JsonCodec.Deserialize<ViewerTextProfile>(JsonCodec.Read(VisualWorkspaceTextView.ProfileFile))); }
@@ -65,7 +66,7 @@ namespace QksExcelAddIn.Views
             if (vm.Busy) return;
             SynchronizeConnection(false);readLifecycle.Request();
             if (!readLifecycle.Pending) { vm.Status="Chọn ETABS trong Kết nối API trước khi đọc.";return; }
-            await ReadConnectedModelAsync();
+            await ReadConnectedModelAsync(true);
         }
         private void Cancel_Click(object sender, RoutedEventArgs e) { readLifecycle.CancelPending();cancellation?.Cancel(); }
         private void Plan_Checked(object sender, RoutedEventArgs e) { if (DataContext != null) vm.Elevation = false; }

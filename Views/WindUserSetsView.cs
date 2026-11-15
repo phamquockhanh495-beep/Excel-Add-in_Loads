@@ -116,7 +116,7 @@ namespace QksExcelAddIn.Views
             Commit();if(baseline==null||needsReload||tables.SelectedItem?.ToString()!=baseline.Key)throw new InvalidOperationException("Đọc lại đúng bảng đang chọn trước.");
             int sets=WindTableSnapshot.Positive(count.Text,"Number of Load Sets");
             var after=baseline.ReplacePattern(pattern,rows,sets,reversible.IsChecked==true,allowed);
-            var change=new WindTableChange(model.Identity,SnapshotFingerprint.Of(model),pattern,baseline,after,exclusive.IsChecked==true);change.Validate();return change;
+            var change=new WindTableChange(model.Identity,WindBaseline.Of(model),pattern,baseline,after,exclusive.IsChecked==true);change.Validate();return change;
         }
         private void Review()
         {

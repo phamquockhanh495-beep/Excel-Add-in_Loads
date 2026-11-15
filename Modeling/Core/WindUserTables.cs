@@ -164,7 +164,7 @@ namespace QksExcelAddIn.Modeling.Core
                 if(!change.ReplaceEditingSession)throw new InvalidOperationException("Chưa xác nhận dùng phiên chỉnh sửa bảng riêng của QKS.");
                 if(WindTableSnapshot.Equivalent(change.Before,change.After))throw new InvalidOperationException("Không có thay đổi để ghi.");
                 var fresh=await host.Model.ReadSnapshotAsync(token);
-                if(fresh.Identity!=change.Identity||SnapshotFingerprint.Of(fresh)!=change.ModelFingerprint)throw new InvalidOperationException("Model đã đổi; đọc lại trước khi gán.");
+                if(fresh.Identity!=change.Identity||fresh.CatalogOnly || !fresh.LoadBaselineComplete||!WindBaseline.Matches(fresh,change.ModelFingerprint))throw new InvalidOperationException("Model đã đổi; đọc lại trước khi gán.");
                 if(fresh.Loads.Any(l=>l.Pattern==change.Pattern&&(l.Value1!=0||l.Value2!=0)))throw new InvalidOperationException("Pattern có tải trực tiếp; dùng pattern riêng cho User Loads.");
                 await host.ValidateAssignments(change.After,change.Pattern,token);
                 if(host.Read(change.Before.Key).Fingerprint!=change.Before.Fingerprint)throw new InvalidOperationException("Bảng User Wind đã đổi sau lần đọc.");

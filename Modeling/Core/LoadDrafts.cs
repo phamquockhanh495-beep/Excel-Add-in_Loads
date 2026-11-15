@@ -94,7 +94,10 @@ namespace QksExcelAddIn.Modeling.Core
 
     public static class SnapshotFingerprint
     {
-        public static string Of(ModelSnapshot snapshot)
+        // Snapshots and their fingerprinted fields are immutable. Weak keys do not retain old models.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ModelSnapshot,Lazy<string>> Fingerprints = new System.Runtime.CompilerServices.ConditionalWeakTable<ModelSnapshot,Lazy<string>>();
+        public static string Of(ModelSnapshot snapshot)=>Fingerprints.GetValue(snapshot,s=>new Lazy<string>(()=>Compute(s),true)).Value;
+        private static string Compute(ModelSnapshot snapshot)
         {
             // Ignore capture time and API read order. Include source identity, geometry, patterns and the load baseline.
             var canonical = new {

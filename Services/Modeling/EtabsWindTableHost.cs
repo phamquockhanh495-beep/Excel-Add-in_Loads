@@ -80,6 +80,7 @@ namespace QksExcelAddIn.Services.Modeling
                 int version=table.Version;var fields=table.Fields.ToArray();var data=table.Rows.SelectMany(r=>r).ToArray();
                 Ok(sap.DatabaseTables.SetTableForEditingArray(table.Key,ref version,ref fields,table.Rows.Length,ref data),"SetTableForEditingArray");Guard();if(model.IsLocked)throw new InvalidOperationException("Model vừa bị khóa; chưa Apply bảng.");
                 int fatal=0,errors=0,warnings=0,info=0;string log="";
+                WorkspaceModelReads.NotifyModelChanged();
                 result.ReturnCode=sap.DatabaseTables.ApplyEditedTables(true,ref fatal,ref errors,ref warnings,ref info,ref log);
                 result.FatalErrors=fatal;result.Errors=errors;result.Warnings=warnings;result.Log=log;Guard();return result;
             }finally{int rc=sap.DatabaseTables.CancelTableEditing();if(rc!=0){result.Warnings++;result.Log+="\nCancelTableEditing trả mã "+rc;}}

@@ -104,12 +104,12 @@ namespace QksExcelAddIn.Services.Modeling
         }
         public int DeletePattern(ModelElement element, string pattern)
         {
-            Guard(); return element.Vertices.Count == 2 ? sap.FrameObj.DeleteLoadDistributed(element.Name, pattern, eItemType.Objects) :
+            Guard(); WorkspaceModelReads.NotifyModelChanged(); return element.Vertices.Count == 2 ? sap.FrameObj.DeleteLoadDistributed(element.Name, pattern, eItemType.Objects) :
                 sap.AreaObj.DeleteLoadUniform(element.Name, pattern, eItemType.Objects);
         }
         public int Append(ModelElement element, ExistingLoad load)
         {
-            Guard(); return element.Vertices.Count == 2 ? sap.FrameObj.SetLoadDistributed(element.Name, load.Pattern,
+            Guard(); WorkspaceModelReads.NotifyModelChanged(); return element.Vertices.Count == 2 ? sap.FrameObj.SetLoadDistributed(element.Name, load.Pattern,
                 load.Kind == "Frame force/length" ? 1 : 2, load.Direction, load.Start, load.End, load.Value1, load.Value2,
                 load.CoordinateSystem, true, false, eItemType.Objects) :
                 sap.AreaObj.SetLoadUniform(element.Name, load.Pattern, load.Value1, load.Direction, false, load.CoordinateSystem, eItemType.Objects);
@@ -144,6 +144,7 @@ namespace QksExcelAddIn.Services.Modeling
         public int SetUserWind(string pattern, UserWindRow row)
         {
             Guard(); if (!canonical) throw new InvalidOperationException("SetUserLoad cần đơn vị kN-m.");
+            WorkspaceModelReads.NotifyModelChanged();
             return sap.LoadPatterns.AutoWind.SetUserLoad(pattern, row.DiaphragmKey, row.Fx, row.Fy, row.Mz, row.X, row.Y);
         }
         public void SaveJournal(ApplyReport report) => WriteJournal(report);

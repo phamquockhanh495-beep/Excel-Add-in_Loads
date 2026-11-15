@@ -2,6 +2,7 @@
 
 Excel Add-in quản lý tải tường và tải sàn, trao đổi với ETABS và AutoCAD. Target build hiện tại: AutoCAD desktop Windows x64 2018–2026; Excel desktop 64-bit.
 
+- [Mở nhanh Model 2D / Tải gió: đọc theo nhu cầu, cache phiên và bulk API](docs/QKS-MODEL-PERFORMANCE-2026-11-15.md)
 - [Build trên Windows, nạp XLL/plugin và checklist test](docs/BUILD-AND-TEST.md)
 - [Báo cáo thay đổi, kết quả kiểm tra và giới hạn](docs/CHANGE-REPORT.md)
 - [Viewer 2D Preview 1: thay đổi, cài Excel, kiểm thử và tiến độ Plan/Elevation/SAFE](docs/VIEWER-PREVIEW-1.md)
